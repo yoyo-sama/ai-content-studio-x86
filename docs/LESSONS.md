@@ -18,6 +18,8 @@ Chaque point ci-dessous a été découvert par un échec réel puis validé par 
 
 ## Vidéo LTX 2.3
 
+- **Distilled 1.1 partout, sous sa forme officielle** (décision utilisateur 2026-07-07) : checkpoint `ltx-2.3-22b-dev-fp8` + `LoraLoaderModelOnly(ltx_2.3_22b_distilled_1.1_lora…, 0.5)` + sigmas 8 steps. Le checkpoint complet `ltx-2.3-22b-distilled-1.1.safetensors` (46 Go, présent sur disque) n'est utilisé par **aucun** template officiel — ne pas basculer sans A/B validé (et retirer la LoRA si on le fait : double distillation sinon).
+
 - **FLF2V (first/last frame)** par segment : `LTXVPreprocess(img_compression 35)` ×2 → `LTXVAddGuide(frame_idx 0, strength 0.7)` → `LTXVAddGuide(frame_idx -1, 0.7)` → sampler sur le latent AddGuide2[2] → **sortie sampler slot 1 (`denoised_output`)** → `LTXVCropGuides` (conditioning depuis AddGuide2) → `VAEDecodeTiled(768/64/4096/64)`.
 - **Piège n°3 — recadrage sauvage** : `LTXVAddGuide` center-croppe/zoome toute image guide dont le ratio ≠ latent → résultat "sans rapport" avec l'image. Toujours insérer `ImageScale(lanczos, width, height, crop:"center")` avant `LTXVPreprocess`, et dériver le format vidéo de la 1ʳᵉ image (côté long ≤1280, multiples de 32).
 - **Piège n°4 — prompt de mouvement** : en FLF2V le texte doit décrire le MOUVEMENT ; un prompt de contenu (ex. prompt de poster) fait dériver le milieu des segments vers ce contenu (effet "diaporama d'images inventées"). Segments courts (2–3 s) = fidélité ; longs (5 s+) = dérive.

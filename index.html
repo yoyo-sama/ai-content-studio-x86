@@ -427,6 +427,11 @@
       align-items: stretch;
     }
 
+    /* Tuile Pipeline Flow dans la colonne Node Monitor : pile verticale compacte */
+    .panel .pipeline { padding: 14px; margin: 14px 0 12px; }
+    .panel .pipeline-flow { grid-template-columns: 1fr; }
+    .panel .step { min-height: 0; }
+
     .step {
       min-height: 74px;
       display: grid;
@@ -805,6 +810,8 @@
       .brand, .powered { justify-content: center; text-align: center; }
       .header-controls { justify-content: center; }
       .events { max-height: 150px; }
+      /* aside pleine largeur : les étapes redeviennent une rangée */
+      .panel .pipeline-flow { grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); }
     }
 
     @media screen and (max-width: 760px) {
@@ -881,6 +888,17 @@
         <div class="metric-row"><span>Queue depth</span><strong id="queueDepth">—</strong></div>
         <div class="metric-row"><span>Last job</span><strong id="latency">—</strong></div>
         <div class="metric-row"><span>Ollama LLM</span><strong id="ollamaState">—</strong></div>
+
+        <div class="pipeline">
+          <h3 class="section-title">Pipeline Flow</h3>
+          <div class="pipeline-flow">
+            <div class="step" id="stepEnrich"><strong>Prompt Enrichment</strong><span id="llmLabel">Ollama · local LLM</span></div>
+            <div class="step active"><strong>Scenario Router</strong><span id="routeLabel">Campaign pipeline</span></div>
+            <div class="step active"><strong>Model Selector</strong><span id="modelLabel">—</span></div>
+            <div class="step" id="stepInference"><strong>GB10 Inference</strong><span>ComfyUI diffusion</span></div>
+            <div class="step"><strong>Gallery</strong><span>Assets + export</span></div>
+          </div>
+        </div>
 
         <div class="events" id="events"></div>
       </aside>
@@ -1013,17 +1031,6 @@
           </section>
 
           <section class="output-panel">
-            <div class="pipeline">
-              <h3 class="section-title">Pipeline Flow</h3>
-              <div class="pipeline-flow">
-                <div class="step" id="stepEnrich"><strong>Prompt Enrichment</strong><span id="llmLabel">Ollama · local LLM</span></div>
-                <div class="step active"><strong>Scenario Router</strong><span id="routeLabel">Campaign pipeline</span></div>
-                <div class="step active"><strong>Model Selector</strong><span id="modelLabel">—</span></div>
-                <div class="step" id="stepInference"><strong>GB10 Inference</strong><span>ComfyUI diffusion</span></div>
-                <div class="step"><strong>Gallery</strong><span>Assets + export</span></div>
-              </div>
-            </div>
-
             <div>
               <h3 class="section-title">Job Queue</h3>
               <div class="job-list" id="jobList"></div>
