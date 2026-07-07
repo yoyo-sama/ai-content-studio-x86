@@ -2214,7 +2214,7 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
       const cv = byType("CreateVideo")[0];
       if (!cv || cv[1].inputs.audio) return;
       let loader = byType("LTXVAudioVAELoader")[0]?.[0];
-      if (!loader) loader = add("LTXVAudioVAELoader", { ckpt_name: "ltx-2.3-22b-dev-fp8.safetensors" });
+      if (!loader) loader = add("LTXVAudioVAELoader", { ckpt_name: "ltx-2.3-22b-distilled-1.1.safetensors" });
       const finalDecode = graph[cv[1].inputs.images[0]];
       const sepId = finalDecode.inputs.samples[0];
       if (graph[sepId]?.class_type === "LTXVSeparateAVLatent") {
@@ -2251,19 +2251,16 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
     }
 
     function addLtxShared(add, withAudio) {
-      const ckpt = add("CheckpointLoaderSimple", { ckpt_name: "ltx-2.3-22b-dev-fp8.safetensors" });
+      // Checkpoint distillé LTX 2.3 (fusionné : dev + LoRA distillé intégré) —
+      // pas de LoRA distillé séparé. L'audio VAE est embarqué dans le checkpoint.
+      const ckpt = add("CheckpointLoaderSimple", { ckpt_name: "ltx-2.3-22b-distilled-1.1.safetensors" });
       const te = add("LTXAVTextEncoderLoader", {
         text_encoder: "gemma_3_12B_it_fp4_mixed.safetensors",
-        ckpt_name: "ltx-2.3-22b-dev-fp8.safetensors", device: "default"
-      });
-      const lora = add("LoraLoaderModelOnly", {
-        model: [ckpt, 0],
-        lora_name: "ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors",
-        strength_model: 0.5
+        ckpt_name: "ltx-2.3-22b-distilled-1.1.safetensors", device: "default"
       });
       const sampler = add("SamplerEulerAncestral", { eta: 0, s_noise: 1 });
       const sigmas = add("ManualSigmas", { sigmas: FLF2V_SIGMAS });
-      const audioVae = withAudio ? add("LTXVAudioVAELoader", { ckpt_name: "ltx-2.3-22b-dev-fp8.safetensors" }) : null;
+      const audioVae = withAudio ? add("LTXVAudioVAELoader", { ckpt_name: "ltx-2.3-22b-distilled-1.1.safetensors" }) : null;
       // Prompt-enhancer intégré LTX 2.3 (pattern du template officiel) : le
       // distillé tourne à cfg 1, l'adhérence au prompt repose sur cet enhancer.
       const enh = add("LoraLoader", {
@@ -2271,7 +2268,7 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
         lora_name: "gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors",
         strength_model: 1, strength_clip: 1
       });
-      return { ckpt, te, lora, sampler, sigmas, audioVae, enh };
+      return { ckpt, te, sampler, sigmas, audioVae, enh };
     }
 
     function addLtxEnhance(add, sh, prompt, seed) {
@@ -2304,7 +2301,7 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
           latent: [g1, 2], image: [p2, 0], frame_idx: -1, strength: 0.7
         });
         const noise = add("RandomNoise", { noise_seed: seed + k });
-        const guider = add("CFGGuider", { model: [sh.lora, 0], positive: [g2, 0], negative: [g2, 1], cfg: 1 });
+        const guider = add("CFGGuider", { model: [sh.ckpt, 0], positive: [g2, 0], negative: [g2, 1], cfg: 1 });
         let samplerInput = [g2, 2], videoLatent;
         if (withAudio) {
           const aLat = add("LTXVEmptyLatentAudio", {

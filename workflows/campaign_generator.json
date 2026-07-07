@@ -2261,7 +2261,7 @@
     }
    },
    "widgets_values": [
-    "ltx-2.3-22b-dev-fp8.safetensors"
+    "ltx-2.3-22b-distilled-1.1.safetensors"
    ]
   },
   {
@@ -2579,78 +2579,6 @@
     }
    },
    "widgets_values": []
-  },
-  {
-   "id": 55,
-   "type": "LoraLoaderModelOnly",
-   "pos": [
-    430,
-    5210
-   ],
-   "size": [
-    430,
-    170
-   ],
-   "flags": {},
-   "order": 22,
-   "mode": 0,
-   "inputs": [
-    {
-     "localized_name": "model",
-     "name": "model",
-     "type": "MODEL",
-     "link": 68
-    },
-    {
-     "localized_name": "lora_name",
-     "name": "lora_name",
-     "type": "COMBO",
-     "widget": {
-      "name": "lora_name"
-     },
-     "link": null
-    }
-   ],
-   "outputs": [
-    {
-     "localized_name": "MODEL",
-     "name": "MODEL",
-     "type": "MODEL",
-     "links": [
-      54,
-      57,
-      123
-     ]
-    }
-   ],
-   "properties": {
-    "enableTabs": false,
-    "tabWidth": 65,
-    "tabXOffset": 10,
-    "hasSecondTab": false,
-    "secondTabText": "Send Back",
-    "secondTabOffset": 80,
-    "secondTabWidth": 65,
-    "cnr_id": "comfy-core",
-    "ver": "0.3.75",
-    "Node name for S&R": "LoraLoaderModelOnly",
-    "models": [
-     {
-      "name": "ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors",
-      "url": "https://huggingface.co/Comfy-Org/ltx-2.3/resolve/main/split_files/loras/ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors",
-      "directory": "loras"
-     }
-    ],
-    "ue_properties": {
-     "widget_ue_connectable": {},
-     "version": "7.7",
-     "input_ue_unconnectable": {}
-    }
-   },
-   "widgets_values": [
-    "ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors",
-    0.5
-   ]
   },
   {
    "id": 56,
@@ -4579,7 +4507,7 @@
     }
    },
    "widgets_values": [
-    "ltx-2.3-22b-dev-fp8.safetensors"
+    "ltx-2.3-22b-distilled-1.1.safetensors"
    ]
   },
   {
@@ -4659,7 +4587,7 @@
    },
    "widgets_values": [
     "gemma_3_12B_it_fp4_mixed.safetensors",
-    "ltx-2.3-22b-dev-fp8.safetensors",
+    "ltx-2.3-22b-distilled-1.1.safetensors",
     "default"
    ]
   },
@@ -4962,7 +4890,7 @@
    "title": "Campaign Generator - Summer Streaming Originals",
    "properties": {},
    "widgets_values": [
-    "## Campaign Generator - Summer Streaming Originals (Dell GB10 AI Content Studio demo)\n\nCinematic promotional visuals for a premium streaming service. Blue/silver palette, energetic, premium entertainment feel, 18-34 urban audience.\n\n**Branches**\n- Poster (Flux.2 Klein, 832x1216, batch 3) -> `campaign/poster`\n- Thumbnail (Flux.2 Klein, 1280x720, batch 3) -> `campaign/thumbnail`\n- Social Square (Flux.2 Klein, 1024x1024, batch 1) -> `campaign/social`\n- Vertical Teaser (LTX 2.3 text-to-video, 720x1280, 5s @ 25fps) -> `campaign/teaser`\n\n**Models used (installed only)**\n- diffusion_models: flux-2-klein-9b-fp8.safetensors\n- text_encoders: qwen_3_4b.safetensors, gemma_3_12B_it_fp4_mixed.safetensors\n- vae: flux2-vae.safetensors\n- checkpoints: ltx-2.3-22b-dev-fp8.safetensors\n- loras: ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors (distilled fast path)\n- latent_upscale_models: ltx-2.3-spatial-upscaler-x2-1.1.safetensors\n\n**Removed from the official templates**\n- Audio decode/output chain in the LTX branch (LTXVAudioVAEDecode + AUDIO into CreateVideo) - no vocoder model installed. Internal joint AV-latent plumbing was kept since it only needs the already installed LTX checkpoint.\n- LLM prompt-enhancement side branch (LoraLoader with gemma-3-12b-it-abliterated_lora_rank64_bf16 + TextGenerateLTX2Prompt + switch) in the LTX branch, for a deterministic authored prompt. This LoRA is installed but unused since the branch was removed.\n- Swapped flux-2-klein-4b/base-4b -> flux-2-klein-9b-fp8 (installed distilled 'klein' path, cfg=1, 4 steps)."
+    "## Campaign Generator - Summer Streaming Originals (Dell GB10 AI Content Studio demo)\n\nCinematic promotional visuals for a premium streaming service. Blue/silver palette, energetic, premium entertainment feel, 18-34 urban audience.\n\n**Branches**\n- Poster (Flux.2 Klein, 832x1216, batch 3) -> `campaign/poster`\n- Thumbnail (Flux.2 Klein, 1280x720, batch 3) -> `campaign/thumbnail`\n- Social Square (Flux.2 Klein, 1024x1024, batch 1) -> `campaign/social`\n- Vertical Teaser (LTX 2.3 text-to-video, 720x1280, 5s @ 25fps) -> `campaign/teaser`\n\n**Models used (installed only)**\n- diffusion_models: flux-2-klein-9b-fp8.safetensors\n- text_encoders: qwen_3_4b.safetensors, gemma_3_12B_it_fp4_mixed.safetensors\n- vae: flux2-vae.safetensors\n- checkpoints: ltx-2.3-22b-distilled-1.1.safetensors (merged distilled: dev + distilled LoRA baked in)\n- latent_upscale_models: ltx-2.3-spatial-upscaler-x2-1.1.safetensors\n\n**Removed from the official templates**\n- Audio decode/output chain in the LTX branch (LTXVAudioVAEDecode + AUDIO into CreateVideo) - no vocoder model installed. Internal joint AV-latent plumbing was kept since it only needs the already installed LTX checkpoint.\n- LLM prompt-enhancement side branch (LoraLoader with gemma-3-12b-it-abliterated_lora_rank64_bf16 + TextGenerateLTX2Prompt + switch) in the LTX branch, for a deterministic authored prompt. This LoRA is installed but unused since the branch was removed.\n- Swapped flux-2-klein-4b/base-4b -> flux-2-klein-9b-fp8 (installed distilled 'klein' path, cfg=1, 4 steps)."
    ],
    "color": "#222",
    "bgcolor": "#000"
@@ -5747,7 +5675,7 @@
   ],
   [
    54,
-   55,
+   86,
    0,
    52,
    0,
@@ -5771,7 +5699,7 @@
   ],
   [
    57,
-   55,
+   86,
    0,
    84,
    0,
@@ -5856,14 +5784,6 @@
    54,
    2,
    "LATENT"
-  ],
-  [
-   68,
-   86,
-   0,
-   55,
-   0,
-   "MODEL"
   ],
   [
    69,
@@ -6275,7 +6195,7 @@
   ],
   [
    133,
-   55,
+   86,
    0,
    102,
    0,

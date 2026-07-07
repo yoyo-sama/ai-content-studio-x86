@@ -2394,7 +2394,7 @@
     "ver": "0.24.0"
    },
    "widgets_values": [
-    "ltx-2.3-22b-dev-fp8.safetensors"
+    "ltx-2.3-22b-distilled-1.1.safetensors"
    ]
   },
   {
@@ -2433,54 +2433,9 @@
    },
    "widgets_values": [
     "gemma_3_12B_it_fp4_mixed.safetensors",
-    "ltx-2.3-22b-dev-fp8.safetensors",
+    "ltx-2.3-22b-distilled-1.1.safetensors",
     "default"
    ]
-  },
-  {
-   "id": 57,
-   "type": "LoraLoaderModelOnly",
-   "pos": [
-    2450,
-    700
-   ],
-   "size": [
-    400,
-    100
-   ],
-   "flags": {},
-   "order": 56,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "model",
-     "type": "MODEL",
-     "link": 90
-    }
-   ],
-   "outputs": [
-    {
-     "name": "MODEL",
-     "type": "MODEL",
-     "links": [
-      126,
-      154,
-      182,
-      210,
-      238
-     ]
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "LoraLoaderModelOnly",
-    "cnr_id": "comfy-core",
-    "ver": "0.24.0"
-   },
-   "widgets_values": [
-    "ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors",
-    0.5
-   ],
-   "title": "Distilled LoRA (fast path)"
   },
   {
    "id": 59,
@@ -6030,7 +5985,7 @@
     "ver": "0.24.0"
    },
    "widgets_values": [
-    "ltx-2.3-22b-dev-fp8.safetensors"
+    "ltx-2.3-22b-distilled-1.1.safetensors"
    ]
   },
   {
@@ -8238,14 +8193,6 @@
    "IMAGE"
   ],
   [
-   90,
-   55,
-   0,
-   57,
-   0,
-   "MODEL"
-  ],
-  [
    92,
    56,
    0,
@@ -8375,7 +8322,7 @@
   ],
   [
    126,
-   57,
+   55,
    0,
    82,
    0,
@@ -8583,7 +8530,7 @@
   ],
   [
    154,
-   57,
+   55,
    0,
    94,
    0,
@@ -8791,7 +8738,7 @@
   ],
   [
    182,
-   57,
+   55,
    0,
    106,
    0,
@@ -8999,7 +8946,7 @@
   ],
   [
    210,
-   57,
+   55,
    0,
    118,
    0,
@@ -9207,7 +9154,7 @@
   ],
   [
    238,
-   57,
+   55,
    0,
    130,
    0,
@@ -9767,7 +9714,7 @@
   ],
   [
    310,
-   57,
+   55,
    0,
    165,
    0,

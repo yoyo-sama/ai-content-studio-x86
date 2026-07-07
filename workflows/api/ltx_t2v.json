@@ -27,7 +27,7 @@
  "49": {
   "class_type": "LTXVAudioVAELoader",
   "inputs": {
-   "ckpt_name": "ltx-2.3-22b-dev-fp8.safetensors"
+   "ckpt_name": "ltx-2.3-22b-distilled-1.1.safetensors"
   }
  },
  "50": {
@@ -46,7 +46,7 @@
   "class_type": "CFGGuider",
   "inputs": {
    "model": [
-    "55",
+    "86",
     0
    ],
    "positive": [
@@ -100,17 +100,6 @@
     "77",
     0
    ]
-  }
- },
- "55": {
-  "class_type": "LoraLoaderModelOnly",
-  "inputs": {
-   "model": [
-    "86",
-    0
-   ],
-   "lora_name": "ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors",
-   "strength_model": 0.5
   }
  },
  "56": {
@@ -453,7 +442,7 @@
   "class_type": "CFGGuider",
   "inputs": {
    "model": [
-    "55",
+    "86",
     0
    ],
    "positive": [
@@ -487,14 +476,14 @@
  "86": {
   "class_type": "CheckpointLoaderSimple",
   "inputs": {
-   "ckpt_name": "ltx-2.3-22b-dev-fp8.safetensors"
+   "ckpt_name": "ltx-2.3-22b-distilled-1.1.safetensors"
   }
  },
  "87": {
   "class_type": "LTXAVTextEncoderLoader",
   "inputs": {
    "text_encoder": "gemma_3_12B_it_fp4_mixed.safetensors",
-   "ckpt_name": "ltx-2.3-22b-dev-fp8.safetensors",
+   "ckpt_name": "ltx-2.3-22b-distilled-1.1.safetensors",
    "device": "default"
   }
  },
