@@ -15,6 +15,14 @@ d = json.load(open("workflows/xxx.json"))
 
 ## 2. Conversion UI→API et soumission
 
+**Voie rapide** — `tools/validate.py` automatise tout ce qui suit (vérif structurelle + placeholders de test + soumission + poll + extraction frames/audio) :
+
+```bash
+python3 tools/validate.py workflows/api/ltx_t2v.json --reduce --frames 0,12,24 --audio
+```
+
+Voie manuelle (debug fin) :
+
 ```bash
 curl -s http://localhost:8188/object_info > tools/object_info.json   # rafraîchir si nœuds inconnus
 python3 tools/convert.py workflows/storyboard_animatic.json > /tmp/api.json

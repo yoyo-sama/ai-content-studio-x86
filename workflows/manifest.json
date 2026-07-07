@@ -1,4 +1,46 @@
 {
+  "pipelines": [
+    {
+      "id": "text2image",
+      "label": "Text2Image",
+      "controls": ["variants", "ratio"]
+    },
+    {
+      "id": "image2image",
+      "label": "Image2Image / Edit",
+      "controls": ["variants", "ratio", "image", "markets"]
+    },
+    {
+      "id": "image2video",
+      "label": "Image2Video",
+      "controls": ["duration", "ratio", "image", "audio"]
+    },
+    {
+      "id": "text2video",
+      "label": "Text2Video",
+      "controls": ["duration", "ratio", "audio"]
+    },
+    {
+      "id": "sequence2video",
+      "label": "Animatic (FLF2V)",
+      "scenario": "storyboard",
+      "controls": ["seq", "audio"]
+    },
+    {
+      "id": "storyboard_full",
+      "label": "Storyboard complet (shots + grille + animatic)",
+      "scenario": "storyboard",
+      "controls": ["duration", "shots", "hold", "ratio", "audio"],
+      "defaults": { "duration": 2 }
+    },
+    {
+      "id": "campaign_full",
+      "label": "Campagne complète (posters + thumbnails + teaser)",
+      "scenario": "campaign",
+      "controls": ["duration", "variants", "audio"],
+      "defaults": { "duration": 5 }
+    }
+  ],
   "workflows": [
     {
       "id": "flux2_t2i",

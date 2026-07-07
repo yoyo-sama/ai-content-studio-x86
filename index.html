@@ -1122,20 +1122,28 @@
     const OLLAMA = `http://${HOST}:11434`;
     const OLLAMA_MODEL = "gemma4:e4b";
     const RATIOS = { "16:9": [1280, 720], "9:16": [720, 1280], "1:1": [1024, 1024], "4:5": [832, 1040] };
-    const PIPELINE_LABELS = {
-      text2image: "Text2Image",
-      image2image: "Image2Image / Edit",
-      image2video: "Image2Video",
-      text2video: "Text2Video",
-      sequence2video: "Animatic (FLF2V)",
-      storyboard_full: "Storyboard complet (shots + grille + animatic)",
-      campaign_full: "Campagne complète (posters + thumbnails + teaser)"
-    };
-    const PIPELINE_SCENARIO = {
-      sequence2video: "storyboard",
-      storyboard_full: "storyboard",
-      campaign_full: "campaign"
-    };
+    // Fallback si le manifest ne fournit pas la section "pipelines" (manifest v2).
+    // controls ∈ {duration, shots, hold, variants, ratio, audio, image, markets, seq}
+    const PIPELINES_FALLBACK = [
+      { id: "text2image", label: "Text2Image", controls: ["variants", "ratio"] },
+      { id: "image2image", label: "Image2Image / Edit", controls: ["variants", "ratio", "image", "markets"] },
+      { id: "image2video", label: "Image2Video", controls: ["duration", "ratio", "image", "audio"] },
+      { id: "text2video", label: "Text2Video", controls: ["duration", "ratio", "audio"] },
+      { id: "sequence2video", label: "Animatic (FLF2V)", scenario: "storyboard", controls: ["seq", "audio"] },
+      { id: "storyboard_full", label: "Storyboard complet (shots + grille + animatic)", scenario: "storyboard",
+        controls: ["duration", "shots", "hold", "ratio", "audio"], defaults: { duration: 2 } },
+      { id: "campaign_full", label: "Campagne complète (posters + thumbnails + teaser)", scenario: "campaign",
+        controls: ["duration", "variants", "audio"], defaults: { duration: 5 } }
+    ];
+    function pipelineDef(id) {
+      return (manifest.pipelines || []).find(p => p.id === id)
+        || PIPELINES_FALLBACK.find(p => p.id === id) || null;
+    }
+    // scenario absent = pipeline disponible partout ; chaîne ou liste sinon.
+    function pipelineScenarios(id) {
+      const s = pipelineDef(id)?.scenario;
+      return s == null ? null : (Array.isArray(s) ? s : [s]);
+    }
 
     const SCENARIOS = {
       campaign: {
@@ -1327,12 +1335,12 @@
     let activeScenario = "campaign";
 
     function refreshPipelineOptions() {
-      // Certains pipelines sont réservés à un scénario (Animatic/Storyboard complet, Campagne complète)
+      // Certains pipelines sont réservés à un ou plusieurs scénarios (manifest v2 : pipelines[].scenario)
       const pipelines = [...new Set(manifest.workflows.map(w => w.pipeline))]
-        .filter(p => !PIPELINE_SCENARIO[p] || PIPELINE_SCENARIO[p] === activeScenario);
+        .filter(p => { const s = pipelineScenarios(p); return !s || s.includes(activeScenario); });
       const prev = pipelineSelect.value;
       pipelineSelect.innerHTML = pipelines
-        .map(p => `<option value="${p}">${PIPELINE_LABELS[p] || p}</option>`).join("")
+        .map(p => `<option value="${p}">${pipelineDef(p)?.label || p}</option>`).join("")
         || "<option value=''>Aucun pipeline</option>";
       if (pipelines.includes(prev)) pipelineSelect.value = prev;
       updateModelOptions();
@@ -1348,27 +1356,24 @@
       refreshPipelineOptions();
     }
 
+    // Champs du formulaire pilotés par pipelines[].controls (manifest v2)
+    const CONTROL_WRAPS = {
+      image: "imageInputWrap", duration: "durationWrap", markets: "marketsWrap",
+      seq: "seqWrap", shots: "shotCountWrap", hold: "holdWrap",
+      variants: "variantsWrap", ratio: "ratioWrap", audio: "audioWrap"
+    };
     function updateModelOptions() {
       const wfs = manifest.workflows.filter(w => w.pipeline === pipelineSelect.value);
       modelSelect.innerHTML = wfs.map(w => `<option value="${w.id}">${w.label}</option>`).join("")
         || "<option value=''>Aucun modèle</option>";
       const p = pipelineSelect.value;
-      imageInputWrap.style.display = ["image2image", "image2video"].includes(p) ? "" : "none";
-      // Pour storyboard_full : durée PAR SEGMENT d'animatic ; campaign_full : durée du teaser
-      $("durationWrap").style.display =
-        ["text2video", "image2video", "storyboard_full", "campaign_full"].includes(p) ? "" : "none";
-      $("marketsWrap").style.display = p === "image2image" ? "" : "none";
-      $("seqWrap").style.display = p === "sequence2video" ? "" : "none";
-      $("shotCountWrap").style.display = p === "storyboard_full" ? "" : "none";
-      $("holdWrap").style.display = p === "storyboard_full" ? "" : "none";
-      $("variantsWrap").style.display =
-        ["text2video", "image2video", "sequence2video", "storyboard_full"].includes(p) ? "none" : "";
-      $("ratioWrap").style.display = ["sequence2video", "campaign_full"].includes(p) ? "none" : "";
-      $("audioWrap").style.display =
-        ["text2video", "image2video", "sequence2video", "storyboard_full", "campaign_full"].includes(p) ? "" : "none";
-      if (p === "sequence2video") ensureMotionBrief();
-      if (["storyboard_full", "campaign_full"].includes(p) && p !== updateModelOptions.lastPipeline)
-        $("videoDuration").value = p === "storyboard_full" ? 2 : 5;
+      const def = pipelineDef(p);
+      const controls = def?.controls || [];
+      for (const [name, wrapId] of Object.entries(CONTROL_WRAPS))
+        $(wrapId).style.display = controls.includes(name) ? "" : "none";
+      if (controls.includes("seq")) ensureMotionBrief();
+      if (def?.defaults?.duration && p !== updateModelOptions.lastPipeline)
+        $("videoDuration").value = def.defaults.duration;
       updateModelOptions.lastPipeline = p;
       updateModelLabel();
     }
@@ -1414,7 +1419,7 @@
         '"{{HEIGHT}}"': String(p.height),
         '"{{BATCH}}"': String(p.batch),
         '"{{DURATION}}"': String(p.duration || 5),
-        '"{{FRAMES}}"': String((p.duration || 5) * 25 + 1),
+        '"{{FRAMES}}"': String((p.duration || 5) * (p.fps || 25) + 1),
         '"{{IMAGE}}"': JSON.stringify(p.image || "")
       };
       let t = raw;
@@ -1723,6 +1728,14 @@
     }
 
     // ── Generate ───────────────────────────────────────────────────
+    // Registre des builders JS (manifest : workflows[].builder) — un nouveau
+    // builder = une fonction (seed, width, height) + une entrée ici.
+    const BUILDERS = {
+      flf2v: (seed) => generateSequence(seed),
+      storyboard_full: (seed, width, height) => generateStoryboardFull(seed, width, height),
+      campaign_full: (seed) => generateCampaignFull(seed)
+    };
+
     async function uploadInputImage() {
       let file = imageInput.files[0];
       if (!file && selectedAsset) {
@@ -1758,16 +1771,9 @@
           : parseInt(seedRaw, 10) || 0;
         const batch = Math.min(8, Math.max(1, parseInt(variantsInput.value, 10) || 1));
         const duration = Math.min(10, Math.max(1, parseInt($("videoDuration").value, 10) || 5));
-        if (wf.pipeline === "sequence2video") {
-          await generateSequence(seed);
-          return;
-        }
-        if (wf.pipeline === "storyboard_full") {
-          await generateStoryboardFull(seed, width, height);
-          return;
-        }
-        if (wf.pipeline === "campaign_full") {
-          await generateCampaignFull(seed);
+        // Workflows à graphe construit en JS : dispatch par le champ "builder" du manifest
+        if (wf.builder && BUILDERS[wf.builder]) {
+          await BUILDERS[wf.builder](seed, width, height);
           return;
         }
         const jobsSpec = wf.pipeline === "image2image" && selectedMarkets.size
@@ -1786,9 +1792,13 @@
           const raw = await getTemplate(wf.file);
           const graph = buildGraph(raw, {
             prompt: spec.prompt, negative: negative.value.trim(),
-            seed: seed + i, width, height, batch, duration, image
+            seed: seed + i, width, height, batch, duration, image, fps: wf.fps
           });
-          if (["text2video", "image2video"].includes(wf.pipeline) && $("audioToggle").checked)
+          // Audio joint : uniquement pour les graphes LTX (un moteur vidéo tiers,
+          // ex. Wan, ignore le toggle — applyLtxAudio le casserait).
+          const isLtxGraph = Object.values(graph).some(n =>
+            n.class_type.startsWith("LTXV") || n.class_type === "LTXAVTextEncoderLoader");
+          if (["text2video", "image2video"].includes(wf.pipeline) && $("audioToggle").checked && isLtxGraph)
             applyLtxAudio(graph);
           const res = await fetch(`${COMFY}/prompt`, {
             method: "POST",

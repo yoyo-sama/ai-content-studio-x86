@@ -23,15 +23,17 @@ Tout est côté client. Les graphes ComfyUI sont soit des **templates API substi
 |---|---|
 | `"{{PROMPT}}"`, `"{{NEGATIVE_PROMPT}}"`, `"{{IMAGE}}"` | chaînes JSON |
 | `"{{SEED}}"`, `"{{WIDTH}}"`, `"{{HEIGHT}}"`, `"{{BATCH}}"` | nombres |
-| `"{{DURATION}}"` (s), `"{{FRAMES}}"` (= durée×25+1) | nombres |
+| `"{{DURATION}}"` (s), `"{{FRAMES}}"` (= durée×fps+1, fps=25 par défaut) | nombres |
 
-**manifest.json** : `{workflows:[{id, label, pipeline, model, file, enrich?, builder?}]}`. `file:null` + `builder` = pipeline construit en JS. `pipeline` ∈ text2image / image2image / text2video / image2video / sequence2video / storyboard_full / campaign_full. `enrich:"builtin"` (Ernie) court-circuite l'auto-enrichissement gemma.
+**manifest.json** (v2, deux sections) :
+- `pipelines:[{id, label, scenario?, controls, defaults?, fps?}]` — pilote l'UI. `scenario` (chaîne ou liste) restreint le pipeline à un/des scénario(s) ; absent = disponible partout. `controls` = liste des champs de formulaire à afficher, parmi `duration, shots, hold, variants, ratio, audio, image, markets, seq` (mappés aux wraps par `CONTROL_WRAPS`). `defaults.duration` = valeur remise au changement de pipeline. `fps` propagé à `buildGraph` pour `{{FRAMES}}` (ex. Wan = 16). Un fallback JS (`PIPELINES_FALLBACK`) couvre les 7 pipelines de base si la section manque.
+- `workflows:[{id, label, pipeline, model, file, enrich?, builder?, engine?, fps?}]`. `file:null` + `builder` = graphe construit en JS (dispatch via le registre `BUILDERS`). `enrich:"builtin"` (Ernie, templates LTX) court-circuite l'auto-enrichissement gemma. `engine:"ernie"` bascule les builders storyboard/campagne sur Ernie-Image.
 
 ## Flux Generate (handler du bouton)
 
 1. Auto-enrichissement gemma optionnel (sauf `enrich:"builtin"`).
 2. Calcul seed/ratio/batch/durée.
-3. Branches spéciales : `sequence2video` → `generateSequence` ; `storyboard_full` → `generateStoryboardFull` (gemma découpe le brief en N plans → `buildStoryboardFullGraph`) ; `campaign_full` → `generateCampaignFull`.
+3. Si `wf.builder` : dispatch via le registre `BUILDERS` (`flf2v`→`generateSequence`, `storyboard_full`→`generateStoryboardFull` (gemma découpe le brief en N plans → `buildStoryboardFullGraph`), `campaign_full`→`generateCampaignFull`). Un nouveau builder = une fonction `(seed, width, height)` + une entrée dans `BUILDERS`.
 4. Sinon : boucle `jobsSpec` (1 entrée, ou 1/marché sélectionné en image2image) → `tryCloudGeneration` (modes hybride/cloud, images seulement) sinon template local + `applyLtxAudio` éventuel → POST → `trackJob`.
 
 ## Builders de graphes JS (le cœur du projet)
@@ -62,3 +64,14 @@ Onglets Images/Vidéos avec compteurs. `addAsset` (dédoublonnage `seenAssets`, 
 | `theme`, `lang`, `cloudMode`, `cloudPlatform` | localStorage | préférences |
 | `deletedAssets` | localStorage | clés d'assets masqués |
 | `cloudKey:<plateforme>` | **sessionStorage** | clés API (jamais persistées) |
+
+## Ajouter un modèle / workflow (outillé)
+
+`tools/onboard.py <workflow_ui.json> --id <id> --label "<label>" --pipeline <p> --model "<nom>" [--fps N] [--enrich builtin]` fait toute la chaîne : rafraîchit `object_info`, convertit le format UI en API (`convert.py`), **injecte les placeholders** (`{{PROMPT}}`/`{{NEGATIVE_PROMPT}}` sur les CLIPTextEncode positif/négatif — ou l'input `prompt` du `TextGenerateLTX2Prompt` s'il est sur le chemin —, `{{SEED}}`, `{{WIDTH}}/{{HEIGHT}}/{{BATCH}}` des `Empty*Latent*`, `{{FRAMES}}` des latents vidéo, `{{IMAGE}}` des `LoadImage`), vérifie les `.safetensors` sur disque, écrit `workflows/api/<id>.json`, ajoute l'entrée manifest, puis lance `validate.py --reduce`. Le workflow source vient soit de `workflows/*.json`, soit d'un template officiel du conteneur (`docker exec comfyui-nvidia cat …/templates/<x>.json`).
+
+`tools/validate.py <api.json> [--reduce] [--frames 0,12,24] [--audio] [--image <fichier>]` : vérif structurelle (nœuds dans `object_info`, liens intègres, modèles sur disque) → substitution des placeholders par des valeurs de test → soumission → poll → extraction frames/mp3 pour inspection. **Toujours regarder le contenu produit**, pas seulement le statut (cf. `docs/TESTING.md`).
+
+**Nouveau pipeline** (jeu de contrôles UI inédit) : ajouter une entrée à `pipelines[]` du manifest (`controls`, `scenario?`, `fps?`) — aucun JS à toucher si les contrôles existent déjà. **Nouveau builder JS** : une fonction `(seed, width, height)` + une entrée dans le registre `BUILDERS` + `{file:null, builder:"<nom>"}` au manifest.
+
+### Monter un modèle en version supérieure
+Ré-onboarder le template officiel de la nouvelle version sous un id suffixé (`_v2`) au lieu d'écraser : `onboard.py … --id <base>_v2`. Les deux apparaissent alors dans le menu Modèle → rendu **A/B côte à côte** dans la galerie (même brief/seed). Une fois la nouvelle version validée, retirer/renommer l'ancienne entrée manifest (le fichier api reste, réactivable en 1 ligne). Piège récurrent : un modèle plus gros exige souvent un autre encodeur (cf. Flux2 Klein 9B ⇒ `qwen_3_8b_fp8mixed`, LESSONS) — `onboard.py` détecte les fichiers manquants, `validate.py` attrape au rendu les incompatibilités de dimensions que la vérif structurelle laisse passer.

@@ -1,2 +1,3 @@
 tools/object_info.json
 .claude/settings.local.json
+tools/__pycache__/

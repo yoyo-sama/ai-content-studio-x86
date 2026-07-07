@@ -9,7 +9,9 @@ docker compose up -d                                  # servir l'app (nginx :809
 curl -s http://localhost:8188/system_stats | head -c 200   # ComfyUI vivant ?
 curl -s http://localhost:11434/api/version                 # Ollama vivant ?
 node --check <(python3 -c "import re;print(re.search(r'<script>(.*)</script>', open('index.html').read(), re.S).group(1))")   # valider le JS
-python3 tools/convert.py workflows/storyboard_animatic.json > /tmp/api.json   # UI→API
+python3 tools/convert.py workflows/storyboard_animatic.json > /tmp/api.json   # UI→API (brut)
+python3 tools/onboard.py <ui.json> --id X --label "…" --pipeline text2video --model "…"   # UI→API+placeholders+manifest+test
+python3 tools/validate.py workflows/api/ltx_t2v.json --reduce --frames 0,12 --audio       # rendu réel réduit + inspection
 ```
 
 Modèles installés : `ls /home/sparks/comfyui-spark/basedir/models/<dossier>/` (diffusion_models, checkpoints, text_encoders, vae, loras, latent_upscale_models). Ne jamais référencer un `.safetensors` sans vérifier sa présence.
@@ -20,7 +22,7 @@ Modèles installés : `ls /home/sparks/comfyui-spark/basedir/models/<dossier>/` 
 - **Simplest thing that works** — pas de feature/abstraction/validation au-delà du demandé.
 - Enrichissement de prompt : **exclusivement `gemma4:e4b`** via Ollama (ne pas exposer d'autres LLM locaux).
 - Clés API cloud : **sessionStorage uniquement** (jamais localStorage, jamais loguées).
-- Pipeline FLF2V/Storyboard complet : réservés au scénario Storyboard ; Campagne complète au scénario Campaign (`PIPELINE_SCENARIO` dans le JS).
+- Restriction pipeline↔scénario : via `pipelines[].scenario` dans `manifest.json` (manifest v2), pas en JS.
 - Le journal d'événements n'est pas traduit (choix assumé) ; tout le reste de l'UI est i18n FR/EN/ES/DE.
 
 ## Où est quoi dans index.html
