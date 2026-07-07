@@ -1,0 +1,110 @@
+{
+ "1500:1473": {
+  "class_type": "CLIPLoader",
+  "inputs": {
+   "clip_name": "qwen_3_4b.safetensors",
+   "type": "lumina2",
+   "device": "default"
+  }
+ },
+ "1500:1470": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "{{PROMPT}}",
+   "clip": [
+    "1500:1473",
+    0
+   ]
+  }
+ },
+ "1500:1472": {
+  "class_type": "VAELoader",
+  "inputs": {
+   "vae_name": "ae.safetensors"
+  }
+ },
+ "1452": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "images": [
+    "1500:1451",
+    0
+   ],
+   "filename_prefix": "studio/zimage"
+  }
+ },
+ "1500:1454": {
+  "class_type": "ModelSamplingAuraFlow",
+  "inputs": {
+   "model": [
+    "1500:1471",
+    0
+   ],
+   "shift": 3
+  }
+ },
+ "1500:1476": {
+  "class_type": "ConditioningZeroOut",
+  "inputs": {
+   "conditioning": [
+    "1500:1470",
+    0
+   ]
+  }
+ },
+ "1500:1456": {
+  "class_type": "EmptySD3LatentImage",
+  "inputs": {
+   "width": "{{WIDTH}}",
+   "height": "{{HEIGHT}}",
+   "batch_size": "{{BATCH}}"
+  }
+ },
+ "1500:1446": {
+  "class_type": "KSampler",
+  "inputs": {
+   "model": [
+    "1500:1454",
+    0
+   ],
+   "seed": "{{SEED}}",
+   "steps": 8,
+   "cfg": 1,
+   "sampler_name": "res_multistep",
+   "scheduler": "simple",
+   "positive": [
+    "1500:1470",
+    0
+   ],
+   "negative": [
+    "1500:1476",
+    0
+   ],
+   "latent_image": [
+    "1500:1456",
+    0
+   ],
+   "denoise": 1
+  }
+ },
+ "1500:1451": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "1500:1446",
+    0
+   ],
+   "vae": [
+    "1500:1472",
+    0
+   ]
+  }
+ },
+ "1500:1471": {
+  "class_type": "UNETLoader",
+  "inputs": {
+   "unet_name": "z_image_turbo_bf16.safetensors",
+   "weight_dtype": "default"
+  }
+ }
+}

@@ -1,0 +1,9 @@
+services:
+  ai-content-studio:
+    image: nginx:alpine
+    container_name: ai-content-studio-web
+    ports:
+      - "8090:80"
+    volumes:
+      - ./:/usr/share/nginx/html:ro
+    restart: unless-stopped
