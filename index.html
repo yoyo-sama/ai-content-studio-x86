@@ -2421,9 +2421,11 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
       const { g, add } = makeGraphBuilder();
       const img = engine === "ernie" ? addErnieShared(add, negText) : addFluxShared(add);
       const shots = shotPrompts.map((p, i) => {
+        // Seed PARTAGÉ entre shots (cfg 1 distillé → le seed ancre le sujet ;
+        // le prompt fait varier l'angle) pour des keyframes cohérents en FLF2V.
         const dec = engine === "ernie"
-          ? addErnieShot(add, img, p, seed + 100 + i, width, height, 1)
-          : addFluxShot(add, img, p, seed + 100 + i, width, height, 1);
+          ? addErnieShot(add, img, p, seed + 100, width, height, 1)
+          : addFluxShot(add, img, p, seed + 100, width, height, 1);
         add("SaveImage", { images: [dec, 0], filename_prefix: `studio/story/shot_${String(i + 1).padStart(2, "0")}` });
         return [dec, 0];
       });
