@@ -1117,9 +1117,11 @@
   <script>
     // ── Configuration ──────────────────────────────────────────────
     const HOST = window.location.hostname || "localhost";
-    const COMFY = `http://${HOST}:8188`;
-    const COMFY_WS = `ws://${HOST}:8188/ws`;
-    const OLLAMA = `http://${HOST}:11434`;
+    // ComfyUI/Ollama servis via le reverse-proxy nginx (/comfy/, /ollama/) — un
+    // seul port exposé (8090), fonctionne à distance comme en local.
+    const COMFY = "/comfy";
+    const COMFY_WS = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/comfy/ws`;
+    const OLLAMA = "/ollama";
     const OLLAMA_MODEL = "gemma4:e4b";
     const RATIOS = { "16:9": [1280, 720], "9:16": [720, 1280], "1:1": [1024, 1024], "4:5": [832, 1040] };
     // Fallback si le manifest ne fournit pas la section "pipelines" (manifest v2).
@@ -1172,7 +1174,7 @@
     const jobList = $("jobList"), events = $("events");
     const galleryImages = $("galleryImages"), galleryVideos = $("galleryVideos");
     const routeLabel = $("routeLabel"), modelLabel = $("modelLabel");
-    $("comfyLink").href = COMFY;
+    $("comfyLink").href = `http://${HOST}:8188`;
 
     // ── Thème clair / sombre ───────────────────────────────────────
     function applyTheme(theme) {

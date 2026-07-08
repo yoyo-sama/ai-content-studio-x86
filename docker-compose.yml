@@ -2,8 +2,10 @@ services:
   ai-content-studio:
     image: nginx:alpine
     container_name: ai-content-studio-web
-    ports:
-      - "8090:80"
+    # network_mode: host — nginx écoute sur :8090 (interface publique de l'hôte)
+    # et atteint ComfyUI (127.0.0.1:8188) + Ollama (127.0.0.1:11434) en local.
+    network_mode: host
     volumes:
       - ./:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
