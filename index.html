@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dell AI Content Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" />
   <style>
     :root {
       --bg: #ffffff;
@@ -24,10 +27,15 @@
       --image: #343ced;
       --soft-blue: #a9e0ff;
       --soft-green: #daf181;
-      --card: rgba(255, 255, 255, 0.78);
-      --card-2: rgba(255, 255, 255, 0.72);
+      --card: rgba(255, 255, 255, 0.80);
+      --card-2: rgba(255, 255, 255, 0.92);
       --radius: 18px;
+      --radius-sm: 14px;
+      --pill: 999px;
       --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+      --shadow-sm: 0 8px 22px rgba(15, 23, 42, 0.06);
+      --grad: linear-gradient(135deg, var(--brand), var(--highlight));
+      --on-grad: #ffffff;
       --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
       --sans: "DM Sans", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
@@ -46,7 +54,14 @@
 
     button, input, select, textarea { font: inherit; }
 
-    .app-shell { max-width: 1440px; margin: 0 auto; padding: 24px; }
+    .app-shell {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+    }
 
     .portal-header {
       display: grid;
@@ -87,31 +102,32 @@
 
     .eyebrow {
       text-transform: uppercase;
-      letter-spacing: 0.35em;
+      letter-spacing: 0.14em;
       font-size: 11px;
       color: var(--text-2);
-      font-weight: 700;
+      font-weight: 500;
     }
 
     h1 {
       margin: 0;
       font-size: clamp(28px, 4vw, 44px);
-      letter-spacing: 0.08em;
+      letter-spacing: -0.03em;
+      font-weight: 700;
       color: var(--text);
     }
 
     .powered {
       text-align: right;
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-2);
-      letter-spacing: 0.22em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      font-weight: 700;
+      font-weight: 500;
     }
 
     .layout {
       display: grid;
-      grid-template-columns: 340px minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr);
       gap: 22px;
       align-items: start;
     }
@@ -126,15 +142,118 @@
 
     .panel { padding: 20px; position: sticky; top: 18px; }
 
+    /* ── Rail d'icônes vertical + panneaux flottants ── */
+    .app-content { flex: 1 1 auto; min-width: 0; }
+
+    .app-rail {
+      flex: 0 0 60px;
+      width: 60px;
+      min-width: 0;
+      overflow: visible;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+      position: sticky;
+      top: 24px;
+      z-index: 41; /* sticky = contexte d'empilement : le rail passe au-dessus du contenu */
+      padding: 4px 8px;
+    }
+
+    /* Un panneau est ouvert : le rail s'élargit pour l'accueillir sous son icône.
+       Le contenu du studio n'est pas repoussé vers le bas, seulement rétréci. */
+    .app-rail.expanded {
+      flex-basis: 300px;
+      width: 300px;
+      max-height: calc(100vh - 48px);
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+    }
+
+    /* Bouton du rail : carré au repos, s'élargit au survol/actif pour révéler
+       son libellé — il déborde par-dessus le contenu (z-index) sans élargir la colonne. */
+    .rail-btn {
+      position: relative;
+      z-index: 1;
+      min-width: 44px;
+      height: 44px;
+      padding: 0 11px;
+      border-radius: 14px;
+      border: 1px solid var(--border-light);
+      background: var(--card-2);
+      color: var(--text-2);
+      font: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+
+    .rail-btn svg { width: 21px; height: 21px; flex: 0 0 auto; display: block; }
+
+    .rail-btn:hover, .rail-btn.active { z-index: 41; }
+
+    .rail-btn:hover:not(.active) { background: var(--selected); color: var(--highlight); }
+
+    .rail-btn.active {
+      background: var(--grad);
+      color: var(--on-grad);
+      box-shadow: var(--shadow-sm);
+      border-color: transparent;
+    }
+
+    .rail-name {
+      max-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      opacity: 0;
+      font-size: 12px;
+      font-weight: 700;
+      transition: max-width 0.22s ease, opacity 0.18s ease, margin-left 0.22s ease;
+    }
+
+    .rail-btn:hover .rail-name,
+    .rail-btn.active .rail-name { max-width: 220px; opacity: 1; margin-left: 10px; }
+
+    /* Panneau de section : carte sobre dans la colonne du rail, juste sous son icône. */
+    .flyout {
+      position: static;
+      align-self: stretch;
+      width: auto;
+      margin: 2px 0 4px;
+      padding: 14px;
+      backdrop-filter: none;
+      box-shadow: none;
+      background: var(--card-2);
+    }
+
+    .flyout[hidden] { display: none; }
+
+    /* Colonne étroite : pas de carte dans la carte, et les grilles se resserrent
+       au lieu de déborder. */
+    .flyout .right-card {
+      border: 0;
+      padding: 0;
+      margin: 0;
+      background: none;
+      backdrop-filter: none;
+      box-shadow: none;
+    }
+
+    .flyout .gauge-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .flyout .events { max-height: 170px; }
+
     .panel-title {
       display: flex;
       align-items: center;
       justify-content: space-between;
       text-transform: uppercase;
-      font-size: 12px;
-      letter-spacing: 0.22em;
+      font-size: 11px;
+      letter-spacing: 0.08em;
       color: var(--text-2);
-      font-weight: 700;
+      font-weight: 600;
       margin-bottom: 18px;
     }
 
@@ -178,8 +297,8 @@
       min-height: 92px;
       padding: 12px 8px;
       border: 1px solid var(--border-light);
-      border-radius: 14px;
-      background: var(--bg-light);
+      border-radius: var(--radius-sm);
+      background: var(--card-2);
       text-align: center;
     }
 
@@ -212,9 +331,9 @@
       margin-top: 6px;
       font-size: 10px;
       color: var(--text-2);
-      letter-spacing: 0.18em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      font-weight: 700;
+      font-weight: 500;
     }
 
     .metric-row {
@@ -254,69 +373,14 @@
 
     .studio-main { overflow: hidden; }
 
-    .hero {
-      padding: 28px;
-      background:
-        linear-gradient(120deg, rgba(246, 243, 235, 0.95), rgba(255, 255, 255, 0.72)),
-        radial-gradient(circle at 92% 16%, rgba(169, 224, 255, 0.44), transparent 30%);
+    /* Barre haute compacte : rail de profils + onglets en pilules, sans hero. */
+    .top-bar {
+      padding: 18px 28px;
       border-bottom: 1px solid var(--border-light);
-    }
-
-    .hero-top {
-      display: flex;
-      gap: 14px;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 22px;
-    }
-
-    .category {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.22em;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--highlight);
-    }
-
-    .category-icon {
-      width: 46px; height: 46px;
-      border-radius: 12px;
-      background: var(--soft-blue);
-      display: grid;
-      place-items: center;
-      font-size: 22px;
-    }
-
-    .badge {
-      padding: 8px 10px;
-      border-radius: 12px;
-      background: #13a14a;
-      color: #fff;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-    }
-
-    .hero h2 {
-      margin: 0 0 8px;
-      font-size: clamp(34px, 5vw, 56px);
-      letter-spacing: -0.06em;
-      line-height: 0.98;
-    }
-
-    .hero p {
-      margin: 0;
-      max-width: 820px;
-      color: var(--text-2);
-      font-size: 18px;
-      line-height: 1.5;
     }
 
     /* ── Rail de profils métiers (icônes, libellé au survol/sélection) ── */
     .profile-bar {
-      margin-top: 22px;
       display: flex;
       align-items: center;
       flex-wrap: wrap;
@@ -325,10 +389,10 @@
 
     .profile-lead {
       margin: 0;
-      font-size: 12px;
-      letter-spacing: 0.18em;
+      font-size: 11px;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      font-weight: 700;
+      font-weight: 500;
       color: var(--text-2);
     }
 
@@ -339,21 +403,25 @@
       align-items: center;
       gap: 0;
       cursor: pointer;
+      min-width: 42px;
+      min-height: 42px;
+      justify-content: center;
       padding: 8px 10px;
       border-radius: 12px;
       border: 1px solid var(--border-light);
       background: var(--card-2);
-      color: var(--text);
+      color: var(--text-2);
       font: inherit;
-      transition: border-color 0.2s ease, background 0.2s ease;
+      transition: color 0.2s ease, background 0.2s ease;
     }
 
-    .profile-card:hover { border-color: var(--border-dark); }
+    .profile-card:hover { background: var(--selected); color: var(--highlight); }
 
     .profile-card.active {
       background: var(--selected);
-      border-color: var(--highlight);
-      box-shadow: inset 0 0 0 1px var(--highlight);
+      color: var(--highlight);
+      border-color: transparent;
+      box-shadow: none;
     }
 
     .profile-icon { font-size: 20px; line-height: 1; }
@@ -371,31 +439,43 @@
     .profile-card:hover .profile-name,
     .profile-card.active .profile-name { max-width: 260px; opacity: 1; margin-left: 8px; }
 
+    /* Onglets de scénario : pilules horizontales dans une piste unique. */
     .scenario-tabs {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-top: 18px;
+      display: inline-flex;
+      grid-template-columns: none;
+      background: var(--card-2);
+      padding: 4px;
+      border-radius: 999px;
+      gap: 4px;
+      margin-top: 14px;
+      width: fit-content;
     }
 
     .scenario-tab {
       text-align: left;
-      border: 1px solid var(--border-light);
+      border: none;
       color: var(--text);
-      background: var(--card-2);
-      border-radius: 16px;
-      padding: 16px;
+      background: transparent;
+      border-radius: 999px;
+      padding: 10px 20px;
       cursor: pointer;
-      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+      box-shadow: none;
+      transition: background 0.2s ease, color 0.2s ease;
     }
 
-    .scenario-tab:hover { transform: translateY(-2px); border-color: var(--border-dark); }
+    .scenario-tab:hover { transform: none; box-shadow: none; background: var(--selected); }
 
-    .scenario-tab.active { background: var(--selected); border-color: var(--highlight); }
+    .scenario-tab.active {
+      background: var(--grad);
+      color: var(--on-grad);
+      box-shadow: none;
+    }
 
-    .scenario-tab strong { display: block; font-size: 15px; margin-bottom: 6px; }
+    .scenario-tab.active strong { color: var(--on-grad); }
 
-    .scenario-tab span { color: var(--text-2); font-size: 12px; line-height: 1.4; }
+    .scenario-tab strong { display: block; font-size: 13px; font-weight: 600; margin: 0; }
+
+    .scenario-tab span { display: none; }
 
     /* La barre Generate occupe toute la largeur : contrôles sur une ligne, galerie en dessous. */
     .studio-body {
@@ -407,32 +487,33 @@
 
     .section-title {
       margin: 0 0 14px;
-      font-size: 14px;
-      letter-spacing: 0.2em;
+      font-size: 11px;
+      letter-spacing: 0.07em;
       color: var(--text-2);
       text-transform: uppercase;
-      font-weight: 700;
+      font-weight: 600;
     }
 
     .form-stack { display: grid; gap: 14px; }
 
     label {
       display: grid;
-      gap: 7px;
-      font-size: 12px;
+      gap: 6px;
+      font-size: 10.5px;
       text-transform: uppercase;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.06em;
       color: var(--text-2);
-      font-weight: 700;
+      font-weight: 500;
     }
 
     textarea, input, select {
       width: 100%;
       border: 1px solid var(--border-light);
-      border-radius: 14px;
-      background: var(--bg-light);
+      border-radius: var(--radius-sm);
+      background: var(--card-2);
       color: var(--text);
-      padding: 12px 13px;
+      padding: 11px 13px;
+      font-size: 13px;
       outline: none;
       transition: border-color 0.18s ease, box-shadow 0.18s ease;
     }
@@ -450,7 +531,7 @@
 
     textarea:focus, input:focus, select:focus {
       border-color: var(--highlight);
-      box-shadow: 0 0 0 4px rgba(11, 92, 171, 0.12);
+      box-shadow: 0 0 0 3px rgba(52, 60, 237, 0.14);
     }
 
     .two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -461,10 +542,12 @@
       flex-wrap: wrap;
       align-items: flex-end;
       gap: 10px;
-      padding: 12px;
+      padding: 14px 18px;
       border: 1px solid var(--border-light);
-      border-radius: 18px;
-      background: var(--card-2);
+      border-radius: var(--radius);
+      background: var(--card);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
     }
 
     .generate-bar .gb-prompt { flex: 4 1 260px; }
@@ -487,9 +570,9 @@
     .generate-more { margin-top: 12px; }
     .generate-more > summary {
       cursor: pointer;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.12em;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--text-2);
       padding: 8px 0;
@@ -505,34 +588,38 @@
 
     .primary-btn, .secondary-btn {
       border: 0;
-      border-radius: 14px;
-      padding: 14px 16px;
+      border-radius: 12px;
+      padding: 13px 18px;
       cursor: pointer;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      transition: transform 0.2s ease, background 0.2s ease;
+      font-size: 13.5px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
     }
 
-    .primary-btn { background: var(--highlight); color: var(--bg); }
-    .primary-btn:hover { background: var(--hover); transform: translateY(-2px); }
-    .primary-btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+    .primary-btn {
+      background: var(--grad);
+      color: var(--on-grad);
+      box-shadow: 0 10px 24px rgba(52, 60, 237, 0.22);
+    }
+    .primary-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(52, 60, 237, 0.28); }
+    .primary-btn:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: none; }
 
     .secondary-btn {
-      background: var(--bg-light);
+      background: var(--card-2);
       color: var(--text);
       border: 1px solid var(--border-light);
     }
 
-    .secondary-btn:hover { transform: translateY(-2px); border-color: var(--border-dark); }
+    .secondary-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
 
     .output-panel { display: grid; gap: 18px; }
 
     .pipeline {
       padding: 18px;
       border: 1px solid var(--border-light);
-      border-radius: 16px;
-      background: var(--bg-light);
+      border-radius: var(--radius);
+      background: var(--card-2);
     }
 
     .pipeline-flow {
@@ -553,7 +640,7 @@
       align-content: center;
       gap: 6px;
       border: 1px solid var(--border-light);
-      border-radius: 14px;
+      border-radius: var(--radius-sm);
       padding: 10px;
       background: var(--bg);
       position: relative;
@@ -580,8 +667,9 @@
       align-items: center;
       padding: 13px 14px;
       border: 1px solid var(--border-light);
-      border-radius: 14px;
-      background: var(--bg-light);
+      border-radius: var(--radius-sm);
+      background: var(--card-2);
+      box-shadow: var(--shadow-sm);
     }
 
     .job strong { font-size: 13px; }
@@ -589,13 +677,13 @@
     .job span.sub { display: block; margin-top: 4px; color: var(--text-2); font-size: 12px; }
 
     .status {
-      padding: 7px 9px;
-      border-radius: 999px;
+      padding: 6px 12px;
+      border-radius: var(--pill);
       background: var(--selected);
       color: var(--text);
       font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.08em;
+      font-weight: 600;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
       white-space: nowrap;
     }
@@ -607,27 +695,32 @@
 
     .gallery {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 16px;
     }
 
     .gallery-empty {
       grid-column: 1 / -1;
-      border: 1px dashed var(--border-dark);
-      border-radius: 16px;
+      border: 1px dashed var(--border-light);
+      border-radius: var(--radius);
       padding: 26px;
       text-align: center;
       color: var(--text-2);
       font-size: 13px;
+      background: var(--card-2);
     }
 
     .asset {
-      border-radius: 16px;
+      border-radius: var(--radius-sm);
       border: 1px solid var(--border-light);
-      background: var(--bg-light);
+      background: var(--card-2);
+      box-shadow: var(--shadow-sm);
       overflow: hidden;
       display: grid;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
+
+    .asset:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
 
     .asset img, .asset video {
       width: 100%;
@@ -641,7 +734,8 @@
     /* Hiérarchie : vignette large → prompt/label en tête → nom de fichier → actions */
     .asset .meta { padding: 12px 14px 10px; }
     .asset .meta strong {
-      font-size: 14px;
+      font-size: 13.5px;
+      font-weight: 600;
       line-height: 1.35;
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -670,44 +764,44 @@
     }
     .asset .asset-actions button {
       border: 1px solid var(--border-light);
-      background: var(--bg-light);
-      color: var(--text);
-      border-radius: 10px;
-      padding: 6px 10px;
+      background: var(--card-2);
+      color: var(--text-2);
+      border-radius: var(--pill);
+      padding: 6px 12px;
       font-size: 11px;
+      font-weight: 500;
       cursor: pointer;
     }
-    .asset .asset-actions button:hover { border-color: var(--border-dark); }
+    .asset .asset-actions button:hover { color: var(--highlight); background: var(--selected); border-color: transparent; }
 
-    .secondary-btn.active { background: var(--highlight); color: var(--bg); border-color: transparent; }
+    .secondary-btn.active { background: var(--grad); color: var(--on-grad); border-color: transparent; }
 
-    .mode-toggle { display: flex; gap: 8px; margin: 6px 0; }
+    .mode-toggle { display: flex; gap: 4px; margin: 6px 0; padding: 4px; border: 1px solid var(--border-light); border-radius: var(--pill); background: var(--card-2); }
     .mode-btn {
       flex: 1;
-      border: 1px solid var(--border-light);
-      background: var(--bg-light);
+      border: 0;
+      background: transparent;
       color: var(--text-2);
-      border-radius: 12px;
-      padding: 10px 14px;
-      font-size: 12px;
-      font-weight: 700;
+      border-radius: var(--pill);
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.01em;
     }
-    .mode-btn.active { background: var(--highlight); color: var(--bg); border-color: transparent; }
+    .mode-btn.active { background: var(--grad); color: var(--on-grad); border-color: transparent; }
 
     .shot-edit-list { display: grid; gap: 12px; }
     .shot-edit-item {
       display: grid;
       gap: 8px;
       border: 1px solid var(--border-light);
-      border-radius: 14px;
+      border-radius: var(--radius-sm);
       padding: 12px;
-      background: var(--bg-light);
+      background: var(--card-2);
     }
 
-    .asset .asset-actions button.active { background: var(--highlight); color: var(--bg); border-color: transparent; }
+    .asset .asset-actions button.active { background: var(--grad); color: var(--on-grad); border-color: transparent; }
     .asset.locked img, .asset.locked video { outline: 3px solid var(--highlight); outline-offset: -3px; }
 
     .input-chip {
@@ -715,9 +809,10 @@
       align-items: center;
       gap: 8px;
       margin-top: 6px;
-      padding: 5px 10px;
-      border: 1px solid var(--border-dark);
-      border-radius: 10px;
+      padding: 5px 12px;
+      border: 1px solid var(--border-light);
+      background: var(--card-2);
+      border-radius: var(--pill);
       font-size: 11px;
       color: var(--text-2);
     }
@@ -731,18 +826,18 @@
       margin-bottom: 10px;
     }
     .gallery-header .section-title { margin-bottom: 0; }
-    .gallery-tabs { display: flex; gap: 6px; }
+    .gallery-tabs { display: flex; gap: 4px; padding: 4px; border: 1px solid var(--border-light); border-radius: var(--pill); background: var(--card-2); }
     .gallery-tab {
-      border: 1px solid var(--border-light);
-      background: var(--bg-light);
+      border: 0;
+      background: transparent;
       color: var(--text-2);
-      border-radius: 12px;
-      padding: 7px 14px;
-      font-size: 12px;
-      font-weight: 700;
+      border-radius: var(--pill);
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
     }
-    .gallery-tab.active { background: var(--highlight); color: var(--bg); border-color: transparent; }
+    .gallery-tab.active { background: var(--grad); color: var(--on-grad); border-color: transparent; }
 
     .hint { font-size: 12px; color: var(--text-2); }
 
@@ -761,15 +856,15 @@
     .market-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
     .market-chip {
       border: 1px solid var(--border-light);
-      background: var(--bg-light);
+      background: var(--card-2);
       color: var(--text-2);
-      border-radius: 12px;
-      padding: 7px 12px;
-      font-size: 12px;
-      font-weight: 700;
+      border-radius: var(--pill);
+      padding: 7px 14px;
+      font-size: 12.5px;
+      font-weight: 500;
       cursor: pointer;
     }
-    .market-chip.active { background: var(--highlight); color: var(--bg); border-color: transparent; }
+    .market-chip.active { background: var(--grad); color: var(--on-grad); border-color: transparent; font-weight: 600; }
 
     .seq-list { display: grid; gap: 8px; }
     .seq-item {
@@ -778,7 +873,8 @@
       align-items: center;
       gap: 10px;
       border: 1px solid var(--border-light);
-      border-radius: 12px;
+      border-radius: var(--radius-sm);
+      background: var(--card-2);
       padding: 8px 10px;
     }
     .seq-item img { width: 52px; height: 38px; object-fit: cover; border-radius: 8px; background: var(--bg-mid); }
@@ -788,10 +884,10 @@
     .seq-item .seq-ctl { display: flex; gap: 4px; }
     .seq-item .seq-ctl button {
       border: 1px solid var(--border-light);
-      background: var(--bg-light);
-      color: var(--text);
-      border-radius: 8px;
-      padding: 4px 8px;
+      background: var(--card-2);
+      color: var(--text-2);
+      border-radius: var(--pill);
+      padding: 4px 10px;
       font-size: 11px;
       cursor: pointer;
     }
@@ -799,24 +895,24 @@
     /* ── Pastille d'identité (planches ancrées, toujours visible) ── */
     #soulId {
       position: fixed;
-      left: 18px;
-      bottom: 18px;
+      right: 18px;
+      top: 18px;
       z-index: 90;
       display: grid;
       gap: 8px;
-      padding: 10px 12px;
-      border: 1px solid var(--highlight);
-      border-radius: 16px;
+      padding: 10px 14px;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
       background: var(--card);
-      box-shadow: var(--shadow);
+      box-shadow: inset 0 0 0 1px var(--highlight), var(--shadow);
       backdrop-filter: blur(12px);
     }
     #soulId[hidden] { display: none; }
-    #soulId.pending { border-color: var(--border-dark); }
+    #soulId.pending { box-shadow: var(--shadow); }
     #soulId .soul-state {
       font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 0.12em;
+      font-weight: 500;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
       color: var(--text-2);
     }
@@ -834,7 +930,7 @@
     #soulId figcaption { font-size: 10px; color: var(--text-2); }
 
     @media screen and (max-width: 760px) {
-      #soulId { left: 10px; bottom: 10px; padding: 8px; }
+      #soulId { right: 10px; top: 10px; padding: 8px; }
       #soulId img { width: 44px; height: 44px; }
     }
 
@@ -852,11 +948,11 @@
     #lightboxClose, #lightboxCopy {
       position: absolute;
       top: 18px;
-      border: 1px solid var(--border-dark);
-      background: var(--bg-light);
+      border: 1px solid var(--border-light);
+      background: var(--card-2);
       color: var(--text);
-      border-radius: 10px;
-      padding: 8px 12px;
+      border-radius: var(--pill);
+      padding: 8px 14px;
       cursor: pointer;
       font-size: 14px;
       z-index: 101;
@@ -866,18 +962,19 @@
 
     .gallery-group {
       grid-column: 1 / -1;
-      border: 1px dashed var(--border-dark);
-      border-radius: 14px;
-      padding: 10px;
+      border: 1px dashed var(--border-light);
+      border-radius: var(--radius);
+      background: var(--card-2);
+      padding: 12px;
     }
     .folder-head {
       display: flex;
       justify-content: space-between;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 600;
       color: var(--text-2);
       margin-bottom: 8px;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.03em;
     }
 
     .asset.placeholder .thumb {
@@ -889,13 +986,15 @@
 
     .right-card {
       border: 1px solid var(--border-light);
-      border-radius: 18px;
+      border-radius: var(--radius);
       padding: 18px;
       background: var(--card);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-sm);
       margin-bottom: 18px;
     }
 
-    .right-card h3 { margin: 0 0 4px; font-size: 18px; }
+    .right-card h3 { margin: 0 0 4px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
 
     .right-card p {
       margin: 0 0 16px;
@@ -907,36 +1006,38 @@
     .control-btn {
       width: 100%;
       border: 1px solid var(--border-light);
-      border-radius: 13px;
-      background: var(--bg-light);
+      border-radius: 12px;
+      background: var(--card-2);
       color: var(--text);
-      padding: 13px;
+      padding: 12px;
       cursor: pointer;
       margin-top: 10px;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      transition: transform 0.2s ease, border-color 0.2s ease;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
       text-align: center;
       text-decoration: none;
       display: block;
     }
 
     .control-btn.primary {
-      background: var(--highlight);
-      color: var(--bg);
-      border-color: var(--highlight);
+      background: var(--grad);
+      color: var(--on-grad);
+      border-color: transparent;
+      font-weight: 700;
+      box-shadow: 0 10px 24px rgba(52, 60, 237, 0.22);
     }
 
-    .control-btn:hover { transform: translateY(-2px); border-color: var(--border-dark); }
+    .control-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
 
     .model-list { display: grid; gap: 9px; max-height: 320px; overflow: auto; }
 
     .model {
       padding: 11px;
       border: 1px solid var(--border-light);
-      border-radius: 13px;
-      background: var(--bg-light);
+      border-radius: 12px;
+      background: var(--card-2);
     }
 
     .model strong { display: block; font-size: 12px; word-break: break-all; }
@@ -950,16 +1051,21 @@
     }
 
     .header-controls { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
-    .header-controls select { width: auto; padding: 6px 10px; border-radius: 10px; font-size: 12px; }
+    .header-controls select { width: auto; padding: 6px 12px; border-radius: var(--pill); font-size: 12px; }
     .header-controls button {
       border: 1px solid var(--border-light);
-      background: var(--bg-light);
+      background: var(--card-2);
       color: var(--text);
-      border-radius: 10px;
-      padding: 6px 10px;
+      border-radius: 12px;
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      padding: 0;
       cursor: pointer;
       font-size: 14px;
     }
+    .header-controls button:hover { background: var(--selected); }
 
     :root[data-theme="dark"] {
       --bg: #0e1320;
@@ -980,9 +1086,12 @@
       --video: #ff5fc0;
       --soft-blue: #1d3a55;
       --soft-green: #33421a;
-      --card: rgba(21, 28, 44, 0.88);
-      --card-2: rgba(30, 39, 60, 0.75);
+      --card: rgba(21, 28, 44, 0.80);
+      --card-2: rgba(27, 35, 54, 0.92);
       --shadow: 0 18px 45px rgba(0, 0, 0, 0.5);
+      --shadow-sm: 0 8px 22px rgba(0, 0, 0, 0.34);
+      --grad: linear-gradient(135deg, #4f5bff, #2f7fd6);
+      --on-grad: #f4f8ff;
     }
 
     :root[data-theme="dark"] body {
@@ -992,11 +1101,12 @@
         var(--bg);
     }
 
-    :root[data-theme="dark"] .hero {
-      background:
-        linear-gradient(120deg, rgba(23, 31, 49, 0.95), rgba(16, 22, 36, 0.8)),
-        radial-gradient(circle at 92% 16%, rgba(56, 130, 190, 0.3), transparent 30%);
-    }
+    :root[data-theme="dark"] .primary-btn,
+    :root[data-theme="dark"] .control-btn.primary { box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45); }
+    :root[data-theme="dark"] .primary-btn:hover { box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55); }
+    :root[data-theme="dark"] textarea:focus,
+    :root[data-theme="dark"] input:focus,
+    :root[data-theme="dark"] select:focus { box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.22); }
 
     :root[data-theme="dark"] .asset.placeholder .thumb {
       background:
@@ -1008,11 +1118,10 @@
     :root[data-theme="dark"] .status.done { background: rgba(179, 201, 78, 0.16); }
     :root[data-theme="dark"] .status.error { background: rgba(255, 122, 69, 0.16); }
     :root[data-theme="dark"] .status.fallback { background: rgba(230, 196, 73, 0.16); }
-    :root[data-theme="dark"] .badge { background: #1f8f4c; }
 
     @media screen and (max-width: 1180px) {
       .layout { grid-template-columns: 1fr; }
-      .panel { position: static; }
+      .panel:not(.flyout) { position: static; }
       .portal-header { grid-template-columns: 1fr; text-align: center; }
       .brand, .powered { justify-content: center; text-align: center; }
       .header-controls { justify-content: center; }
@@ -1022,16 +1131,21 @@
     }
 
     @media screen and (max-width: 760px) {
-      .app-shell { padding: 14px; }
-      .scenario-tabs, .pipeline-flow, .two-cols, .actions {
+      .app-shell { padding: 14px; flex-wrap: wrap; }
+      /* Mobile : pas de place pour deux colonnes — le rail ouvert prend toute la
+         largeur et le studio passe dessous plutôt que d'être écrasé. */
+      .app-rail.expanded { flex-basis: 100%; width: 100%; max-height: none; overflow: visible; }
+      .app-rail.expanded ~ .app-content { flex-basis: 100%; }
+      .pipeline-flow, .two-cols, .actions {
         grid-template-columns: 1fr;
       }
+      .scenario-tabs { flex-wrap: wrap; border-radius: var(--radius); }
       /* Barre Generate : repli en colonne (chaque contrôle sur sa ligne) */
       .generate-bar .gb-prompt,
       .generate-bar .gb-field,
       .generate-bar .gb-go { flex-basis: 100%; }
       .gallery-header { flex-wrap: wrap; }
-      .hero { padding: 20px; }
+      .top-bar { padding: 16px; }
       .studio-body { padding: 16px; }
       #lightboxClose { top: 10px; right: 12px; }
     }
@@ -1069,17 +1183,18 @@
     #studioNav > .hint { margin: 0 2px; font-size: 11px; }
     .studio-nav-btn {
       border: 1px solid var(--border-light);
-      background: var(--bg-light);
-      color: var(--text);
+      background: var(--card-2);
+      color: var(--text-2);
       border-radius: 12px;
       padding: 11px 14px;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
       text-align: left;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.01em;
     }
-    .studio-nav-btn.active { background: var(--highlight); color: var(--bg); border-color: transparent; }
+    .studio-nav-btn:hover:not(:disabled) { background: var(--selected); color: var(--highlight); border-color: transparent; }
+    .studio-nav-btn.active { background: var(--selected); color: var(--highlight); border-color: transparent; }
     .studio-nav-btn:disabled, .studio-nav-btn.locked { opacity: 0.45; cursor: default; }
     .studio-nav-btn.locked::after { content: " 🔒"; float: right; }
     .studio-nav-foot { margin-top: auto; display: grid; gap: 8px; }
@@ -1099,6 +1214,7 @@
     #studioTimeline {
       border: 1px solid var(--border-light);
       background: var(--card);
+      backdrop-filter: blur(12px);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       min-height: 46px;
@@ -1128,8 +1244,8 @@
       flex: 0 0 auto;
       width: 132px;
       border: 2px solid var(--border-light);
-      border-radius: 12px;
-      background: var(--bg-light);
+      border-radius: var(--radius-sm);
+      background: var(--card-2);
       padding: 0;
       cursor: pointer;
       overflow: hidden;
@@ -1152,9 +1268,10 @@
       display: grid;
       gap: 8px;
       border: 1px solid var(--border-light);
-      border-radius: 14px;
+      border-radius: var(--radius-sm);
       padding: 12px;
-      background: var(--bg-light);
+      background: var(--card-2);
+      box-shadow: var(--shadow-sm);
     }
     .montage-clip video { width: 100%; max-height: 240px; border-radius: 10px; background: var(--bg-mid); display: block; }
     .montage-clip .clip-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
@@ -1166,14 +1283,14 @@
     .clip-actions { display: flex; flex-wrap: wrap; gap: 6px; }
     .clip-actions button {
       border: 1px solid var(--border-light);
-      background: var(--bg-light);
-      color: var(--text);
-      border-radius: 10px;
-      padding: 5px 9px;
+      background: var(--card-2);
+      color: var(--text-2);
+      border-radius: var(--pill);
+      padding: 5px 12px;
       font-size: 11px;
       cursor: pointer;
     }
-    .clip-actions button:hover:not(:disabled) { border-color: var(--border-dark); }
+    .clip-actions button:hover:not(:disabled) { color: var(--highlight); background: var(--selected); border-color: transparent; }
     .clip-actions button:disabled { opacity: 0.45; cursor: default; }
     #montagePlayer video { width: 100%; border-radius: var(--radius); margin-top: 12px; background: var(--bg-mid); display: block; }
     .timeline-strip { display: flex; gap: 8px; align-items: center; overflow-x: auto; }
@@ -1182,10 +1299,10 @@
       flex: 0 0 auto;
       width: 92px;
       border: 1px solid var(--border-light);
-      border-radius: 8px;
+      border-radius: 10px;
       overflow: hidden;
       cursor: pointer;
-      background: var(--bg-light);
+      background: var(--card-2);
       padding: 0;
     }
     .timeline-thumb video { width: 100%; height: 52px; object-fit: cover; display: block; background: var(--bg-mid); }
@@ -1236,6 +1353,121 @@
 </head>
 <body>
   <div class="app-shell">
+    <nav class="app-rail" aria-label="Navigation studio">
+      <button type="button" class="rail-btn active" data-panel="studio" title="Studio" aria-label="Studio">
+        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M3 9V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3"/><path d="M8.5 4 6.5 9M14.5 4l-2 5"/></svg>
+        <span class="rail-name">Studio</span>
+      </button>
+      <button type="button" class="rail-btn" data-panel="monitor" title="Node Monitor" aria-label="Node Monitor">
+        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l2.5-6.5 4 13L16 12h5"/></svg>
+        <span class="rail-name">Node Monitor</span>
+      </button>
+      <div class="panel flyout" data-flyout="monitor" hidden>
+          <div class="panel-title"><span class="live-dot" id="nodeDot">Node Monitor</span><span id="nodeState">…</span></div>
+
+          <div class="gauge-grid">
+            <div class="gauge" style="--accent:#343ced;" id="gaugeVram">
+              <div class="arc"></div>
+              <strong>—</strong>
+              <span>GPU Mem</span>
+            </div>
+            <div class="gauge" style="--accent:#82951e;" id="gaugeRam">
+              <div class="arc"></div>
+              <strong>—</strong>
+              <span>RAM</span>
+            </div>
+            <div class="gauge" style="--accent:#ef601b;" id="gaugeQueue">
+              <div class="arc"></div>
+              <strong>—</strong>
+              <span>Queue</span>
+            </div>
+          </div>
+
+          <div class="metric-row"><span>ComfyUI</span><strong id="comfyVersion">—</strong></div>
+          <div class="metric-row"><span>Queue depth</span><strong id="queueDepth">—</strong></div>
+          <div class="metric-row"><span>Last job</span><strong id="latency">—</strong></div>
+          <div class="metric-row"><span>Ollama LLM</span><strong id="ollamaState">—</strong></div>
+
+          <div class="pipeline">
+            <h3 class="section-title">Pipeline Flow</h3>
+            <div class="pipeline-flow">
+              <div class="step" id="stepEnrich"><strong>Prompt Enrichment</strong><span id="llmLabel">Ollama · local LLM</span></div>
+              <div class="step active"><strong>Scenario Router</strong><span id="routeLabel">Campaign pipeline</span></div>
+              <div class="step active"><strong>Model Selector</strong><span id="modelLabel">—</span></div>
+              <div class="step" id="stepInference"><strong>GB10 Inference</strong><span>ComfyUI diffusion</span></div>
+              <div class="step"><strong>Gallery</strong><span>Assets + export</span></div>
+            </div>
+          </div>
+
+          <div class="events" id="events"></div>
+      </div>
+      <button type="button" class="rail-btn" data-panel="models" title="Model Management" aria-label="Model Management">
+        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 21 7.5 12 12 3 7.5 12 3Z"/><path d="M3 12 12 16.5 21 12"/><path d="M3 16.5 12 21 21 16.5"/></svg>
+        <span class="rail-name">Model Management</span>
+      </button>
+      <div class="panel flyout" data-flyout="models" hidden>
+          <details class="right-card" open>
+            <summary class="panel-title"><span class="live-dot">Model Management</span><span id="mmState">…</span></summary>
+            <h3>Diffusion Runtime</h3>
+            <p>Modèles présents sur le nœud GB10 (ComfyUI).</p>
+            <div class="model-list" id="diffusionModels"></div>
+            <button class="control-btn" id="refreshModelsBtn">Refresh Models</button>
+          </details>
+      </div>
+      <button type="button" class="rail-btn" data-panel="llm" title="Local LLM" aria-label="Local LLM">
+        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></svg>
+        <span class="rail-name">Local LLM</span>
+      </button>
+      <div class="panel flyout" data-flyout="llm" hidden>
+          <details class="right-card" open>
+            <summary class="panel-title"><span class="live-dot">Local LLM</span><span>Ollama</span></summary>
+            <h3>Prompt Enrichment</h3>
+            <p>Modèles de langage locaux pour transformer le brief en prompts de diffusion.</p>
+            <div class="model-list" id="llmModels"></div>
+          </details>
+      </div>
+      <button type="button" class="rail-btn" data-panel="advanced" title="Advanced" aria-label="Advanced">
+        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 8-4.5 4.5L8 17"/><path d="m16 8 4.5 4.5L16 17"/><path d="M13.5 4 10.5 20"/></svg>
+        <span class="rail-name">Advanced</span>
+      </button>
+      <div class="panel flyout" data-flyout="advanced" hidden>
+          <details class="right-card" open>
+            <summary class="panel-title"><span>Advanced</span><span>🛠</span></summary>
+            <h3>ComfyUI Console</h3>
+            <p>Accès direct à l'interface ComfyUI pour les démos techniques.</p>
+            <a class="control-btn primary" id="comfyLink" href="#" target="_blank" rel="noopener">Open ComfyUI</a>
+
+            <h3 style="margin-top:16px">Cloud Platforms</h3>
+            <p>Génération d'assets via une plateforme cloud. L'enrichissement de prompt reste local (gemma4:e4b).</p>
+            <div class="form-stack">
+              <label>
+                Mode d'exécution
+                <select id="cloudMode">
+                  <option value="local">100% Local (GB10)</option>
+                  <option value="hybrid">Hybride — images cloud, vidéo GB10</option>
+                  <option value="cloud">Cloud — génération cloud (images)</option>
+                </select>
+              </label>
+              <label>
+                Plateforme
+                <select id="cloudPlatform">
+                  <option value="chatgpt">ChatGPT (OpenAI)</option>
+                  <option value="gemini">Gemini (Google)</option>
+                  <option value="higgsfield">Higgsfield (MCP)</option>
+                </select>
+              </label>
+              <label>
+                Clé API
+                <input type="password" id="cloudKey" placeholder="Clé API de la plateforme" autocomplete="off" />
+                <span class="hint">Conservée uniquement pour cet onglet, effacée à sa fermeture. Jamais persistée.</span>
+              </label>
+              <a class="control-btn" id="cloudConsoleLink" href="#" target="_blank" rel="noopener">Ouvrir la console</a>
+            </div>
+          </details>
+      </div>
+    </nav>
+
+    <div class="app-content">
     <header class="portal-header">
       <div class="brand">
         <div class="brand-mark" aria-hidden="true"></div>
@@ -1260,107 +1492,8 @@
     </header>
 
     <main class="layout">
-      <aside class="panel">
-        <div class="panel-title"><span class="live-dot" id="nodeDot">Node Monitor</span><span id="nodeState">…</span></div>
-
-        <div class="gauge-grid">
-          <div class="gauge" style="--accent:#343ced;" id="gaugeVram">
-            <div class="arc"></div>
-            <strong>—</strong>
-            <span>GPU Mem</span>
-          </div>
-          <div class="gauge" style="--accent:#82951e;" id="gaugeRam">
-            <div class="arc"></div>
-            <strong>—</strong>
-            <span>RAM</span>
-          </div>
-          <div class="gauge" style="--accent:#ef601b;" id="gaugeQueue">
-            <div class="arc"></div>
-            <strong>—</strong>
-            <span>Queue</span>
-          </div>
-        </div>
-
-        <div class="metric-row"><span>ComfyUI</span><strong id="comfyVersion">—</strong></div>
-        <div class="metric-row"><span>Queue depth</span><strong id="queueDepth">—</strong></div>
-        <div class="metric-row"><span>Last job</span><strong id="latency">—</strong></div>
-        <div class="metric-row"><span>Ollama LLM</span><strong id="ollamaState">—</strong></div>
-
-        <div class="pipeline">
-          <h3 class="section-title">Pipeline Flow</h3>
-          <div class="pipeline-flow">
-            <div class="step" id="stepEnrich"><strong>Prompt Enrichment</strong><span id="llmLabel">Ollama · local LLM</span></div>
-            <div class="step active"><strong>Scenario Router</strong><span id="routeLabel">Campaign pipeline</span></div>
-            <div class="step active"><strong>Model Selector</strong><span id="modelLabel">—</span></div>
-            <div class="step" id="stepInference"><strong>GB10 Inference</strong><span>ComfyUI diffusion</span></div>
-            <div class="step"><strong>Gallery</strong><span>Assets + export</span></div>
-          </div>
-        </div>
-
-        <div class="events" id="events"></div>
-
-        <details class="right-card" open>
-          <summary class="panel-title"><span class="live-dot">Model Management</span><span id="mmState">…</span></summary>
-          <h3>Diffusion Runtime</h3>
-          <p>Modèles présents sur le nœud GB10 (ComfyUI).</p>
-          <div class="model-list" id="diffusionModels"></div>
-          <button class="control-btn" id="refreshModelsBtn">Refresh Models</button>
-        </details>
-
-        <details class="right-card" open>
-          <summary class="panel-title"><span class="live-dot">Local LLM</span><span>Ollama</span></summary>
-          <h3>Prompt Enrichment</h3>
-          <p>Modèles de langage locaux pour transformer le brief en prompts de diffusion.</p>
-          <div class="model-list" id="llmModels"></div>
-        </details>
-
-        <details class="right-card" open>
-          <summary class="panel-title"><span>Advanced</span><span>🛠</span></summary>
-          <h3>ComfyUI Console</h3>
-          <p>Accès direct à l'interface ComfyUI pour les démos techniques.</p>
-          <a class="control-btn primary" id="comfyLink" href="#" target="_blank" rel="noopener">Open ComfyUI</a>
-
-          <h3 style="margin-top:16px">Cloud Platforms</h3>
-          <p>Génération d'assets via une plateforme cloud. L'enrichissement de prompt reste local (gemma4:e4b).</p>
-          <div class="form-stack">
-            <label>
-              Mode d'exécution
-              <select id="cloudMode">
-                <option value="local">100% Local (GB10)</option>
-                <option value="hybrid">Hybride — images cloud, vidéo GB10</option>
-                <option value="cloud">Cloud — génération cloud (images)</option>
-              </select>
-            </label>
-            <label>
-              Plateforme
-              <select id="cloudPlatform">
-                <option value="chatgpt">ChatGPT (OpenAI)</option>
-                <option value="gemini">Gemini (Google)</option>
-                <option value="higgsfield">Higgsfield (MCP)</option>
-              </select>
-            </label>
-            <label>
-              Clé API
-              <input type="password" id="cloudKey" placeholder="Clé API de la plateforme" autocomplete="off" />
-              <span class="hint">Conservée uniquement pour cet onglet, effacée à sa fermeture. Jamais persistée.</span>
-            </label>
-            <a class="control-btn" id="cloudConsoleLink" href="#" target="_blank" rel="noopener">Ouvrir la console</a>
-          </div>
-        </details>
-      </aside>
-
       <section class="studio-main">
-        <div class="hero">
-          <div class="hero-top">
-            <div class="category">
-              <span class="category-icon">🎬</span>
-              Creative Intelligence
-            </div>
-            <div class="badge">NEW!</div>
-          </div>
-          <h2>Dell AI Content Studio</h2>
-          <p>Studio créatif IA 100 % local : text2image, image2image, image2video et text2video générés par ComfyUI sur le GB10, enrichissement de prompt par LLM local via Ollama.</p>
-
+        <div class="top-bar">
           <div class="profile-bar">
             <p class="profile-lead">Je démarre en tant que…</p>
             <div class="profile-rail" role="group" aria-label="Profils métiers">
@@ -1627,6 +1760,7 @@
 
       <footer id="studioTimeline"></footer>
     </section>
+    </div><!-- /.app-content -->
   </div>
 
   <!-- Pastille d'identité : planches ancrées (personnage/décor) toujours visibles -->
@@ -4682,6 +4816,24 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
     loadModels();
     pollMonitor();
     setInterval(pollMonitor, 4000);
+
+    // ── Rail d'icônes : ouvre/ferme le panneau de section dans le rail lui-même ──
+    // Un seul panneau ouvert à la fois ; il reste ouvert tant qu'on ne reclique
+    // pas sur son bouton (aucune fermeture au clic ailleurs dans la page).
+    // Le panneau visible est le frère DOM du bouton : il s'affiche sous son icône,
+    // et le rail s'élargit (classe .expanded) sans repousser le studio vers le bas.
+    document.querySelectorAll(".rail-btn[data-panel]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const name = btn.classList.contains("active") ? "studio" : btn.dataset.panel;
+        document.querySelectorAll(".rail-btn").forEach(b => b.classList.toggle("active", b.dataset.panel === name));
+        let open = false;
+        document.querySelectorAll(".flyout").forEach(f => {
+          f.hidden = f.dataset.flyout !== name;
+          if (!f.hidden) open = true;
+        });
+        document.querySelector(".app-rail").classList.toggle("expanded", open);
+      });
+    });
   </script>
 </body>
 </html>

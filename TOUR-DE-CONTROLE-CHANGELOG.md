@@ -1,5 +1,44 @@
 # Tour de contrôle — changelog
 
+## 2026-09-02 — Promotion du rapprochement visuel avec la maquette (suite du Cockpit affiné)
+
+Développé et qualifié dans le projet cockpit (`../ai-content-studio-cockpit`, voir son propre
+changelog pour le détail lot par lot), promu ici après validation utilisateur sur plusieurs
+itérations successives.
+
+### Fichiers touchés
+- `index.html` seul.
+
+### Changements
+- Police DM Sans (Google Fonts) + palette bleue + cartes "glass" (fond translucide, flou,
+  ombre douce) alignées sur la maquette de refonte, en clair et en sombre.
+- Rail de navigation vertical à gauche : icônes SVG sobres monochromes (Studio, Node Monitor,
+  Model Management, Local LLM, Advanced), agrandissement au survol révélant le nom complet
+  (réutilise le mécanisme déjà existant sur les profils métiers). Un panneau ouvert reste
+  affiché tant que son icône (ou son nom) n'est pas re-cliquée — cliquer ailleurs dans
+  l'interface ne le referme plus.
+- Contenu associé à chaque icône (gauges GPU/RAM/queue, gestion des modèles, LLM local,
+  console ComfyUI + plateformes cloud) affiché **dans la colonne de gauche elle-même**, qui
+  s'élargit sous l'icône sélectionnée — le studio principal (formulaire Generate, galerie)
+  ne bouge pas.
+- Onglets de scénario (Campaign Generator / Storyboard + Animatic / Localized Assets) en
+  pilules horizontales compactes, au lieu de 3 grandes cartes descriptives.
+- Header restauré avec titre/sous-titre/"Powered by Dell Pro Max GB10" + sélecteurs de
+  langue et de thème directement visibles (plus besoin d'un panneau "Réglages" séparé,
+  supprimé du rail).
+- Badge d'identité "Ancrage actif" repositionné en haut à droite.
+- Galerie à cartes agrandies.
+
+### Vérification
+Chaque étape vérifiée par rendu réel headless (clair/sombre, plusieurs largeurs), tests
+d'interaction DOM réels (clics, survols, mesures de position/taille), et re-test systématique
+de la sélection `storyboard_v2` + bascule Auto/Réalisateur à chaque itération — voir le
+changelog du projet cockpit pour le détail complet, lot par lot.
+
+### Retour arrière
+`git revert` du commit de promotion restaure l'état précédent (rail moins abouti, header
+réduit).
+
 ## 2026-09-02 — Promotion "Cockpit affiné" (Piste 1 de la refonte visuelle)
 
 Refonte ergonomique développée et qualifiée dans un projet distinct
