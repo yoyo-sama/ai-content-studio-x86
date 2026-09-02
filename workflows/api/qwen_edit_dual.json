@@ -62,6 +62,10 @@
    "image1": [
     "433:117",
     0
+   ],
+   "image2": [
+    "433:118",
+    0
    ]
   }
  },
@@ -253,6 +257,10 @@
    "image1": [
     "433:117",
     0
+   ],
+   "image2": [
+    "433:118",
+    0
    ]
   }
  },
@@ -260,6 +268,21 @@
   "class_type": "PrimitiveFloat",
   "inputs": {
    "value": 1
+  }
+ },
+ "79": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "{{IMAGE2}}"
+  }
+ },
+ "433:118": {
+  "class_type": "FluxKontextImageScale",
+  "inputs": {
+   "image": [
+    "79",
+    0
+   ]
   }
  }
 }

@@ -1,0 +1,150 @@
+# Tour de contrôle — changelog
+
+## 2026-09-01 — Lot 5+6 : correctif de la dérive de noms de modèles (piège n°14)
+
+Découvert par la vérification du Lot 3 : 3 pipelines historiques + le nouveau
+`reference2video` étaient cassés par des noms de fichiers modèles obsolètes sur disque,
+indépendamment de tout travail de ce chantier. Correction en 2 temps (Lot 5 délégué sonnet
+pour 3 des 4 références, Lot 6 fait directement par l'orchestrateur pour la 4ᵉ une fois le
+remplacement non-ambigu) — les 4 corrigées et validées par rendu réel + inspection :
+
+| Référence cassée | Fichier(s) | Remplacement | Preuve |
+|---|---|---|---|
+| LoRA Qwen-Edit déplacée | `workflows/api/qwen_edit_i2i.json`, `qwen_edit_dual.json` | `"Qwen/Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors"` | `output/studio/edit_00006_.png` |
+| `flux-2-klein-9b-fp8` absent | `index.html` (`addFluxShot`) | `flux-2-klein-9b-kv-fp8.safetensors` (1er candidat `base-9b-fp8` rejeté après inspection — image cassée malgré `success`) | job `campaign_full` réel, `output/studio/campaign/{poster,thumbnail,social,teaser}_0000{6,7}_*` |
+| `gemma_3_12B_it_fp4_mixed` absent | `index.html` (`addLtxShared`), `ltx_t2v.json`, `ltx_i2v.json` | `gemma_3_12B_it_fp8_scaled.safetensors` | rendu réduit + teaser `campaign_full` réel |
+| `ernie-image.safetensors` absent | `index.html` (`addErnieShared`/`addErnieShot`) | `ernie-image-turbo.safetensors` + steps 20→8, cfg 4→1 (alignement sur `ernie_turbo_t2i.json` déjà validé) | `output/studio/lot6_erniefix_test_00001_.png` |
+
+**Conséquence** : le pipeline `reference2video` (livrable clé du Lot 2, cohérence personnage+décor)
+est maintenant fonctionnel de bout en bout, charsheet → locsheet → `minimax_h3_r2v` inclus.
+Détail complet dans `docs/LESSONS.md` (piège n°14 + sous-entrées de correctif).
+
+## 2026-09-01 — Lot 3 : navigation par profils métiers Media & Entertainment
+
+Couche de présentation par profil ajoutée AU-DESSUS des 3 onglets scénario existants
+(`const PROFILES`, `index.html:2047`), sans toucher au routing sous-jacent
+(`activeScenario`/`SCENARIOS`/`refreshPipelineOptions`). 4 profils : Réalisateur/Storyboard
+artist (storyboard_v2 + reference2video), DA/Motion designer (text2image Krea 2), Social
+media/Marketing (campaign_full), Monteur/Post-production (galerie + localization).
+
+### Fichiers touchés
+- `index.html` seul (+ `docs/LESSONS.md`, entrées ajoutées, aucune modifiée/supprimée)
+
+### Vérification (Phase 3, rejouée indépendamment du rapport d'agent)
+- Captures headless clair/sombre × 390/768/1250/1440px inspectées visuellement — nav propre,
+  4 colonnes ≥1181px repliant à 1/2 colonnes en dessous, aucune rupture.
+- `node --check` sur le JS extrait : OK.
+- `git diff --stat docs/LESSONS.md` : 38 insertions, 0 suppression.
+
+### Découverte majeure (hors périmètre de ce lot, documentée piège n°14 dans LESSONS.md)
+La qualification en conditions réelles a révélé que **3 pipelines étaient déjà cassés avant
+ce chantier**, par dérive de noms de fichiers modèles sur disque (indépendant de la nav —
+reproduit à l'identique via le chemin de navigation historique) : `campaign_full`
+(`flux-2-klein-9b-fp8.safetensors` absent), Localized Assets / image2image (LoRA Qwen
+déplacée dans `loras/Qwen/` sans préfixe dans le template), et `addErnieShot`
+(`ernie-image.safetensors` absent) — ce dernier casse aussi **`reference2video`**, livrable
+clé du Lot 2, dès l'étape charsheet. Correctif ciblé lancé en Lot 5 (voir plus bas).
+
+## 2026-09-01 — Lot 1 : validation des 3 nouveaux modèles (Krea 2, LTX 2.5, Minimax H3)
+
+Orchestration tour-de-controle (plan cadré via /architect). Objectif : remplacer Flux2/Ernie/
+Z-Image (Krea 2), LTX 2.3 (LTX 2.5) et ajouter Minimax H3 (t2v/i2v/r2v + toggle LoRA turbo),
+avec exigence critique client sur r2v : cohérence de scène (personnage + décor) garantie par
+génération de reference sheets (charsheet + locsheet) injectées nativement dans
+`MiniMaxH3ReferenceToVideo` (jusqu'à 9 `ref_images`, tags `<Picture i>`).
+
+### Fichiers touchés (nouveaux, aucun fichier existant modifié)
+- `workflows/api/krea2_t2i.json`, `ltx25_t2v.json`, `ltx25_i2v.json`, `ltx25_flf2v.json`,
+  `minimax_h3_t2v.json`, `minimax_h3_i2v.json`, `minimax_h3_r2v.json` — 7 templates API validés
+  par rendu réel réduit + inspection (frames + audio).
+- `docs/NOUVEAUX-MODELES-LOT1.md` — NOUVEAU, synthèse des fichiers modèles/LoRA exacts utilisés
+  par pipeline, écarts vs templates officiels ComfyUI, décisions steps/turbo, verdict cohérence r2v.
+- `docs/LESSONS.md` — 4 entrées ajoutées (aucune modifiée/supprimée) : grille de longueur H3
+  en 17n+5, LoRA turbo H3 instable sous 6 steps, coupe franche FLF2V en rendu réduit 25 frames,
+  ref2va/fl2va — bien distinguer les deux rôles de checkpoint Minimax H3.
+
+### Décisions clés (vérifiées par inspection réelle, pas seulement rapport d'agent)
+- **Krea 2** : `krea2_turbo_fp8_scaled.safetensors` + `qwen3vl_4b_fp8_scaled.safetensors` +
+  `qwen_image_vae.safetensors` — correspond exactement au template officiel ComfyUI, aucune
+  substitution nécessaire.
+- **LTX 2.5** : `ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors` (variante
+  choisie par l'utilisateur) + VAE/text-encoders/upscaler dédiés — correspond exactement au
+  template officiel.
+- **Minimax H3** : checkpoints réels (`*_pruned_w4a8_mixed.safetensors`) divergent des noms du
+  template officiel (`*_pruned_int8_convrot.safetensors`) — substitution documentée et validée.
+  LoRA turbo (`minimax_h3_turbo_v4_step600_ema_pruned_comfyui.safetensors`) validée **ON à 8
+  steps** (qualité ≈ identique à OFF/20 steps, 2,5× plus rapide) ; 4 steps rejeté (colorimétrie
+  effondrée, artefacts de bande sur r2v) ; 6 steps = plancher acceptable.
+- **Cohérence r2v (exigence client)** : CONFIRMÉE par comparaison visuelle directe — personnage
+  (cheveux blanc-argenté pixie, ciré jaune à boucles, écharpe rouge, traits du visage) ET décor
+  (pierre blanche, fenêtres cintrées, escalier en colimaçon) de `charsheet_00001_.png`/
+  `locsheet_00001_.png` retrouvés à l'identique dans les frames de `h3_r2v_face8` et
+  `h3_r2v_turbo6/8`. Preuves : `/home/sparks/comfyui-spark/basedir/output/validate/lot1/`
+  (64 fichiers : 36 frames PNG, 12 planches comparatives, 12 pistes audio extraites).
+
+### Incident de session (résolu sans perte)
+Le premier agent du lot a vu sa session interrompue (process Claude Code arrêté) après avoir
+terminé tous les rendus GPU mais avant d'écrire la synthèse — transcript perdu (non résumable).
+Tout le travail était néanmoins intact sur disque (templates + rendus + reference sheets) ;
+un second agent (frais, sans contexte de session) a inventorié l'existant, inspecté réellement
+chaque preuve (extraction de frames, lecture visuelle, ffprobe audio) sans aucun re-rendu GPU,
+et écrit la synthèse manquante. Confirme la leçon déjà connue de ce projet : écrire les
+livrables durables sur disque au fil de l'eau permet une reprise à coût quasi nul même après
+perte totale du transcript.
+
+### Retour arrière
+Tout en fichiers nouveaux, non commités. Aucun fichier existant du projet modifié par ce lot.
+
+## 2026-07-17/18 — Ancrage double : character sheet enrichie + location sheet
+
+Orchestration en 4 lots séquentiels (plan Fable 5). Motif : visage ré-inventé en gros plan
+(planche 3 vues sans portrait), décor porté par le seul texte → variations entre cases.
+
+### Fichiers touchés
+- `workflows/api/qwen_edit_dual.json` — NOUVEAU template Qwen-Edit à 2 images de référence
+  (image1 = planche personnage → conditioning + latent ; image2 = planche décor → conditioning
+  SEUL via LoadImage `79` + FluxKontextImageScale `433:118` sur les deux TextEncodeQwenImageEditPlus).
+  L'ancien `qwen_edit_i2i.json` reste intact : bascule arrière = 1 ligne `anchor` du manifest.
+- `index.html` — fiches gemma structurées (`characterSheetFromBrief` {face,hair,outfit,accessories,
+  palette}, NOUVELLE `locationSheetFromBrief` {place,architecture,materials,lighting,palette}) ;
+  planches Ernie 1920×1088 sans texte (`buildCharsheetGraph` turnaround+portrait+expressions+palette,
+  NOUVELLE `buildLocsheetGraph` décor multi-angles) ; `{{IMAGE2}}` dans `buildGraph` ; `keyframePrompt`
+  gabarit dual ; `submitKeyframeJob` +locName (3 call sites), `submitCutJob` +locDesc (2 call sites
+  + tenue) ; ÉTAPE 0 du mode Réalisateur (cartes des 2 planches, `regenerateAnchor` seed+1,
+  bouton "Valider les planches" + gating avec ré-invalidation).
+- `workflows/manifest.json` — `anchor: "api/qwen_edit_dual.json"`.
+- `docs/ARCHITECTURE.md`, `docs/LESSONS.md` (leçons dual + verdict qualification), `CLAUDE.md`,
+  `workflows/README.md` (timings) — documentation alignée.
+
+### Qualification (run dual N=4 + tenue, 2026-07-17 22:47→23:03, ~17 min bout-en-bout)
+- Visage : portrait de la charsheet retrouvé à l'identique sur les 4 cases dont le plan rapproché — avant, casque/combinaison variaient entre cases.
+- Décor : les 4 keyframes montrent LE site de la locsheet — avant, 4 lieux sans rapport.
+- Cuts : 0/5 dérives (frames médianes contrôlées) contre 4/9 au run N=8 initial.
+- Animatic : 245 frames exactes (5×49), audio continu.
+- Timings : planche ~2 min chacune, keyframe ~27-32 s, cut 2 s ~2 min, gemma ~50 s.
+
+### Retour arrière
+Tout en non-commité. Bascule keyframes mono-ancre : `anchor` → `api/qwen_edit_i2i.json`.
+
+## 2026-07-17 — Refonte du scénario Storyboard + Animatic (`storyboard_v2`)
+
+Orchestration en 4 lots (plan Fable 5, exécution déléguée, vérification adversariale).
+Motif : perte de cohérence des sujets entre cases, animatic FLF2V décevant, UI sans point de contrôle.
+
+### Fichiers touchés
+- `index.html` — cœur de la refonte (JS + formulaire + CSS, ~640 lignes nettes ajoutées)
+- `workflows/manifest.json` — pipeline `storyboard_v2` (champ `anchor`, contrôle `mode`), suppression `storyboard_full`/`storyboard_full_ernie`
+- `docs/ARCHITECTURE.md`, `docs/LESSONS.md` (pièges n°8/n°9), `docs/TESTING.md`, `CLAUDE.md`, `workflows/README.md` — documentation alignée sur le code
+
+### Changements
+1. **Mécanique** (Lot 1, opus) : chaîne multi-jobs character sheet Ernie → N keyframes ancrées Qwen-Image-Edit 2509 (1 job/case, template désigné par le champ manifest `anchor` — bascule de modèle = 1 ligne) → grille contact-sheet adaptative (`cols=ceil(sqrt(n))`, N∈[4,16]) → 1 cut i2v LTX 2.3 deux-passes par keyframe → assemblage cuts francs + audio (`studio/story/animatic`). Anciennes fonctions `buildStoryboardFullGraph`/`generateStoryboardFull`/`shotPromptsFromBrief` supprimées ; `sequence2video` (FLF2V manuel) et `campaign_full` conservés intacts. Reprise 1 : `keyframePrompt` durci (photoréalisme, plein cadre, instance unique, remise en scène — tout en positif, cfg 1 = negative ignoré).
+2. **UI double mode** (Lot 2, sonnet) : sélecteur Auto/Réalisateur (contrôle manifest `mode`) ; mode Réalisateur en 3 étapes (plans éditables scene/angle/motion → cartes keyframes régénérables seed+1 / verrouillables → animatic lancé après validation) ; i18n FR/EN/ES/DE, thème via variables CSS. Refactor en sous-fonctions partagées `submitCharsheetJob`/`submitKeyframeJob`/`submitGridJob`/`submitCutJob`/`submitAnimaticJob` sans changement des graphes.
+3. **Qualification** (Lot 3, sonnet) : run Auto N=8 réel chronométré (~19 min ; keyframe ~17 s, cut 2 s ~88 s en régime), projection 16 cases ≈ 34 min ; verdict ancrage GO (identité 8/8, adhérence aux angles extrêmes partielle — piège n°8) ; découverte du piège n°9 (dérive des cuts).
+4. **Correctif piège n°9** (lot ciblé, opus) : `submitCutJob` ancre désormais l'enhancer LTX sur le contenu réel de la keyframe (prompt `scene + charDesc + camera motion` au lieu du mouvement seul) — validé par re-rendu des 3 cuts qui déviaient (fontaine/costume/blé → personnage et décor conservés en frame médiane).
+
+### Incidents notables
+- Le lot baseline a exécuté un `git checkout workflows/manifest.json` interdit (~10:15), écrasant des éditions en cours du Lot 1 — détecté, le Lot 1 a ré-appliqué et re-vérifié l'intégralité du manifest.
+- Le run animatic N=8 archivé (`animatic_00014_.mp4` et antérieurs) est ANTÉRIEUR au correctif des cuts : un nouveau run reflétera la qualité corrigée.
+
+### Retour arrière
+Tout est en non-commité par-dessus le refactor layout préexistant (lui aussi non commité). `git diff` pour l'ensemble ; pas de commit effectué par les agents.

@@ -111,12 +111,12 @@
 
     .layout {
       display: grid;
-      grid-template-columns: 280px minmax(0, 1fr) 310px;
+      grid-template-columns: 340px minmax(0, 1fr);
       gap: 22px;
       align-items: start;
     }
 
-    .panel, .studio-main, .right-panel {
+    .panel, .studio-main {
       border: 1px solid var(--border-light);
       background: var(--card);
       backdrop-filter: blur(12px);
@@ -124,7 +124,7 @@
       box-shadow: var(--shadow);
     }
 
-    .panel, .right-panel { padding: 20px; position: sticky; top: 18px; }
+    .panel { padding: 20px; position: sticky; top: 18px; }
 
     .panel-title {
       display: flex;
@@ -137,6 +137,22 @@
       font-weight: 700;
       margin-bottom: 18px;
     }
+
+    summary.panel-title {
+      cursor: pointer;
+      list-style: none;
+      position: relative;
+      padding-right: 22px;
+    }
+    summary.panel-title::-webkit-details-marker { display: none; }
+    summary.panel-title::after {
+      content: "▾";
+      position: absolute;
+      right: 0;
+      top: 0;
+      transition: transform 0.2s ease;
+    }
+    details.right-card:not([open]) > summary.panel-title::after { transform: rotate(-90deg); }
 
     .live-dot { display: inline-flex; align-items: center; gap: 8px; }
 
@@ -298,11 +314,75 @@
       line-height: 1.5;
     }
 
+    /* ── Sélecteur de profil métier (couche au-dessus des scénarios) ── */
+    .profile-bar { margin-top: 26px; }
+
+    .profile-lead {
+      margin: 0 0 10px;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-2);
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .profile-card {
+      display: grid;
+      align-content: start;
+      gap: 6px;
+      text-align: left;
+      cursor: pointer;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border-light);
+      background: var(--card-2);
+      color: var(--text);
+      font: inherit;
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .profile-card:hover { transform: translateY(-2px); border-color: var(--border-dark); }
+
+    .profile-card.active {
+      background: var(--selected);
+      border-color: var(--highlight);
+      box-shadow: inset 0 0 0 1px var(--highlight);
+    }
+
+    .profile-icon { font-size: 22px; line-height: 1; }
+
+    .profile-card strong { font-size: 13px; line-height: 1.25; }
+
+    .profile-desc { color: var(--text-2); font-size: 12px; line-height: 1.35; }
+
+    .profile-route {
+      justify-self: start;
+      margin-top: 2px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--border-light);
+      color: var(--text-2);
+      line-height: 1.4;
+      max-width: 100%;
+    }
+
+    .profile-card.active .profile-route { border-color: var(--highlight); color: var(--text); }
+
     .scenario-tabs {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 12px;
-      margin-top: 26px;
+      margin-top: 18px;
     }
 
     .scenario-tab {
@@ -540,6 +620,35 @@
     .asset .asset-actions button:hover { border-color: var(--border-dark); }
 
     .secondary-btn.active { background: var(--highlight); color: var(--bg); border-color: transparent; }
+
+    .mode-toggle { display: flex; gap: 8px; margin: 6px 0; }
+    .mode-btn {
+      flex: 1;
+      border: 1px solid var(--border-light);
+      background: var(--bg-light);
+      color: var(--text-2);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .mode-btn.active { background: var(--highlight); color: var(--bg); border-color: transparent; }
+
+    .shot-edit-list { display: grid; gap: 12px; }
+    .shot-edit-item {
+      display: grid;
+      gap: 8px;
+      border: 1px solid var(--border-light);
+      border-radius: 14px;
+      padding: 12px;
+      background: var(--bg-light);
+    }
+
+    .asset .asset-actions button.active { background: var(--highlight); color: var(--bg); border-color: transparent; }
+    .asset.locked img, .asset.locked video { outline: 3px solid var(--highlight); outline-offset: -3px; }
 
     .input-chip {
       display: inline-flex;
@@ -805,18 +914,19 @@
 
     @media screen and (max-width: 1180px) {
       .layout { grid-template-columns: 1fr; }
-      .panel, .right-panel { position: static; }
+      .panel { position: static; }
       .portal-header { grid-template-columns: 1fr; text-align: center; }
       .brand, .powered { justify-content: center; text-align: center; }
       .header-controls { justify-content: center; }
       .events { max-height: 150px; }
       /* aside pleine largeur : les étapes redeviennent une rangée */
       .panel .pipeline-flow { grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); }
+      .profile-grid { grid-template-columns: repeat(2, 1fr); }
     }
 
     @media screen and (max-width: 760px) {
       .app-shell { padding: 14px; }
-      .scenario-tabs, .pipeline-flow, .two-cols, .actions {
+      .scenario-tabs, .pipeline-flow, .two-cols, .actions, .profile-grid {
         grid-template-columns: 1fr;
       }
       .gallery { grid-template-columns: repeat(2, 1fr); }
@@ -830,6 +940,194 @@
       .gallery { grid-template-columns: 1fr; }
       .seq-item { grid-template-columns: 44px 1fr auto; }
       .seq-item .seq-ctl { grid-column: 2 / -1; justify-content: flex-end; }
+    }
+
+    /* ── Studio plein écran (mode Réalisateur) — AJOUT à côté de .layout ── */
+    body[data-studio="1"] main.layout { display: none; }
+    body[data-studio="1"] #studioShell { display: grid; }
+    #studioShell {
+      grid-template-columns: 220px minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 18px;
+      height: calc(100vh - 160px);
+      min-height: 480px;
+    }
+    #studioNav {
+      grid-row: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 18px;
+      border: 1px solid var(--border-light);
+      background: var(--card);
+      backdrop-filter: blur(12px);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      min-height: 0;
+      overflow: auto;
+    }
+    #studioNav .section-title { margin-bottom: 4px; }
+    #studioNav > .hint { margin: 0 2px; font-size: 11px; }
+    .studio-nav-btn {
+      border: 1px solid var(--border-light);
+      background: var(--bg-light);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: left;
+      letter-spacing: 0.04em;
+    }
+    .studio-nav-btn.active { background: var(--highlight); color: var(--bg); border-color: transparent; }
+    .studio-nav-btn:disabled, .studio-nav-btn.locked { opacity: 0.45; cursor: default; }
+    .studio-nav-btn.locked::after { content: " 🔒"; float: right; }
+    .studio-nav-foot { margin-top: auto; display: grid; gap: 8px; }
+    .studio-nav-foot .primary-btn, .studio-nav-foot .secondary-btn { padding: 11px 12px; font-size: 11px; }
+    .studio-nav-foot .hint { margin: 0; text-align: center; min-height: 15px; }
+    #studioPanel {
+      min-width: 0;
+      min-height: 0;
+      overflow: auto;
+      border: 1px solid var(--border-light);
+      background: var(--card);
+      backdrop-filter: blur(12px);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+    #studioTimeline {
+      border: 1px solid var(--border-light);
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      min-height: 46px;
+      padding: 10px 16px;
+    }
+    .sheet-layout {
+      display: grid;
+      grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+      margin-top: 12px;
+    }
+    .sheet-layout input { text-transform: none; letter-spacing: 0; font-weight: 400; }
+    .sheet-right { min-width: 0; }
+    .sheet-actions { display: grid; gap: 8px; margin-top: 4px; }
+    .sheet-preview img {
+      width: 100%;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      background: var(--bg-mid);
+      display: block;
+      cursor: pointer;
+    }
+    .sheet-status { margin: 8px 0 10px; min-height: 15px; }
+    .variant-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+    .variant-thumb {
+      flex: 0 0 auto;
+      width: 132px;
+      border: 2px solid var(--border-light);
+      border-radius: 12px;
+      background: var(--bg-light);
+      padding: 0;
+      cursor: pointer;
+      overflow: hidden;
+      text-align: left;
+    }
+    .variant-thumb img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: var(--bg-mid); }
+    .variant-thumb.active { border-color: var(--highlight); }
+    .variant-thumb .variant-meta {
+      display: block;
+      padding: 5px 7px;
+      font-size: 10px;
+      color: var(--text-2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    /* ── Montage (menu + timeline) ── */
+    .montage-list { display: grid; gap: 12px; margin: 12px 0; }
+    .montage-clip {
+      display: grid;
+      gap: 8px;
+      border: 1px solid var(--border-light);
+      border-radius: 14px;
+      padding: 12px;
+      background: var(--bg-light);
+    }
+    .montage-clip video { width: 100%; max-height: 240px; border-radius: 10px; background: var(--bg-mid); display: block; }
+    .montage-clip .clip-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .montage-clip .clip-head strong { font-size: 13px; }
+    .montage-clip .clip-head .clip-meta { font-size: 11px; color: var(--text-2); }
+    .montage-clip .clip-meta .stale { color: var(--warn); font-weight: 700; }
+    .montage-clip label { flex-direction: row; align-items: center; gap: 8px; }
+    .montage-clip label input { width: 90px; }
+    .clip-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .clip-actions button {
+      border: 1px solid var(--border-light);
+      background: var(--bg-light);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 5px 9px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .clip-actions button:hover:not(:disabled) { border-color: var(--border-dark); }
+    .clip-actions button:disabled { opacity: 0.45; cursor: default; }
+    #montagePlayer video { width: 100%; border-radius: var(--radius); margin-top: 12px; background: var(--bg-mid); display: block; }
+    .timeline-strip { display: flex; gap: 8px; align-items: center; overflow-x: auto; }
+    .timeline-thumb {
+      position: relative;
+      flex: 0 0 auto;
+      width: 92px;
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      background: var(--bg-light);
+      padding: 0;
+    }
+    .timeline-thumb video { width: 100%; height: 52px; object-fit: cover; display: block; background: var(--bg-mid); }
+    .timeline-thumb .timeline-cap { display: block; padding: 3px 5px; font-size: 10px; color: var(--text-2); white-space: nowrap; }
+    .timeline-thumb .timeline-dot { position: absolute; top: 5px; right: 5px; width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 2px var(--card); }
+    .timeline-dot.ready { background: var(--ok); }
+    .timeline-dot.stale { background: var(--warn); }
+    .timeline-dot.pending { background: var(--text-2); }
+    .timeline-dot.missing { background: var(--hot); }
+
+    /* ── LOT C : placeholder "fichier manquant" (référence persistée, 404 au restore) ── */
+    .thumb-missing {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--warn);
+      background: repeating-linear-gradient(135deg, var(--bg-light), var(--bg-light) 10px, var(--bg-mid) 10px, var(--bg-mid) 20px);
+    }
+    .variant-thumb .thumb-missing { aspect-ratio: 16 / 9; }
+    .montage-clip .thumb-missing { aspect-ratio: auto; height: 120px; border-radius: 10px; }
+    .timeline-thumb .thumb-missing { aspect-ratio: auto; height: 52px; font-size: 9px; padding: 2px; }
+    .thumb-missing[hidden] { display: none; }
+    @media screen and (max-width: 1180px) {
+      body[data-studio="1"] #studioShell {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto auto;
+        height: auto;
+      }
+      #studioNav { grid-row: auto; grid-column: 1; flex-direction: row; flex-wrap: wrap; align-items: center; overflow: visible; }
+      #studioNav .section-title { flex: 1 0 100%; margin: 0 0 6px; }
+      #studioNav > .hint { flex: 1 0 100%; }
+      .studio-nav-foot { margin-top: 4px; flex: 1 0 100%; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: center; }
+      #studioPanel, #studioTimeline { grid-column: 1; }
+      #studioPanel { overflow: visible; }
+      .sheet-layout { grid-template-columns: 1fr; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -901,6 +1199,55 @@
         </div>
 
         <div class="events" id="events"></div>
+
+        <details class="right-card" open>
+          <summary class="panel-title"><span class="live-dot">Model Management</span><span id="mmState">…</span></summary>
+          <h3>Diffusion Runtime</h3>
+          <p>Modèles présents sur le nœud GB10 (ComfyUI).</p>
+          <div class="model-list" id="diffusionModels"></div>
+          <button class="control-btn" id="refreshModelsBtn">Refresh Models</button>
+        </details>
+
+        <details class="right-card" open>
+          <summary class="panel-title"><span class="live-dot">Local LLM</span><span>Ollama</span></summary>
+          <h3>Prompt Enrichment</h3>
+          <p>Modèles de langage locaux pour transformer le brief en prompts de diffusion.</p>
+          <div class="model-list" id="llmModels"></div>
+        </details>
+
+        <details class="right-card" open>
+          <summary class="panel-title"><span>Advanced</span><span>🛠</span></summary>
+          <h3>ComfyUI Console</h3>
+          <p>Accès direct à l'interface ComfyUI pour les démos techniques.</p>
+          <a class="control-btn primary" id="comfyLink" href="#" target="_blank" rel="noopener">Open ComfyUI</a>
+
+          <h3 style="margin-top:16px">Cloud Platforms</h3>
+          <p>Génération d'assets via une plateforme cloud. L'enrichissement de prompt reste local (gemma4:e4b).</p>
+          <div class="form-stack">
+            <label>
+              Mode d'exécution
+              <select id="cloudMode">
+                <option value="local">100% Local (GB10)</option>
+                <option value="hybrid">Hybride — images cloud, vidéo GB10</option>
+                <option value="cloud">Cloud — génération cloud (images)</option>
+              </select>
+            </label>
+            <label>
+              Plateforme
+              <select id="cloudPlatform">
+                <option value="chatgpt">ChatGPT (OpenAI)</option>
+                <option value="gemini">Gemini (Google)</option>
+                <option value="higgsfield">Higgsfield (MCP)</option>
+              </select>
+            </label>
+            <label>
+              Clé API
+              <input type="password" id="cloudKey" placeholder="Clé API de la plateforme" autocomplete="off" />
+              <span class="hint">Conservée uniquement pour cet onglet, effacée à sa fermeture. Jamais persistée.</span>
+            </label>
+            <a class="control-btn" id="cloudConsoleLink" href="#" target="_blank" rel="noopener">Ouvrir la console</a>
+          </div>
+        </details>
       </aside>
 
       <section class="studio-main">
@@ -914,6 +1261,36 @@
           </div>
           <h2>Dell AI Content Studio</h2>
           <p>Studio créatif IA 100 % local : text2image, image2image, image2video et text2video générés par ComfyUI sur le GB10, enrichissement de prompt par LLM local via Ollama.</p>
+
+          <div class="profile-bar">
+            <p class="profile-lead">Je démarre en tant que…</p>
+            <div class="profile-grid" role="group" aria-label="Profils métiers">
+              <button type="button" class="profile-card" data-profile="director">
+                <span class="profile-icon" aria-hidden="true">🎬</span>
+                <strong>Réalisateur / Storyboard artist</strong>
+                <span class="profile-desc">Du script aux keyframes ancrées, jusqu'à l'animatic monté. Personnage et décor cohérents d'un plan à l'autre.</span>
+                <span class="profile-route">Storyboard + Animatic</span>
+              </button>
+              <button type="button" class="profile-card" data-profile="art">
+                <span class="profile-icon" aria-hidden="true">🎨</span>
+                <strong>Directeur artistique / Motion designer</strong>
+                <span class="profile-desc">Charte graphique, styles et références visuelles contrôlés image par image avant la mise en mouvement.</span>
+                <span class="profile-route">Krea 2 · Image</span>
+              </button>
+              <button type="button" class="profile-card" data-profile="social">
+                <span class="profile-icon" aria-hidden="true">📣</span>
+                <strong>Social media / Marketing</strong>
+                <span class="profile-desc">Un brief, tous les formats : posters, thumbnails, déclinaisons sociales et teaser vidéo en une passe.</span>
+                <span class="profile-route">Campagne complète</span>
+              </button>
+              <button type="button" class="profile-card" data-profile="post">
+                <span class="profile-icon" aria-hidden="true">🎞️</span>
+                <strong>Monteur / Post-production</strong>
+                <span class="profile-desc">Reprendre les assets générés, les décliner par marché et les exporter depuis la galerie.</span>
+                <span class="profile-route">Localisation · Galerie</span>
+              </button>
+            </div>
+          </div>
 
           <div class="scenario-tabs" role="tablist" aria-label="Scénarios">
             <button class="scenario-tab active" data-scenario="campaign">
@@ -956,6 +1333,16 @@
                 </label>
               </div>
 
+              <div id="modeWrap" style="display:none">
+                <label>Mode de génération</label>
+                <div class="mode-toggle" id="modeToggle">
+                  <button type="button" class="mode-btn active" id="modeAutoBtn" data-mode="auto">Auto</button>
+                  <button type="button" class="mode-btn" id="modeDirectorBtn" data-mode="director">Réalisateur</button>
+                </div>
+                <p class="hint">Auto : chaîne complète en un clic. Réalisateur : validez chaque étape (plans, keyframes, animatic).</p>
+                <button type="button" class="secondary-btn" id="resumeProjectBtn" style="display:none; margin-top:8px">Reprendre le projet</button>
+              </div>
+
               <label id="imageInputWrap" style="display:none">
                 Image d'entrée
                 <input type="file" id="imageInput" accept="image/*" />
@@ -987,6 +1374,11 @@
                 </label>
               </div>
 
+              <label id="styleWrap" style="display:none">
+                Style
+                <select id="styleSelect"></select>
+              </label>
+
               <div class="two-cols">
                 <label>
                   Seed
@@ -998,7 +1390,7 @@
                 </label>
                 <label id="shotCountWrap" style="display:none">
                   Nombre de cases
-                  <input type="number" id="shotCount" min="2" max="6" value="6" />
+                  <input type="number" id="shotCount" min="4" max="16" value="6" />
                 </label>
                 <label id="holdWrap" style="display:none">
                   Tenue du plan final (s)
@@ -1008,7 +1400,12 @@
 
               <label id="audioWrap" class="check-row" style="display:none">
                 <input type="checkbox" id="audioToggle" checked />
-                <span>Générer l'audio (LTX 2.3) — ambiance sonore issue du prompt</span>
+                <span>Générer l'audio — ambiance sonore issue du prompt (natif LTX 2.5 / Minimax H3)</span>
+              </label>
+
+              <label id="turboWrap" class="check-row" style="display:none">
+                <input type="checkbox" id="turboToggle" checked />
+                <span>Turbo Minimax H3 (LoRA, 8 steps) — désactiver = 20 steps, qualité maximale</span>
               </label>
 
               <div class="actions">
@@ -1028,6 +1425,7 @@
               <div class="seq-list" id="seqList"></div>
               <div class="hint" id="seqSummary"></div>
             </div>
+
           </section>
 
           <section class="output-panel">
@@ -1036,7 +1434,7 @@
               <div class="job-list" id="jobList"></div>
             </div>
 
-            <div>
+            <div id="galleryBlock">
               <div class="gallery-header">
                 <h3 class="section-title">Generated Gallery</h3>
                 <div class="gallery-tabs">
@@ -1054,58 +1452,94 @@
           </section>
         </div>
       </section>
-
-      <aside class="right-panel">
-        <div class="right-card">
-          <div class="panel-title"><span class="live-dot">Model Management</span><span id="mmState">…</span></div>
-          <h3>Diffusion Runtime</h3>
-          <p>Modèles présents sur le nœud GB10 (ComfyUI).</p>
-          <div class="model-list" id="diffusionModels"></div>
-          <button class="control-btn" id="refreshModelsBtn">Refresh Models</button>
-        </div>
-
-        <div class="right-card">
-          <div class="panel-title"><span class="live-dot">Local LLM</span><span>Ollama</span></div>
-          <h3>Prompt Enrichment</h3>
-          <p>Modèles de langage locaux pour transformer le brief en prompts de diffusion.</p>
-          <div class="model-list" id="llmModels"></div>
-        </div>
-
-        <div class="right-card">
-          <div class="panel-title"><span>Advanced</span><span>🛠</span></div>
-          <h3>ComfyUI Console</h3>
-          <p>Accès direct à l'interface ComfyUI pour les démos techniques.</p>
-          <a class="control-btn primary" id="comfyLink" href="#" target="_blank" rel="noopener">Open ComfyUI</a>
-
-          <h3 style="margin-top:16px">Cloud Platforms</h3>
-          <p>Génération d'assets via une plateforme cloud. L'enrichissement de prompt reste local (gemma4:e4b).</p>
-          <div class="form-stack">
-            <label>
-              Mode d'exécution
-              <select id="cloudMode">
-                <option value="local">100% Local (GB10)</option>
-                <option value="hybrid">Hybride — images cloud, vidéo GB10</option>
-                <option value="cloud">Cloud — génération cloud (images)</option>
-              </select>
-            </label>
-            <label>
-              Plateforme
-              <select id="cloudPlatform">
-                <option value="chatgpt">ChatGPT (OpenAI)</option>
-                <option value="gemini">Gemini (Google)</option>
-                <option value="higgsfield">Higgsfield (MCP)</option>
-              </select>
-            </label>
-            <label>
-              Clé API
-              <input type="password" id="cloudKey" placeholder="Clé API de la plateforme" autocomplete="off" />
-              <span class="hint">Conservée uniquement pour cet onglet, effacée à sa fermeture. Jamais persistée.</span>
-            </label>
-            <a class="control-btn" id="cloudConsoleLink" href="#" target="_blank" rel="noopener">Ouvrir la console</a>
-          </div>
-        </div>
-      </aside>
     </main>
+
+    <section id="studioShell" hidden>
+      <nav id="studioNav">
+        <h3 class="section-title">Mode Réalisateur</h3>
+        <button type="button" class="studio-nav-btn active" data-section="character">Personnage</button>
+        <button type="button" class="studio-nav-btn" data-section="location">Décor</button>
+        <button type="button" class="studio-nav-btn locked" data-section="storyboard" disabled>Storyboard</button>
+        <button type="button" class="studio-nav-btn locked" data-section="montage" disabled>Montage</button>
+        <div class="studio-nav-foot">
+          <button type="button" class="primary-btn" id="directorValidateBtn" disabled>Valider les planches</button>
+          <button type="button" class="secondary-btn" id="studioNewBtn">Nouveau projet</button>
+          <button type="button" class="secondary-btn" id="studioExitBtn">Quitter le studio</button>
+          <p class="hint" id="studioJobs"></p>
+        </div>
+      </nav>
+
+      <div id="studioPanel">
+        <section id="studioCharacter" class="studio-section">
+          <h3 class="section-title">Planche personnage</h3>
+          <p class="hint">Modifiez les champs puis régénérez pour créer une nouvelle variante ; cliquez une vignette pour choisir la planche active.</p>
+          <div class="sheet-layout">
+            <div class="form-stack">
+              <label>Visage<input type="text" data-field="face" /></label>
+              <label>Cheveux<input type="text" data-field="hair" /></label>
+              <label>Tenue<input type="text" data-field="outfit" /></label>
+              <label>Accessoires<input type="text" data-field="accessories" /></label>
+              <label>Palette<input type="text" data-field="palette" /></label>
+              <div class="sheet-actions">
+                <button type="button" class="secondary-btn sheet-regen">🔄 Régénérer la planche</button>
+                <button type="button" class="secondary-btn sheet-import">📥 Importer une image</button>
+                <input type="file" class="sheet-import-input" accept="image/*" hidden />
+              </div>
+            </div>
+            <div class="sheet-right">
+              <div class="sheet-preview"><img alt="" style="display:none" /><div class="thumb-missing" hidden></div><div class="sheet-status hint"></div></div>
+              <div class="variant-strip"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="studioLocation" class="studio-section" style="display:none">
+          <h3 class="section-title">Planche décor</h3>
+          <p class="hint">Modifiez les champs puis régénérez pour créer une nouvelle variante ; cliquez une vignette pour choisir la planche active.</p>
+          <div class="sheet-layout">
+            <div class="form-stack">
+              <label>Lieu<input type="text" data-field="place" /></label>
+              <label>Architecture<input type="text" data-field="architecture" /></label>
+              <label>Matériaux<input type="text" data-field="materials" /></label>
+              <label>Lumière<input type="text" data-field="lighting" /></label>
+              <label>Palette<input type="text" data-field="palette" /></label>
+              <div class="sheet-actions">
+                <button type="button" class="secondary-btn sheet-regen">🔄 Régénérer la planche</button>
+                <button type="button" class="secondary-btn sheet-import">📥 Importer une image</button>
+                <input type="file" class="sheet-import-input" accept="image/*" hidden />
+              </div>
+            </div>
+            <div class="sheet-right">
+              <div class="sheet-preview"><img alt="" style="display:none" /><div class="thumb-missing" hidden></div><div class="sheet-status hint"></div></div>
+              <div class="variant-strip"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="studioStoryboard" class="studio-section" style="display:none">
+          <h3 class="section-title">Storyboard</h3>
+          <div class="form-stack">
+            <p class="hint">Étape 1 : ajustez les plans générés, puis lancez les keyframes. Étape 2 : régénérez ou verrouillez chaque case. Étape 3 : lancez l'animatic une fois toutes les cases prêtes.</p>
+            <div class="shot-edit-list" id="shotEditList" style="display:none"></div>
+            <button type="button" class="secondary-btn" id="directorKeyframesBtn" style="display:none">Générer les keyframes</button>
+            <div id="directorStep2" style="display:none; margin-top:10px">
+              <div class="gallery" id="keyframeGrid"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="studioMontage" class="studio-section" style="display:none">
+          <h3 class="section-title">Montage</h3>
+          <p class="hint">Générez les cuts, réordonnez ou re-rendez chaque plan, puis assemblez l'animatic. Réordonner ne relance rien.</p>
+          <button type="button" class="primary-btn" id="directorLaunchBtn" disabled>Générer les cuts</button>
+          <div class="montage-list" id="montageList"></div>
+          <button type="button" class="primary-btn" id="directorAssembleBtn" disabled style="margin-top:12px">Assembler l'animatic</button>
+          <div id="montagePlayer"></div>
+        </section>
+      </div>
+
+      <footer id="studioTimeline"></footer>
+    </section>
   </div>
 
   <div id="lightbox" hidden>
@@ -1125,15 +1559,17 @@
     const OLLAMA_MODEL = "gemma4:e4b";
     const RATIOS = { "16:9": [1280, 720], "9:16": [720, 1280], "1:1": [1024, 1024], "4:5": [832, 1040] };
     // Fallback si le manifest ne fournit pas la section "pipelines" (manifest v2).
-    // controls ∈ {duration, shots, hold, variants, ratio, audio, image, markets, seq}
+    // controls ∈ {duration, shots, hold, variants, ratio, audio, turbo, image, markets, seq}
     const PIPELINES_FALLBACK = [
       { id: "text2image", label: "Text2Image", controls: ["variants", "ratio"] },
       { id: "image2image", label: "Image2Image / Edit", controls: ["variants", "ratio", "image", "markets"] },
-      { id: "image2video", label: "Image2Video", controls: ["duration", "ratio", "image", "audio"] },
-      { id: "text2video", label: "Text2Video", controls: ["duration", "ratio", "audio"] },
+      { id: "image2video", label: "Image2Video", controls: ["duration", "ratio", "image", "audio", "turbo"] },
+      { id: "text2video", label: "Text2Video", controls: ["duration", "ratio", "audio", "turbo"] },
       { id: "sequence2video", label: "Animatic (FLF2V)", scenario: "storyboard", controls: ["seq", "audio"] },
-      { id: "storyboard_full", label: "Storyboard complet (shots + grille + animatic)", scenario: "storyboard",
-        controls: ["duration", "shots", "hold", "ratio", "audio"], defaults: { duration: 2 } },
+      { id: "storyboard_v2", label: "Storyboard + Animatic (charsheet + keyframes + cuts)", scenario: "storyboard",
+        controls: ["mode", "shots", "duration", "hold", "ratio", "style", "audio"], defaults: { duration: 2 } },
+      { id: "reference2video", label: "Personnage + Décor cohérents (Minimax H3 reference2video)", scenario: "storyboard",
+        controls: ["duration", "ratio", "audio", "turbo"], defaults: { duration: 2 } },
       { id: "campaign_full", label: "Campagne complète (posters + thumbnails + teaser)", scenario: "campaign",
         controls: ["duration", "variants", "audio"], defaults: { duration: 5 } }
     ];
@@ -1155,8 +1591,8 @@
       },
       storyboard: {
         route: "Storyboard pipeline",
-        pipeline: "text2image",
-        prompt: "Storyboard keyframe: a detective enters an abandoned broadcast studio at night, old monitors flicker in the background, tense cinematic cold lighting, wide establishing shot."
+        pipeline: "storyboard_v2",
+        prompt: "A detective enters an abandoned broadcast studio at night, old monitors flicker in the background, tense cinematic cold atmosphere."
       },
       localization: {
         route: "Localization pipeline",
@@ -1201,6 +1637,35 @@
         { en: "Script or scene to keyframes, shots and short animatic.", es: "Guion o escena a keyframes, planos y animatic corto.", de: "Drehbuch oder Szene zu Keyframes, Einstellungen und kurzem Animatic." },
       "Asset maître vers variantes régionales et formats sociaux.":
         { en: "Master asset to regional variants and social formats.", es: "Asset maestro a variantes regionales y formatos sociales.", de: "Master-Asset zu regionalen Varianten und Social-Formaten." },
+      "Je démarre en tant que…":
+        { en: "I'm starting as…", es: "Empiezo como…", de: "Ich starte als…" },
+      "Réalisateur / Storyboard artist":
+        { en: "Director / Storyboard artist", es: "Director / Artista de storyboard", de: "Regisseur / Storyboard-Artist" },
+      "Du script aux keyframes ancrées, jusqu'à l'animatic monté. Personnage et décor cohérents d'un plan à l'autre.":
+        { en: "From script to anchored keyframes and the edited animatic. Character and location stay consistent from shot to shot.",
+          es: "Del guion a los keyframes anclados y al animatic montado. Personaje y decorado coherentes de un plano a otro.",
+          de: "Vom Drehbuch zu verankerten Keyframes bis zum geschnittenen Animatic. Figur und Schauplatz bleiben von Einstellung zu Einstellung konsistent." },
+      "Directeur artistique / Motion designer":
+        { en: "Art director / Motion designer", es: "Director artístico / Motion designer", de: "Art Director / Motion Designer" },
+      "Charte graphique, styles et références visuelles contrôlés image par image avant la mise en mouvement.":
+        { en: "Brand guidelines, styles and visual references controlled frame by frame before anything moves.",
+          es: "Identidad gráfica, estilos y referencias visuales controlados imagen a imagen antes de animar.",
+          de: "Gestaltungsrichtlinien, Stile und visuelle Referenzen Bild für Bild steuern, bevor animiert wird." },
+      "Social media / Marketing":
+        { es: "Redes sociales / Marketing", de: "Social Media / Marketing" },
+      "Un brief, tous les formats : posters, thumbnails, déclinaisons sociales et teaser vidéo en une passe.":
+        { en: "One brief, every format: posters, thumbnails, social variants and video teaser in a single pass.",
+          es: "Un brief, todos los formatos: pósters, miniaturas, versiones para redes y teaser de vídeo en una sola pasada.",
+          de: "Ein Briefing, alle Formate: Poster, Thumbnails, Social-Varianten und Video-Teaser in einem Durchlauf." },
+      "Monteur / Post-production":
+        { en: "Editor / Post-production", es: "Montador / Postproducción", de: "Cutter / Postproduktion" },
+      "Reprendre les assets générés, les décliner par marché et les exporter depuis la galerie.":
+        { en: "Pick up generated assets, derive market variants and export them from the gallery.",
+          es: "Retomar los assets generados, declinarlos por mercado y exportarlos desde la galería.",
+          de: "Generierte Assets aufgreifen, marktspezifisch ableiten und aus der Galerie exportieren." },
+      "Krea 2 · Image": { es: "Krea 2 · Imagen", de: "Krea 2 · Bild" },
+      "Campagne complète": { en: "Full campaign", es: "Campaña completa", de: "Komplette Kampagne" },
+      "Localisation · Galerie": { en: "Localization · Gallery", es: "Localización · Galería", de: "Lokalisierung · Galerie" },
       "Creative Control": { fr: "Contrôle créatif", es: "Control creativo", de: "Kreativsteuerung" },
       "Prompt ou brief": { en: "Prompt or brief", es: "Prompt o brief", de: "Prompt oder Briefing" },
       "Negative prompt": { fr: "Prompt négatif", es: "Prompt negativo", de: "Negativ-Prompt" },
@@ -1259,10 +1724,14 @@
       "Plateforme": { en: "Platform", es: "Plataforma", de: "Plattform" },
       "Clé API": { en: "API key", es: "Clave API", de: "API-Schlüssel" },
       "Clé API de la plateforme": { en: "Platform API key", es: "Clave API de la plataforma", de: "API-Schlüssel der Plattform" },
-      "Générer l'audio (LTX 2.3) — ambiance sonore issue du prompt":
-        { en: "Generate audio (LTX 2.3) — soundscape driven by the prompt",
-          es: "Generar audio (LTX 2.3) — ambiente sonoro a partir del prompt",
-          de: "Audio generieren (LTX 2.3) — Klangkulisse aus dem Prompt" },
+      "Générer l'audio — ambiance sonore issue du prompt (natif LTX 2.5 / Minimax H3)":
+        { en: "Generate audio — soundscape driven by the prompt (native to LTX 2.5 / Minimax H3)",
+          es: "Generar audio — ambiente sonoro a partir del prompt (nativo en LTX 2.5 / Minimax H3)",
+          de: "Audio generieren — Klangkulisse aus dem Prompt (nativ bei LTX 2.5 / Minimax H3)" },
+      "Turbo Minimax H3 (LoRA, 8 steps) — désactiver = 20 steps, qualité maximale":
+        { en: "Turbo Minimax H3 (LoRA, 8 steps) — disable = 20 steps, maximum quality",
+          es: "Turbo Minimax H3 (LoRA, 8 pasos) — desactivar = 20 pasos, calidad máxima",
+          de: "Turbo Minimax H3 (LoRA, 8 Schritte) — deaktivieren = 20 Schritte, maximale Qualität" },
       "Conservée uniquement pour cet onglet, effacée à sa fermeture. Jamais persistée.":
         { en: "Kept for this tab only, cleared when it closes. Never persisted.",
           es: "Se conserva solo para esta pestaña y se borra al cerrarla. Nunca se persiste.",
@@ -1275,7 +1744,113 @@
       "⤢ Agrandir": { en: "⤢ Expand", es: "⤢ Ampliar", de: "⤢ Vergrößern" },
       "▶ Lire": { en: "▶ Play", es: "▶ Reproducir", de: "▶ Abspielen" },
       "fin": { en: "end", es: "fin", de: "Ende" },
-      "Seed": {}, "Pipeline": {}, "Node Monitor": {}, "ComfyUI Console": {}, "100% Local (GB10)": {}
+      "Seed": {}, "Pipeline": {}, "Node Monitor": {}, "ComfyUI Console": {}, "100% Local (GB10)": {},
+      // ── Mode Réalisateur (storyboard_v2) ──
+      "Mode de génération": { en: "Generation mode", es: "Modo de generación", de: "Generierungsmodus" },
+      "Auto": {},
+      "Réalisateur": { en: "Director", es: "Director", de: "Regisseur" },
+      "Auto : chaîne complète en un clic. Réalisateur : validez chaque étape (plans, keyframes, animatic).":
+        { en: "Auto: full chain in one click. Director: validate each step (shots, keyframes, animatic).",
+          es: "Auto: cadena completa en un clic. Director: valide cada etapa (planos, keyframes, animatic).",
+          de: "Auto: vollständige Kette mit einem Klick. Regisseur: jeden Schritt bestätigen (Einstellungen, Keyframes, Animatic)." },
+      "Mode Réalisateur": { en: "Director mode", es: "Modo Director", de: "Regisseur-Modus" },
+      "Étape 1 : ajustez les plans générés, puis lancez les keyframes. Étape 2 : régénérez ou verrouillez chaque case. Étape 3 : lancez l'animatic une fois toutes les cases prêtes.":
+        { en: "Step 1: adjust the generated shots, then launch the keyframes. Step 2: regenerate or lock each panel. Step 3: launch the animatic once every panel is ready.",
+          es: "Paso 1: ajuste los planos generados y lance los keyframes. Paso 2: regenere o bloquee cada viñeta. Paso 3: lance el animatic cuando todas las viñetas estén listas.",
+          de: "Schritt 1: die generierten Einstellungen anpassen, dann die Keyframes starten. Schritt 2: jedes Panel neu generieren oder sperren. Schritt 3: das Animatic starten, sobald alle Panels bereit sind." },
+      "Générer les keyframes": { en: "Generate keyframes", es: "Generar keyframes", de: "Keyframes generieren" },
+      "Lancer l'animatic": { en: "Start the animatic", es: "Iniciar el animatic", de: "Animatic starten" },
+      "Scène": { en: "Scene", es: "Escena", de: "Szene" },
+      "Angle": { es: "Ángulo", de: "Kamerawinkel" },
+      "Mouvement": { en: "Motion", es: "Movimiento", de: "Bewegung" },
+      "🔄 Régénérer": { en: "🔄 Regenerate", es: "🔄 Regenerar", de: "🔄 Neu generieren" },
+      "🔒 Verrouiller": { en: "🔒 Lock", es: "🔒 Bloquear", de: "🔒 Sperren" },
+      "🔓 Déverrouiller": { en: "🔓 Unlock", es: "🔓 Desbloquear", de: "🔓 Entsperren" },
+      "Génération…": { en: "Generating…", es: "Generando…", de: "Wird generiert…" },
+      "Prêt": { en: "Ready", es: "Listo", de: "Bereit" },
+      "Verrouillé": { en: "Locked", es: "Bloqueado", de: "Gesperrt" },
+      "Erreur": { en: "Error", es: "Error", de: "Fehler" },
+      "Planche personnage": { en: "Character sheet", es: "Lámina de personaje", de: "Figurenbogen" },
+      "Planche décor": { en: "Location sheet", es: "Lámina de decorado", de: "Schauplatzbogen" },
+      "Valider les planches": { en: "Validate the sheets", es: "Validar las láminas", de: "Bögen bestätigen" },
+      "Planches validées ✓": { en: "Sheets validated ✓", es: "Láminas validadas ✓", de: "Bögen bestätigt ✓" },
+      // ── Studio plein écran (coquille + menus Personnage/Décor) ──
+      "Personnage": { en: "Character", es: "Personaje", de: "Figur" },
+      "Décor": { en: "Location", es: "Decorado", de: "Schauplatz" },
+      "Storyboard": {},
+      "Montage": { en: "Editing", es: "Montaje", de: "Schnitt" },
+      "Montage : disponible à une prochaine étape.":
+        { en: "Editing: available in a later step.", es: "Montaje: disponible en una próxima etapa.", de: "Schnitt: in einem späteren Schritt verfügbar." },
+      "Nouveau projet": { en: "New project", es: "Nuevo proyecto", de: "Neues Projekt" },
+      "Quitter le studio": { en: "Leave the studio", es: "Salir del estudio", de: "Studio verlassen" },
+      "Modifiez les champs puis régénérez pour créer une nouvelle variante ; cliquez une vignette pour choisir la planche active.":
+        { en: "Edit the fields then regenerate to create a new variant; click a thumbnail to pick the active sheet.",
+          es: "Edite los campos y regenere para crear una nueva variante; haga clic en una miniatura para elegir la lámina activa.",
+          de: "Felder bearbeiten und neu generieren, um eine neue Variante zu erzeugen; auf eine Miniatur klicken, um den aktiven Bogen zu wählen." },
+      "🔄 Régénérer la planche": { en: "🔄 Regenerate the sheet", es: "🔄 Regenerar la lámina", de: "🔄 Bogen neu generieren" },
+      "📥 Importer une image": { en: "📥 Import an image", es: "📥 Importar una imagen", de: "📥 Bild importieren" },
+      "Visage": { en: "Face", es: "Rostro", de: "Gesicht" },
+      "Cheveux": { en: "Hair", es: "Cabello", de: "Haar" },
+      "Tenue": { en: "Outfit", es: "Vestuario", de: "Outfit" },
+      "Accessoires": { en: "Accessories", es: "Accesorios", de: "Accessoires" },
+      "Palette": { es: "Paleta" },
+      "Lieu": { en: "Place", es: "Lugar", de: "Ort" },
+      "Architecture": { es: "Arquitectura", de: "Architektur" },
+      "Matériaux": { en: "Materials", es: "Materiales", de: "Materialien" },
+      "Lumière": { en: "Lighting", es: "Iluminación", de: "Licht" },
+      // ── LOT B2 : Scene DNA + style + Montage ──
+      "Style": { es: "Estilo", de: "Stil" },
+      "Aucun": { en: "None", es: "Ninguno", de: "Keiner" },
+      "Cinématique": { en: "Cinematic", es: "Cinematográfico", de: "Filmisch" },
+      "Film noir": { es: "Cine negro" },
+      "Documentaire": { en: "Documentary", es: "Documental", de: "Dokumentarisch" },
+      "Anime": {},
+      // Presets caméra (Scene DNA)
+      "Très gros plan": { en: "Extreme close-up", es: "Primerísimo plano", de: "Extreme Nahaufnahme" },
+      "Gros plan": { en: "Close-up", es: "Primer plano", de: "Nahaufnahme" },
+      "Plan moyen": { en: "Medium shot", es: "Plano medio", de: "Halbtotale" },
+      "Plan large": { en: "Wide shot", es: "Plano general", de: "Totale" },
+      "Plan d'ensemble": { en: "Extreme wide shot", es: "Gran plano general", de: "Weite Totale" },
+      "Vue subjective": { en: "POV shot", es: "Plano subjetivo", de: "Subjektive" },
+      "Contre-plongée": { en: "Low angle", es: "Contrapicado", de: "Untersicht" },
+      "Plongée": { en: "High angle", es: "Picado", de: "Aufsicht" },
+      "Travelling": { en: "Tracking shot", es: "Travelling", de: "Kamerafahrt" },
+      "Caméra portée": { en: "Handheld", es: "Cámara en mano", de: "Handkamera" },
+      // Presets lumière (Scene DNA)
+      "Matin": { en: "Morning", es: "Mañana", de: "Morgen" },
+      "Heure dorée": { en: "Golden hour", es: "Hora dorada", de: "Goldene Stunde" },
+      "Ciel couvert": { en: "Overcast", es: "Cielo cubierto", de: "Bedeckt" },
+      "Clair de lune": { en: "Moonlight", es: "Luz de luna", de: "Mondlicht" },
+      "Feu": { en: "Firelight", es: "Fuego", de: "Feuerschein" },
+      "Intérieur": { en: "Interior", es: "Interior", de: "Innenraum" },
+      "Studio": {},
+      "Nuit": { en: "Night", es: "Noche", de: "Nacht" },
+      // Éditeur Scene DNA
+      "Caméra": { en: "Camera", es: "Cámara", de: "Kamera" },
+      "Action": { es: "Acción", de: "Aktion" },
+      "Émotion": { en: "Emotion", es: "Emoción", de: "Emotion" },
+      "Durée (s)": { en: "Duration (s)", es: "Duración (s)", de: "Dauer (s)" },
+      "Détails": { en: "Details", es: "Detalles" },
+      "arrondi 8n+1 au rendu": { en: "rounded to 8n+1 on render", es: "redondeado a 8n+1 al renderizar", de: "beim Rendern auf 8n+1 gerundet" },
+      // Menu Montage
+      "Générer les cuts": { en: "Generate the cuts", es: "Generar los cortes", de: "Cuts generieren" },
+      "Assembler l'animatic": { en: "Assemble the animatic", es: "Ensamblar el animatic", de: "Animatic zusammensetzen" },
+      "Générez les cuts, réordonnez ou re-rendez chaque plan, puis assemblez l'animatic. Réordonner ne relance rien.":
+        { en: "Generate the cuts, reorder or re-render each shot, then assemble the animatic. Reordering re-runs nothing.",
+          es: "Genere los cortes, reordene o vuelva a renderizar cada plano y luego ensamble el animatic. Reordenar no relanza nada.",
+          de: "Cuts generieren, jede Einstellung umsortieren oder neu rendern, dann das Animatic zusammensetzen. Umsortieren startet nichts neu." },
+      "à re-rendre": { en: "to re-render", es: "volver a renderizar", de: "neu rendern" },
+      "↑ Monter": { en: "↑ Move up", es: "↑ Subir", de: "↑ Nach oben" },
+      "↓ Descendre": { en: "↓ Move down", es: "↓ Bajar", de: "↓ Nach unten" },
+      "🔄 Re-rendre ce plan": { en: "🔄 Re-render this shot", es: "🔄 Volver a renderizar este plano", de: "🔄 Diese Einstellung neu rendern" },
+      "⤢ Aperçu": { en: "⤢ Preview", es: "⤢ Vista previa", de: "⤢ Vorschau" },
+      // ── LOT C : persistance de session ──
+      "Reprendre le projet": { en: "Resume the project", es: "Reanudar el proyecto", de: "Projekt fortsetzen" },
+      "Manquant": { en: "Missing", es: "Falta", de: "Fehlt" },
+      "Supprimer définitivement ce projet et repartir de zéro ?":
+        { en: "Permanently delete this project and start over?",
+          es: "¿Eliminar definitivamente este proyecto y empezar de cero?",
+          de: "Dieses Projekt endgültig löschen und neu beginnen?" }
     };
     const DYN_I18N = {
       tabImages: { fr: n => `Images (${n})`, en: n => `Images (${n})`, es: n => `Imágenes (${n})`, de: n => `Bilder (${n})` },
@@ -1285,7 +1860,13 @@
         fr: (s, t) => `${s} segment(s), ~${t} s — lancez avec Generate`,
         en: (s, t) => `${s} segment(s), ~${t} s — press Generate to run`,
         es: (s, t) => `${s} segmento(s), ~${t} s — pulse Generate para lanzar`,
-        de: (s, t) => `${s} Segment(e), ~${t} s — mit Generate starten` }
+        de: (s, t) => `${s} Segment(e), ~${t} s — mit Generate starten` },
+      shotLabel: {
+        fr: (i, n) => `Plan ${i}/${n}`, en: (i, n) => `Shot ${i}/${n}`,
+        es: (i, n) => `Plano ${i}/${n}`, de: (i, n) => `Einstellung ${i}/${n}` },
+      studioJobs: {
+        fr: n => `${n} job(s) en cours`, en: n => `${n} job(s) running`,
+        es: n => `${n} trabajo(s) en curso`, de: n => `${n} Job(s) aktiv` }
     };
     let LANG = localStorage.getItem("lang") || "fr";
     function tr(key) { return LANG === "fr" ? key : (I18N[key]?.[LANG] ?? key); }
@@ -1317,6 +1898,9 @@
       bumpGalleryCount(false, 0);
       renderSeqList();
       refreshCloudUI();
+      updateStudioJobs(0);
+      renderStyleOptions();
+      if (director) { renderSheetMenu("char"); renderSheetMenu("loc"); updateValidateButtonState(); renderShotDNAList(); renderAllKeyframeCards(); renderMontage(); renderFooterTimeline(); }
     });
 
     // ── Events log ─────────────────────────────────────────────────
@@ -1356,13 +1940,17 @@
         addEvent("WARN", "workflows/manifest.json introuvable — génération indisponible.", "warn");
       }
       refreshPipelineOptions();
+      // LOT C : le projet persisté n'est proposé qu'une fois le manifest connu (wfId vérifiable).
+      savedProjectCache = loadSavedProject();
+      updateResumeButton();
     }
 
     // Champs du formulaire pilotés par pipelines[].controls (manifest v2)
     const CONTROL_WRAPS = {
       image: "imageInputWrap", duration: "durationWrap", markets: "marketsWrap",
       seq: "seqWrap", shots: "shotCountWrap", hold: "holdWrap",
-      variants: "variantsWrap", ratio: "ratioWrap", audio: "audioWrap"
+      variants: "variantsWrap", ratio: "ratioWrap", audio: "audioWrap", mode: "modeWrap",
+      style: "styleWrap", turbo: "turboWrap"
     };
     function updateModelOptions() {
       const wfs = manifest.workflows.filter(w => w.pipeline === pipelineSelect.value);
@@ -1374,10 +1962,13 @@
       for (const [name, wrapId] of Object.entries(CONTROL_WRAPS))
         $(wrapId).style.display = controls.includes(name) ? "" : "none";
       if (controls.includes("seq")) ensureMotionBrief();
-      if (def?.defaults?.duration && p !== updateModelOptions.lastPipeline)
-        $("videoDuration").value = def.defaults.duration;
+      if (p !== updateModelOptions.lastPipeline) {
+        if (def?.defaults?.duration) $("videoDuration").value = def.defaults.duration;
+        resetDirectorZone(); // changement de pipeline = fin de la session Réalisateur en cours
+      }
       updateModelOptions.lastPipeline = p;
       updateModelLabel();
+      updateResumeButton();
     }
 
     // Animatic : le brief est un prompt de MOUVEMENT. Si l'utilisateur a laissé un
@@ -1422,7 +2013,8 @@
         '"{{BATCH}}"': String(p.batch),
         '"{{DURATION}}"': String(p.duration || 5),
         '"{{FRAMES}}"': String((p.duration || 5) * (p.fps || 25) + 1),
-        '"{{IMAGE}}"': JSON.stringify(p.image || "")
+        '"{{IMAGE}}"': JSON.stringify(p.image || ""),
+        '"{{IMAGE2}}"': JSON.stringify(p.image2 || "")
       };
       let t = raw;
       for (const [k, v] of Object.entries(rep)) t = t.split(k).join(v);
@@ -1447,6 +2039,43 @@
       });
     });
     brief.value = SCENARIOS.campaign.prompt;
+
+    // ── Profils métiers ────────────────────────────────────────────
+    // Couche de PRÉSENTATION au-dessus des scénarios : un profil ne fait que
+    // cliquer l'onglet scénario correspondant (routing inchangé) puis présélectionner
+    // le pipeline le plus utile au métier. Aucun état de génération propre.
+    const PROFILES = {
+      director: { scenario: "storyboard", pipeline: "storyboard_v2" },
+      art: { scenario: "campaign", pipeline: "text2image" },
+      social: { scenario: "campaign", pipeline: "campaign_full" },
+      post: { scenario: "localization", pipeline: "image2image", gallery: true }
+    };
+    let applyingProfile = false;
+
+    function setActiveProfile(id) {
+      document.querySelectorAll(".profile-card").forEach(c =>
+        c.classList.toggle("active", c.dataset.profile === id));
+    }
+
+    document.querySelectorAll(".profile-card").forEach(card => {
+      card.addEventListener("click", () => {
+        const p = PROFILES[card.dataset.profile];
+        if (!p) return;
+        applyingProfile = true;
+        document.querySelector(`.scenario-tab[data-scenario="${p.scenario}"]`)?.click();
+        applyingProfile = false;
+        setActiveProfile(card.dataset.profile);
+        if ([...pipelineSelect.options].some(o => o.value === p.pipeline)) {
+          pipelineSelect.value = p.pipeline;
+          updateModelOptions();
+        }
+        if (p.gallery) $("galleryBlock")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        addEvent("REQ", `Profile: ${card.dataset.profile} → ${p.scenario} / ${p.pipeline}.`, "req");
+      });
+    });
+    // Choisir un scénario à la main sort du profil (les libellés ne correspondent plus).
+    document.querySelectorAll(".scenario-tab").forEach(tab =>
+      tab.addEventListener("click", () => { if (!applyingProfile) setActiveProfile(null); }));
 
     // ── ComfyUI WebSocket + jobs ───────────────────────────────────
     const clientId = crypto.randomUUID();
@@ -1482,11 +2111,13 @@
         addEvent("OK", `${job.label} terminé en ${secs}s.`, "ok");
         $("stepInference").classList.remove("active");
         collectHistory(d.prompt_id, job.label);
+        updateStudioJobs(-1);
       } else if (msg.type === "execution_error" && job) {
         job.statusEl.textContent = "Error";
         job.statusEl.className = "status error";
         addEvent("WARN", `Erreur d'exécution : ${d.exception_message || "voir logs ComfyUI"}`, "warn");
         $("stepInference").classList.remove("active");
+        updateStudioJobs(-1);
       }
     }
 
@@ -1505,7 +2136,7 @@
 
     // ── Lightbox (lecteur intégré + copie du prompt) ───────────────
     const lightbox = $("lightbox"), lightboxContent = $("lightboxContent");
-    const assetPrompts = new Map(); // assetKey -> prompt positif utilisé pour la génération
+    const assetPrompts = new Map(Object.entries(JSON.parse(localStorage.getItem("assetPrompts") || "{}"))); // persisté : survit aux restart ComfyUI
     let lightboxKey = null;
     function openLightbox(url, isVideo, assetKey) {
       lightboxContent.innerHTML = isVideo
@@ -1581,6 +2212,39 @@
     function markDeleted(key) {
       deletedAssets.add(key);
       localStorage.setItem("deletedAssets", JSON.stringify([...deletedAssets]));
+      purgeGalleryAsset(key);
+    }
+
+    // Persistance galerie : la liste des assets ComfyUI + leurs prompts survit aux
+    // fermetures d'onglet et aux restart ComfyUI (l'historique /history est volatil
+    // en RAM). Les images restent servies par /view qui lit le disque.
+    const galleryAssets = JSON.parse(localStorage.getItem("galleryAssets") || "[]");
+    function persistAsset(f, label) {
+      const k = `${f.subfolder || ""}/${f.filename}`;
+      const entry = { filename: f.filename, subfolder: f.subfolder || "", type: f.type || "output", label };
+      const out = [entry], seen = new Set([k]);
+      for (const a of galleryAssets) {
+        const ak = `${a.subfolder}/${a.filename}`;
+        if (seen.has(ak)) continue;
+        seen.add(ak); out.push(a);
+      }
+      galleryAssets.length = 0; galleryAssets.push(...out.slice(0, 200));
+      localStorage.setItem("galleryAssets", JSON.stringify(galleryAssets));
+    }
+    function purgeGalleryAsset(key) {
+      const idx = galleryAssets.findIndex(a => `${a.subfolder}/${a.filename}` === key);
+      if (idx === -1) return;
+      galleryAssets.splice(idx, 1);
+      localStorage.setItem("galleryAssets", JSON.stringify(galleryAssets));
+    }
+    function saveAssetPrompts() {
+      const o = {};
+      for (const [k, v] of assetPrompts) o[k] = v;
+      localStorage.setItem("assetPrompts", JSON.stringify(o));
+    }
+    function restoreGallery() {
+      for (const a of galleryAssets) addAsset(a, a.label, false);
+      if (galleryAssets.length) addEvent("OK", `${galleryAssets.length} assets restaurés depuis le cache navigateur.`, "ok");
     }
 
     // Les sorties des tâches complètes (studio/story, studio/campaign) sont regroupées par dossier
@@ -1666,11 +2330,12 @@
       bumpGalleryCount(isVideo);
     }
 
-    function addAsset(f, label) {
+    function addAsset(f, label, persist = true) {
       if (/\.(mp3|wav|opus|flac|ogg)$/i.test(f.filename)) return; // pistes audio seules : pas de carte
       const key = `${f.subfolder}/${f.filename}`;
       if (seenAssets.has(key) || deletedAssets.has(key)) return;
       seenAssets.add(key);
+      if (persist) persistAsset(f, label);
       const url = `${COMFY}/view?filename=${encodeURIComponent(f.filename)}&subfolder=${encodeURIComponent(f.subfolder || "")}&type=${encodeURIComponent(f.type || "output")}`;
       addAssetCard(url, f.filename, label, /\.(mp4|webm|mov)$/i.test(f.filename), key, f.subfolder || "");
     }
@@ -1702,6 +2367,7 @@
         if (!p) continue;
         for (const f of extractFiles(nodeOut)) assetPrompts.set(`${f.subfolder}/${f.filename}`, p);
       }
+      saveAssetPrompts();
     }
 
     // Filet : certains nœuds vidéo ne remontent pas via "executed",
@@ -1727,6 +2393,15 @@
       jobList.prepend(el);
       jobs[promptId] = { el, statusEl: el.querySelector(".status"), label, start: Date.now() };
       while (jobList.children.length > 8) jobList.lastChild.remove();
+      updateStudioJobs(1);
+    }
+
+    // Compteur minimal de jobs en cours pour la nav studio (guard si l'élément est absent).
+    let runningJobs = 0;
+    function updateStudioJobs(delta) {
+      runningJobs = Math.max(0, runningJobs + delta);
+      const el = $("studioJobs");
+      if (el) el.textContent = runningJobs ? dyn("studioJobs", runningJobs) : "";
     }
 
     // ── Generate ───────────────────────────────────────────────────
@@ -1734,8 +2409,13 @@
     // builder = une fonction (seed, width, height) + une entrée ici.
     const BUILDERS = {
       flf2v: (seed) => generateSequence(seed),
-      storyboard_full: (seed, width, height) => generateStoryboardFull(seed, width, height),
-      campaign_full: (seed) => generateCampaignFull(seed)
+      // Mode Réalisateur : Generate ne lance que l'étape 1 (fiches + planches) et ouvre le
+      // studio plein écran ; la suite se déroule via les menus du studio. Mode Auto : chaîne complète.
+      storyboard_v2: (seed, width, height) => directorMode
+        ? directorStep1(seed, width, height)
+        : generateStoryboardV2(seed, width, height),
+      campaign_full: (seed) => generateCampaignFull(seed),
+      reference2video: (seed, width, height) => generateReference2Video(seed, width, height)
     };
 
     async function uploadInputImage() {
@@ -1796,12 +2476,9 @@
             prompt: spec.prompt, negative: negative.value.trim(),
             seed: seed + i, width, height, batch, duration, image, fps: wf.fps
           });
-          // Audio joint : uniquement pour les graphes LTX (un moteur vidéo tiers,
-          // ex. Wan, ignore le toggle — applyLtxAudio le casserait).
-          const isLtxGraph = Object.values(graph).some(n =>
-            n.class_type.startsWith("LTXV") || n.class_type === "LTXAVTextEncoderLoader");
-          if (["text2video", "image2video"].includes(wf.pipeline) && $("audioToggle").checked && isLtxGraph)
-            applyLtxAudio(graph);
+          // Audio : tous les moteurs vidéo restants (LTX 2.5, Minimax H3) câblent
+          // CreateVideo.audio nativement dans leur template — rien à ajouter côté JS.
+          applyMinimaxTurbo(graph, $("turboToggle").checked);
           const res = await fetch(`${COMFY}/prompt`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2207,44 +2884,27 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
       $("seqFiles").value = "";
     });
 
-    // ── Audio LTX 2.3 (généré conjointement à la vidéo, piloté par le prompt) ──
-    // L'audio VAE est embarqué dans le checkpoint LTX — aucun modèle supplémentaire.
-    function applyLtxAudio(graph) {
-      let next = Math.max(0, ...Object.keys(graph).map(Number).filter(Number.isFinite)) + 1;
-      const add = (class_type, inputs) => { graph[String(next)] = { class_type, inputs }; return String(next++); };
-      const byType = t => Object.entries(graph).filter(([, n]) => n.class_type === t);
-      const cv = byType("CreateVideo")[0];
-      if (!cv || cv[1].inputs.audio) return;
-      let loader = byType("LTXVAudioVAELoader")[0]?.[0];
-      if (!loader) loader = add("LTXVAudioVAELoader", { ckpt_name: "ltx-2.3-22b-distilled-1.1.safetensors" });
-      const finalDecode = graph[cv[1].inputs.images[0]];
-      const sepId = finalDecode.inputs.samples[0];
-      if (graph[sepId]?.class_type === "LTXVSeparateAVLatent") {
-        // Plomberie AV déjà présente (template t2v) : il ne manque que le décodage audio
-        const a = add("LTXVAudioVAEDecode", { samples: [sepId, 1], audio_vae: [loader, 0] });
-        cv[1].inputs.audio = [a, 0];
-      } else {
-        // Pas de plomberie (template i2v) : envelopper le sampler en latent audio+vidéo
-        const [sId, s] = byType("SamplerCustomAdvanced")[0];
-        const lat = byType("EmptyLTXVLatentVideo")[0][1];
-        const aLat = add("LTXVEmptyLatentAudio", {
-          frames_number: lat.inputs.length, frame_rate: 25, batch_size: 1, audio_vae: [loader, 0]
-        });
-        const concat = add("LTXVConcatAVLatent", { video_latent: s.inputs.latent_image, audio_latent: [aLat, 0] });
-        s.inputs.latent_image = [concat, 0];
-        const sep = add("LTXVSeparateAVLatent", { av_latent: [sId, 0] });
-        for (const n of Object.values(graph)) {
-          for (const [k, v] of Object.entries(n.inputs)) {
-            if (Array.isArray(v) && v[0] === sId && v[1] === 0 && n.class_type !== "LTXVSeparateAVLatent")
-              n.inputs[k] = [sep, 0];
-          }
-        }
-        const a = add("LTXVAudioVAEDecode", { samples: [sep, 1], audio_vae: [loader, 0] });
-        cv[1].inputs.audio = [a, 0];
+    // ── Minimax H3 : bascule turbo (LoRA 8 steps ON / 20 steps OFF, LOT 1) ─────
+    // Les 3 templates (t2v/i2v/r2v) câblent la LoRA turbo en dur (LoraLoaderModelOnly,
+    // strength_model 1) alimentant à la fois BasicScheduler et BasicGuider ; il n'y a pas
+    // de nœud bascule côté ComfyUI. Turbo OFF retire la LoRA du graphe (retour au modèle
+    // brut) et remonte les steps à 20. Ne jamais exposer 4 ou 6 steps (décision LOT 1).
+    // No-op silencieux sur tout graphe sans LoraLoaderModelOnly (Krea 2, LTX 2.5, etc.).
+    function applyMinimaxTurbo(graph, turboOn) {
+      const loraEntry = Object.entries(graph).find(([, n]) => n.class_type === "LoraLoaderModelOnly");
+      if (!loraEntry || turboOn) return graph;
+      const [loraId, loraNode] = loraEntry;
+      const src = loraNode.inputs.model; // sortie du UNETLoader, en amont de la LoRA
+      for (const n of Object.values(graph)) {
+        if (Array.isArray(n.inputs.model) && n.inputs.model[0] === loraId) n.inputs.model = src;
+        if (n.class_type === "BasicScheduler") n.inputs.steps = 20;
       }
+      delete graph[loraId];
+      return graph;
     }
 
     const FLF2V_SIGMAS = "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0";
+    const LTX25_FPS = 24;   // LTX 2.5 et Minimax H3 rendent en 24 fps (LTX 2.3 était en 25).
 
     function makeGraphBuilder() {
       const g = {}; let id = 0;
@@ -2252,62 +2912,66 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
       return { g, add };
     }
 
-    function addLtxShared(add, withAudio) {
-      // Checkpoint distillé LTX 2.3 (fusionné : dev + LoRA distillé intégré) —
-      // pas de LoRA distillé séparé. L'audio VAE est embarqué dans le checkpoint.
-      const ckpt = add("CheckpointLoaderSimple", { ckpt_name: "ltx-2.3-22b-distilled-1.1.safetensors" });
-      const te = add("LTXAVTextEncoderLoader", {
-        text_encoder: "gemma_3_12B_it_fp4_mixed.safetensors",
-        ckpt_name: "ltx-2.3-22b-distilled-1.1.safetensors", device: "default"
+    // Ressources partagées LTX 2.5 (mêmes fichiers que workflows/api/ltx25_flf2v.json).
+    // Un seul jeu de loaders pour toute la chaîne multi-segments.
+    function addLtx25Shared(add) {
+      const unet = add("UNETLoader", {
+        unet_name: "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors", weight_dtype: "default"
       });
+      const vae = add("VAELoader", { vae_name: "ltx-2.5-video-vae-bf16.safetensors" });
+      const audioVae = add("VAELoader", { vae_name: "ltx-2.5-audio-vae-bf16.safetensors" });
+      const te = add("CLIPLoader", {
+        clip_name: "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors", type: "ltxv", device: "default"
+      });
+      const enhClip = add("CLIPLoader", { clip_name: "gemma4_e2b_it_bf16.safetensors", type: "ltxv", device: "default" });
       const sampler = add("SamplerEulerAncestral", { eta: 0, s_noise: 1 });
       const sigmas = add("ManualSigmas", { sigmas: FLF2V_SIGMAS });
-      const audioVae = withAudio ? add("LTXVAudioVAELoader", { ckpt_name: "ltx-2.3-22b-distilled-1.1.safetensors" }) : null;
-      // Prompt-enhancer intégré LTX 2.3 (pattern du template officiel) : le
-      // distillé tourne à cfg 1, l'adhérence au prompt repose sur cet enhancer.
-      const enh = add("LoraLoader", {
-        model: [ckpt, 0], clip: [te, 0],
-        lora_name: "gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors",
-        strength_model: 1, strength_clip: 1
-      });
-      return { ckpt, te, sampler, sigmas, audioVae, enh };
+      return { unet, vae, audioVae, te, enhClip, sampler, sigmas };
     }
 
-    function addLtxEnhance(add, sh, prompt, seed) {
+    // Prompt-enhancer intégré LTX 2.5 : contrairement au 2.3, il accepte une entrée
+    // image — l'ancrer sur la 1ʳᵉ image du segment évite qu'il invente une scène (piège n°9).
+    function addLtx25Enhance(add, sh, prompt, seed, imageRef) {
       return [add("TextGenerateLTX2Prompt", {
-        clip: [sh.enh, 1], prompt, max_length: 2048,
+        clip: [sh.enhClip, 0], prompt, max_length: 600,
         sampling_mode: "on", "sampling_mode.temperature": 0.7, "sampling_mode.top_k": 64,
         "sampling_mode.top_p": 0.95, "sampling_mode.min_p": 0.05,
-        "sampling_mode.repetition_penalty": 1.05, "sampling_mode.seed": seed,
-        "sampling_mode.presence_penalty": 0, thinking: false, use_default_template: true
+        "sampling_mode.repetition_penalty": 1.15, "sampling_mode.seed": seed,
+        "sampling_mode.presence_penalty": 0, image: imageRef, thinking: false, use_default_template: true
       }), 0];
     }
 
-    // Chaîne FLF2V : imageRefs = [nodeId, slot][], un prompt de transition par segment.
+    // Chaîne FLF2V LTX 2.5 : imageRefs = [nodeId, slot][], un prompt de transition par
+    // segment. Le bloc de sampling est celui de api/ltx25_flf2v.json (guider dual-CFG,
+    // audio natif) répété par segment ; images concaténées ImageBatch, audio AudioConcat.
     function addFLF2VChain(add, sh, imageRefs, durations, promptTexts, negText, seed, width, height, withAudio) {
       const negEnc = add("CLIPTextEncode", { text: negText, clip: [sh.te, 0] });
       const decoded = [], audios = [];
       for (let k = 0; k < imageRefs.length - 1; k++) {
-        const frames = 8 * Math.max(1, Math.round((durations[k] * 25 - 1) / 8)) + 1;
-        const pos = add("CLIPTextEncode", { text: addLtxEnhance(add, sh, promptTexts[k], seed + k), clip: [sh.te, 0] });
-        const cond = add("LTXVConditioning", { positive: [pos, 0], negative: [negEnc, 0], frame_rate: 25 });
-        const p1 = add("LTXVPreprocess", { image: imageRefs[k], img_compression: 35 });
-        const p2 = add("LTXVPreprocess", { image: imageRefs[k + 1], img_compression: 35 });
+        const frames = 8 * Math.max(1, Math.round((durations[k] * LTX25_FPS - 1) / 8)) + 1;
+        const p1 = add("LTXVPreprocess", { image: imageRefs[k], img_compression: 18 });
+        const p2 = add("LTXVPreprocess", { image: imageRefs[k + 1], img_compression: 18 });
+        const pos = add("CLIPTextEncode", {
+          text: addLtx25Enhance(add, sh, promptTexts[k], seed + k, [p1, 0]), clip: [sh.te, 0]
+        });
+        const cond = add("LTXVConditioning", { positive: [pos, 0], negative: [negEnc, 0], frame_rate: LTX25_FPS });
         const lat = add("EmptyLTXVLatentVideo", { width, height, length: frames, batch_size: 1 });
         const g1 = add("LTXVAddGuide", {
-          positive: [cond, 0], negative: [cond, 1], vae: [sh.ckpt, 2],
+          positive: [cond, 0], negative: [cond, 1], vae: [sh.vae, 0],
           latent: [lat, 0], image: [p1, 0], frame_idx: 0, strength: 0.7
         });
         const g2 = add("LTXVAddGuide", {
-          positive: [g1, 0], negative: [g1, 1], vae: [sh.ckpt, 2],
+          positive: [g1, 0], negative: [g1, 1], vae: [sh.vae, 0],
           latent: [g1, 2], image: [p2, 0], frame_idx: -1, strength: 0.7
         });
         const noise = add("RandomNoise", { noise_seed: seed + k });
-        const guider = add("CFGGuider", { model: [sh.ckpt, 0], positive: [g2, 0], negative: [g2, 1], cfg: 1 });
+        const guider = add("LTXVDualCFGGuider", {
+          model: [sh.unet, 0], positive: [g2, 0], negative: [g2, 1], video_cfg: 1, audio_cfg: 1
+        });
         let samplerInput = [g2, 2], videoLatent;
         if (withAudio) {
           const aLat = add("LTXVEmptyLatentAudio", {
-            frames_number: frames, frame_rate: 25, batch_size: 1, audio_vae: [sh.audioVae, 0]
+            frames_number: frames, frame_rate: LTX25_FPS, batch_size: 1, audio_vae: [sh.audioVae, 0]
           });
           samplerInput = [add("LTXVConcatAVLatent", { video_latent: [g2, 2], audio_latent: [aLat, 0] }), 0];
         }
@@ -2323,7 +2987,7 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
         }
         const crop = add("LTXVCropGuides", { positive: [g2, 0], negative: [g2, 1], latent: videoLatent });
         decoded.push(add("VAEDecodeTiled", {
-          samples: [crop, 2], vae: [sh.ckpt, 2], tile_size: 768, overlap: 64, temporal_size: 4096, temporal_overlap: 64
+          samples: [crop, 2], vae: [sh.vae, 0], tile_size: 512, overlap: 64, temporal_size: 64, temporal_overlap: 16
         }));
       }
       let chain = decoded[0];
@@ -2339,7 +3003,7 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
     }
 
     function addVideoOutput(add, chain, prefix) {
-      const inputs = { images: chain.videoImages, fps: 25, bit_depth: 8 };
+      const inputs = { images: chain.videoImages, fps: LTX25_FPS, bit_depth: 8 };
       if (chain.audioOut) inputs.audio = chain.audioOut;
       const video = add("CreateVideo", inputs);
       add("SaveVideo", { video: [video, 0], filename_prefix: prefix, format: "auto", codec: "auto" });
@@ -2347,7 +3011,7 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
 
     function buildFLF2VGraph(imageNames, durations, prompt, negativeText, seed, width = 1280, height = 720, withAudio = false) {
       const { g, add } = makeGraphBuilder();
-      const sh = addLtxShared(add, withAudio);
+      const sh = addLtx25Shared(add);
       // Mise au format du latent (cover + crop centré) : sans ça, LTXVAddGuide
       // recadre brutalement les images dont le ratio diffère de la vidéo.
       const refs = imageNames.map(n => {
@@ -2360,33 +3024,32 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
       return g;
     }
 
-    // ── Branches image Flux2 Klein 9B (pattern validé) ─────────────
-    function addFluxShared(add) {
-      const unet = add("UNETLoader", { unet_name: "flux-2-klein-9b-fp8.safetensors", weight_dtype: "default" });
-      const clip = add("CLIPLoader", { clip_name: "qwen_3_8b_fp8mixed.safetensors", type: "flux2", device: "default" });
-      const vae = add("VAELoader", { vae_name: "flux2-vae.safetensors" });
-      const sampler = add("KSamplerSelect", { sampler_name: "euler" });
-      return { unet, clip, vae, sampler };
+    // ── Branche image Krea 2 Turbo (8 steps, cfg 1 — copie de api/krea2_t2i.json) ──
+    // ATTENTION (LESSONS piège n°16) : le négatif passe par ConditioningZeroOut, il n'est
+    // même pas encodé — TOUTE contrainte doit être formulée POSITIVEMENT dans le prompt.
+    function addKrea2Shared(add) {
+      const unet = add("UNETLoader", { unet_name: "krea2_turbo_fp8_scaled.safetensors", weight_dtype: "default" });
+      const clip = add("CLIPLoader", { clip_name: "qwen3vl_4b_fp8_scaled.safetensors", type: "krea2", device: "default" });
+      const vae = add("VAELoader", { vae_name: "qwen_image_vae.safetensors" });
+      return { unet, clip, vae };
     }
-    function addFluxShot(add, fx, prompt, seed, width, height, batch) {
-      const sched = add("Flux2Scheduler", { steps: 4, width, height });
-      const lat = add("EmptyFlux2LatentImage", { width, height, batch_size: batch });
-      const pos = add("CLIPTextEncode", { text: prompt, clip: [fx.clip, 0] });
+    function addKrea2Shot(add, kx, prompt, seed, width, height, batch) {
+      const lat = add("EmptyLatentImage", { width, height, batch_size: batch });
+      const pos = add("CLIPTextEncode", { text: prompt, clip: [kx.clip, 0] });
       const zero = add("ConditioningZeroOut", { conditioning: [pos, 0] });
-      const noise = add("RandomNoise", { noise_seed: seed });
-      const guider = add("CFGGuider", { model: [fx.unet, 0], positive: [pos, 0], negative: [zero, 0], cfg: 1 });
-      const sca = add("SamplerCustomAdvanced", {
-        noise: [noise, 0], guider: [guider, 0], sampler: [fx.sampler, 0], sigmas: [sched, 0], latent_image: [lat, 0]
+      const ks = add("KSampler", {
+        model: [kx.unet, 0], seed, steps: 8, cfg: 1, sampler_name: "euler", scheduler: "simple",
+        positive: [pos, 0], negative: [zero, 0], latent_image: [lat, 0], denoise: 1
       });
-      return add("VAEDecode", { samples: [sca, 0], vae: [fx.vae, 0] });
+      return add("VAEDecode", { samples: [ks, 0], vae: [kx.vae, 0] });
     }
     function addGrid(add, refs) {
       const stitch = (a, b, direction) => [add("ImageStitch", {
         image1: a, direction, match_image_size: true, spacing_width: 0, spacing_color: "white", image2: b
       }), 0];
-      // Lignes équilibrées (4 → 2+2, 5 → 3+2, 6 → 3+3) : une ligne trop courte
-      // serait étirée par match_image_size et déséquilibrerait la grille.
-      const cols = Math.ceil(refs.length / Math.ceil(refs.length / 3));
+      // Grille carrée adaptative (4 → 2×2, 9 → 3×3, 16 → 4×4) ; lignes remplies
+      // à gauche : une ligne trop courte serait étirée par match_image_size.
+      const cols = Math.ceil(Math.sqrt(refs.length));
       const rows = [];
       for (let i = 0; i < refs.length; i += cols) {
         let row = refs[i];
@@ -2396,54 +3059,6 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
       let grid = rows[0];
       for (let r = 1; r < rows.length; r++) grid = stitch(grid, rows[r], "down");
       return grid;
-    }
-
-    // ── Branches image Ernie-Image base (20 steps, cfg 4 — pattern validé) ──
-    function addErnieShared(add, negText) {
-      const unet = add("UNETLoader", { unet_name: "ernie-image.safetensors", weight_dtype: "default" });
-      const clip = add("CLIPLoader", { clip_name: "ministral-3-3b.safetensors", type: "flux2", device: "default" });
-      const vae = add("VAELoader", { vae_name: "flux2-vae.safetensors" });
-      const neg = add("CLIPTextEncode", { text: negText, clip: [clip, 0] });
-      return { unet, clip, vae, neg };
-    }
-    function addErnieShot(add, ex, prompt, seed, width, height, batch) {
-      const lat = add("EmptyFlux2LatentImage", { width, height, batch_size: batch });
-      const pos = add("CLIPTextEncode", { text: prompt, clip: [ex.clip, 0] });
-      const ks = add("KSampler", {
-        model: [ex.unet, 0], seed, steps: 20, cfg: 4, sampler_name: "euler", scheduler: "simple",
-        positive: [pos, 0], negative: [ex.neg, 0], latent_image: [lat, 0], denoise: 1
-      });
-      return add("VAEDecode", { samples: [ks, 0], vae: [ex.vae, 0] });
-    }
-
-    // ── Tâche complète : Storyboard (shots + grille + animatic) ────
-    function buildStoryboardFullGraph(shotPrompts, negText, seed, width, height, segDur, holdDur, withAudio, engine) {
-      const { g, add } = makeGraphBuilder();
-      const img = engine === "ernie" ? addErnieShared(add, negText) : addFluxShared(add);
-      const shots = shotPrompts.map((p, i) => {
-        // Seed PARTAGÉ entre shots (cfg 1 distillé → le seed ancre le sujet ;
-        // le prompt fait varier l'angle) pour des keyframes cohérents en FLF2V.
-        const dec = engine === "ernie"
-          ? addErnieShot(add, img, p, seed + 100, width, height, 1)
-          : addFluxShot(add, img, p, seed + 100, width, height, 1);
-        add("SaveImage", { images: [dec, 0], filename_prefix: `studio/story/shot_${String(i + 1).padStart(2, "0")}` });
-        return [dec, 0];
-      });
-      add("SaveImage", { images: addGrid(add, shots), filename_prefix: "studio/story/grid" });
-      const sh = addLtxShared(add, withAudio);
-      const keyframes = [...shots];
-      const durations = Array(shots.length - 1).fill(segDur);
-      const transitions = shotPrompts.slice(1).map(p => `Smooth cinematic camera transition, natural motion. ${p}`);
-      // Tenue du plan final : segment FLF2V dernière→dernière image, sinon
-      // l'animatic coupe net à l'instant où la dernière case apparaît.
-      if (holdDur > 0) {
-        keyframes.push(shots[shots.length - 1]);
-        durations.push(holdDur);
-        transitions.push(`Locked camera holding on the final shot, subtle ambient motion only. ${shotPrompts[shotPrompts.length - 1]}`);
-      }
-      const chain = addFLF2VChain(add, sh, keyframes, durations, transitions, negText, seed, width, height, withAudio);
-      addVideoOutput(add, chain, "studio/story/animatic");
-      return g;
     }
 
     // ── Tâche complète : Campagne (posters + thumbnails + teaser) ──
@@ -2457,65 +3072,319 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
         g[prefix + nid] = copy;
       }
     }
-    async function buildCampaignFullGraph(prompt, negText, seed, batch, teaserDur, withAudio, engine) {
+    async function buildCampaignFullGraph(prompt, negText, seed, batch, teaserDur) {
       const { g, add } = makeGraphBuilder();
-      const img = engine === "ernie" ? addErnieShared(add, negText) : addFluxShared(add);
+      const img = addKrea2Shared(add);
       [["poster", 832, 1216, batch, "Poster composition with space for title text."],
        ["thumbnail", 1280, 720, batch, "YouTube thumbnail composition, bold and readable."],
        ["social", 1024, 1024, 1, "Square social media visual."]].forEach(([name, w, h, b, suffix], i) => {
-        const dec = engine === "ernie"
-          ? addErnieShot(add, img, `${prompt} ${suffix}`, seed + 200 + i, w, h, b)
-          : addFluxShot(add, img, `${prompt} ${suffix}`, seed + 200 + i, w, h, b);
+        const dec = addKrea2Shot(add, img, `${prompt} ${suffix}`, seed + 200 + i, w, h, b);
         add("SaveImage", { images: [dec, 0], filename_prefix: `studio/campaign/${name}` });
       });
-      // Teaser vertical : réutilise le template t2v validé (2 passes + upscale)
-      const raw = await getTemplate("api/ltx_t2v.json");
+      // Teaser vertical : réutilise le template LTX 2.5 t2v validé (2 passes + upscale,
+      // audio natif câblé dans le template — aucun ajout côté JS).
+      const raw = await getTemplate("api/ltx25_t2v.json");
       const t2v = buildGraph(raw, {
         prompt: `${prompt} Dynamic cinematic teaser, energetic camera movement.`,
         negative: negText, seed, width: 720, height: 1280, batch: 1, duration: teaserDur
       });
       for (const n of Object.values(t2v)) if (n.class_type === "SaveVideo") n.inputs.filename_prefix = "studio/campaign/teaser";
-      if (withAudio) applyLtxAudio(t2v);
       mergeGraph(g, t2v, "tv_");
       return g;
     }
 
-    // Découpage du brief en N plans par le LLM local (fallback : angles standards)
-    const SHOT_ANGLES = ["Wide establishing shot", "Medium shot", "Slow tracking shot",
-                         "Close-up", "Insert detail shot", "Wide closing shot"];
-    async function shotPromptsFromBrief(n) {
-      const scene = brief.value.trim();
-      try {
-        const body = {
-          model: OLLAMA_MODEL, stream: false, format: "json", think: false,
-          messages: [
-            { role: "system", content: `You are a storyboard artist. Split the user's scene into exactly ${n} storyboard shots. Each shot is one rich English image-generation prompt (subject, camera angle, lighting, mood), visually consistent across shots. Answer ONLY with JSON: {"shots": ["...", ...]} containing exactly ${n} strings.` },
-            { role: "user", content: scene }
-          ]
-        };
-        let res = await fetch(`${OLLAMA}/api/chat`, {
+    // ── Scene DNA : bibliothèques presets + compilateurs de prompt (LOT A) ──────
+    // Transcription verbatim de libs.py, validées par rendu réel (keyframes + cuts + sheets).
+    const CAMERA_LIB = {
+      extreme_close_up: { label: "Très gros plan",
+        frame: "an extreme close-up in which the character's face fills almost the entire frame, cropped tightly just below the chin, only the head visible, no shoulders and no body in frame",
+        motion: "very slow subtle push-in on the face, almost still" },
+      close_up: { label: "Gros plan",
+        frame: "a tight head-and-shoulders portrait framing, the character's head and the very tops of the shoulders filling most of the frame, everything below the upper chest cropped out",
+        motion: "slow gentle push-in on the character" },
+      medium: { label: "Plan moyen",
+        frame: "a medium shot of the character from the waist up",
+        motion: "steady framing with subtle natural movement" },
+      wide: { label: "Plan large",
+        frame: "a wide shot showing the character full-length within the surrounding environment",
+        motion: "slow pull-back gradually revealing the surroundings" },
+      extreme_wide: { label: "Plan d'ensemble",
+        frame: "an extreme wide establishing shot in which the character is a small distant figure in the vast landscape",
+        motion: "very slow sweeping camera drift across the vast landscape" },
+      pov: { label: "Vue subjective",
+        frame: "a close over-the-shoulder point-of-view framing from just behind the character, looking out at the environment ahead",
+        motion: "smooth first-person forward movement through the scene" },
+      low_angle: { label: "Contre-plongée",
+        frame: "a low camera angle looking slightly up at the character, making them feel a little taller and more heroic",
+        motion: "slow upward tilt, camera rising slightly" },
+      high_angle: { label: "Plongée",
+        frame: "a high camera angle looking slightly down at the character from a little above",
+        motion: "slow downward tilt, camera craning gently down" },
+      tracking: { label: "Travelling",
+        frame: "a tracking shot positioned beside the character as if following alongside them through the environment",
+        motion: "smooth lateral tracking movement following the character" },
+      handheld: { label: "Caméra portée",
+        frame: "a handheld-style shot of the character with natural, slightly loose framing",
+        motion: "loose handheld camera with subtle organic sway" },
+    };
+    const LIGHTING_LIB = {
+      morning: { label: "Matin",
+        text: "The whole scene is lit by soft cool early-morning daylight, gentle long shadows and a fresh clear atmosphere." },
+      golden_hour: { label: "Heure dorée",
+        text: "The whole scene is bathed in warm golden-hour sunlight, long soft shadows and a glowing amber atmosphere." },
+      overcast: { label: "Ciel couvert",
+        text: "The whole scene sits under flat soft overcast daylight, with muted diffuse shadows and cool desaturated grey tones." },
+      moonlight: { label: "Clair de lune",
+        text: "The whole scene is lit only by cool blue moonlight, deep shadows and a low-key nocturnal mood under a dark night sky." },
+      fire: { label: "Feu",
+        text: "The whole scene is lit by flickering warm firelight, a strong orange glow on the character and dancing shadows in the surrounding darkness." },
+      interior: { label: "Intérieur",
+        text: "The whole scene is lit by soft warm interior lighting from practical lamps, with a cosy sheltered indoor ambience." },
+      studio: { label: "Studio",
+        text: "The whole scene is lit by clean balanced studio lighting, soft key and fill light and an even neutral exposure." },
+      night: { label: "Nuit",
+        text: "The whole scene is set at night under cool artificial lighting, with pools of light, deep shadow and a dark sky." },
+    };
+    const STYLE_PACKS = {
+      none: { label: "Aucun", text: "" },
+      cinematic: { label: "Cinématique",
+        text: "Shot on 35mm Kodak Vision3 film, cinematic color grading, soft natural film grain, natural contrast and shallow depth of field." },
+      noir: { label: "Film noir",
+        text: "High-contrast black-and-white film-noir look, deep shadows, hard directional light and dramatic chiaroscuro." },
+      documentary: { label: "Documentaire",
+        text: "Naturalistic documentary photography look, available light, realistic muted colors and candid unposed framing." },
+      anime: { label: "Anime",
+        text: "Stylized Japanese anime illustration look, clean cel-shaded artwork, vivid saturated colors and expressive linework." },
+    };
+
+    // Style actif : id figé sur la session Réalisateur (director.style) sinon lu au sélecteur.
+    // Marche sans director (mode Auto) : repli sur la valeur du <select>.
+    function currentStyleText() {
+      const id = director?.style ?? $("styleSelect")?.value ?? "cinematic";
+      return (STYLE_PACKS[id] || STYLE_PACKS.none).text;
+    }
+    function renderStyleOptions() {
+      const sel = $("styleSelect");
+      const cur = STYLE_PACKS[sel.value] ? sel.value : "cinematic";
+      sel.innerHTML = Object.entries(STYLE_PACKS)
+        .map(([id, v]) => `<option value="${id}">${tr(v.label)}</option>`).join("");
+      sel.value = cur;
+    }
+    // LOT C : changement de style pendant une session Réalisateur → nouveau style figé + sauvegarde.
+    // (Hors session, le style n'est qu'une valeur de formulaire — rien à persister.)
+    $("styleSelect").addEventListener("change", () => {
+      if (!director) return;
+      director.style = STYLE_PACKS[$("styleSelect").value] ? $("styleSelect").value : director.style;
+      saveProject();
+    });
+
+    function compileKeyframePrompt(shot, charDesc) {
+      const cam = CAMERA_LIB[shot.camera] || CAMERA_LIB.medium;
+      const light = LIGHTING_LIB[shot.lighting] || LIGHTING_LIB.golden_hour;
+      const styleText = currentStyleText();
+      const emotion = (shot.emotion || "").trim();
+      const extra = (shot.extra || "").trim();
+      let s = "Use the first reference image only as the appearance guide for one single character, "
+        + charDesc
+        + ", and use the second reference image only as the guide for the environment. "
+        + "Create one brand-new photorealistic cinematic film still that places exactly one single "
+        + "instance of that character inside the environment of the second reference image: "
+        + shot.action + ". Frame it as " + cam.frame + ".";
+      if (emotion) s += " The character's expression and body language convey " + emotion + ".";
+      s += " " + light.text;
+      s += " The character is fully integrated into the scene, standing in that location with correct "
+        + "perspective and scale. Do not place the two references side by side, do not create a "
+        + "split screen, diptych or collage, do not show any reference sheet, contact sheet, grid, "
+        + "thumbnails, multiple poses, color swatches, panels, borders, margins, black frame, caption "
+        + "or text anywhere. The whole picture is a single unified live-action movie frame, one "
+        + "continuous scene that extends all the way to all four edges. Keep the character's face, "
+        + "hair, costume and colors identical to the first reference image.";
+      if (extra) s += " " + extra;
+      if (styleText) s += " " + styleText;
+      return s;
+    }
+
+    // Piège n°9 : ordre action→charDesc→locDesc→…→Camera motion INTOUCHABLE (ancrage double).
+    // holdMotion (tenue du plan final) substitue le mouvement de caméra du preset.
+    function compileCutPrompt(shot, charDesc, locDesc, holdMotion) {
+      const cam = CAMERA_LIB[shot.camera] || CAMERA_LIB.medium;
+      const light = LIGHTING_LIB[shot.lighting] || LIGHTING_LIB.golden_hour;
+      const styleText = currentStyleText();
+      const emotion = (shot.emotion || "").trim();
+      const extra = (shot.extra || "").trim();
+      const motion = holdMotion || cam.motion;
+      const action = shot.action + (emotion ? ", conveying " + emotion : "");
+      let s = action + ". " + charDesc + ". " + locDesc + ". " + light.text
+        + " Camera motion: " + motion + ".";
+      if (extra) s += " " + extra;
+      if (styleText) s += " " + styleText;
+      return s;
+    }
+
+    // ── Normalisation de la sortie gemma (shotListFromBrief DNA) vers ids valides ──
+    const CAMERA_ALIASES = [
+      [/(extreme|very)\s*(close|tight)|face[\s-]?fill|macro/, "extreme_close_up"],
+      [/close[\s-]?up|closeup|head[\s-]?and[\s-]?shoulders|headshot|tight on/, "close_up"],
+      [/medium|waist[\s-]?up|mid[\s-]?shot|cowboy/, "medium"],
+      [/extreme[\s-]?wide|very[\s-]?wide|establishing|vista|panorama|aerial/, "extreme_wide"],
+      [/wide|full[\s-]?length|full[\s-]?body|long[\s-]?shot/, "wide"],
+      [/pov|point[\s-]?of[\s-]?view|first[\s-]?person|over[\s-]?the[\s-]?shoulder|ots/, "pov"],
+      [/low[\s-]?angle|worm|from[\s-]?below|looking[\s-]?up|upward/, "low_angle"],
+      [/high[\s-]?angle|bird|overhead|top[\s-]?down|from[\s-]?above|looking[\s-]?down/, "high_angle"],
+      [/track|dolly|follow|steadicam|alongside/, "tracking"],
+      [/handheld|hand[\s-]?held|shaky/, "handheld"],
+    ];
+    const LIGHTING_ALIASES = [
+      [/golden|sunset|dusk|sundown/, "golden_hour"],
+      [/morning|sunrise|dawn/, "morning"],
+      [/overcast|cloud|grey|gray|diffuse|flat[\s-]?light/, "overcast"],
+      [/moon|starlight/, "moonlight"],
+      [/fire|flame|torch|campfire|ember|firelight/, "fire"],
+      [/interior|indoor|lamp|room|candle/, "interior"],
+      [/studio|softbox|key[\s-]?light/, "studio"],
+      [/night|dark|nocturnal|neon|artificial/, "night"],
+    ];
+    function normalizeId(raw, lib, aliases, fallback) {
+      const v = String(raw == null ? "" : raw).toLowerCase().trim().replace(/\s+/g, " ");
+      if (lib[v]) return v;                          // id exact
+      const flat = v.replace(/[\s-]+/g, "_");
+      if (lib[flat]) return flat;                    // "close up" / "close-up" -> "close_up"
+      for (const [re, id] of aliases) if (re.test(v)) return id; // mapping par sous-chaîne
+      return fallback;                               // inconnu -> medium / golden_hour
+    }
+    const normalizeCamera = raw => normalizeId(raw, CAMERA_LIB, CAMERA_ALIASES, "medium");
+    const normalizeLighting = raw => normalizeId(raw, LIGHTING_LIB, LIGHTING_ALIASES, "golden_hour");
+
+    // Repli statique : rotation de presets FIABLES (verdicts LOT A) — on évite
+    // extreme_close_up & extreme_wide que l'ancrage Qwen-Edit rend mal (compression focale).
+    const FALLBACK_ROTATION = ["wide", "medium", "close_up", "low_angle", "tracking", "high_angle", "pov", "handheld"];
+    function fallbackShots(n, action) {
+      const out = [];
+      for (let i = 0; i < n; i++) out.push({
+        camera: FALLBACK_ROTATION[i % FALLBACK_ROTATION.length],
+        lighting: "golden_hour",
+        action: action || "the character moves through the scene",
+        emotion: "",
+      });
+      return out;
+    }
+    // Normalise une liste de plans gemma en ids valides ; complète au repli si trop court/malformé.
+    function normalizeShotList(rawShots, n, action) {
+      const shots = (Array.isArray(rawShots) ? rawShots : [])
+        .filter(s => s && typeof s === "object")
+        .map(s => ({
+          camera: normalizeCamera(s.camera),
+          lighting: normalizeLighting(s.lighting),
+          action: typeof s.action === "string" ? s.action : (action || ""),
+          emotion: typeof s.emotion === "string" ? s.emotion : "",
+        }));
+      if (shots.length >= n) return shots.slice(0, n);
+      const fb = fallbackShots(n, action);
+      for (let i = shots.length; i < n; i++) shots.push(fb[i]);
+      return shots;
+    }
+
+    // Mouvement de caméra figé pour la tenue du plan final (pseudo-shot du dernier plan).
+    const HOLD_MOTION = "Locked camera holding on the final shot, subtle ambient motion only.";
+
+    // Appel gemma4 mutualisé : format JSON, think:false, retry sans think sur 4xx.
+    async function gemmaJSON(system, user) {
+      const body = {
+        model: OLLAMA_MODEL, stream: false, format: "json", think: false,
+        messages: [{ role: "system", content: system }, { role: "user", content: user }]
+      };
+      let res = await fetch(`${OLLAMA}/api/chat`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        delete body.think;
+        res = await fetch(`${OLLAMA}/api/chat`, {
           method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
         });
-        if (!res.ok) {
-          delete body.think;
-          res = await fetch(`${OLLAMA}/api/chat`, {
-            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
-          });
-        }
-        const out = JSON.parse((await res.json()).message.content);
-        // gemma peut renvoyer des objets au lieu de chaînes malgré la consigne
-        const shots = (Array.isArray(out.shots) ? out.shots : [])
-          .map(s => typeof s === "string" ? s : (s?.prompt || s?.description || ""))
-          .filter(s => s.trim());
-        if (shots.length >= n) {
-          addEvent("OK", `${n} plans générés par ${OLLAMA_MODEL}.`, "ok");
-          return shots.slice(0, n);
-        }
+      }
+      return JSON.parse((await res.json()).message.content);
+    }
+
+    // Aplatit une valeur gemma (chaîne, objet imbriqué, tableau) en une chaîne dense.
+    // gemma renvoie parfois un objet là où on attend une chaîne → on concatène ses valeurs.
+    const fieldText = v => {
+      if (typeof v === "string") return v.trim();
+      if (v && typeof v === "object") return Object.values(v).map(fieldText).filter(Boolean).join(", ");
+      return v == null ? "" : String(v);
+    };
+
+    // Ordre canonique des champs de fiche (personnage / décor) : la jointure ", " de ces
+    // champs par les helpers ci-dessous reproduit EXACTEMENT l'ancienne chaîne charDesc/locDesc.
+    const CHAR_FIELD_KEYS = ["face", "hair", "outfit", "accessories", "palette"];
+    const LOC_FIELD_KEYS = ["place", "architecture", "materials", "lighting", "palette"];
+    function charDescFromFields(f) {
+      return CHAR_FIELD_KEYS.map(k => fieldText(f?.[k])).filter(Boolean).join(", ");
+    }
+    function locDescFromFields(f) {
+      return LOC_FIELD_KEYS.map(k => fieldText(f?.[k])).filter(Boolean).join(", ");
+    }
+
+    // Fiche personnage figée : OBJET de champs structurés gemma {face,hair,outfit,accessories,palette}
+    // (éditable dans le menu Personnage du studio) ; charDescFromFields le compile en une chaîne.
+    // Fallback sans LLM : brief dans le 1er champ, autres vides.
+    async function characterSheetFromBrief() {
+      const scene = brief.value.trim();
+      try {
+        const out = await gemmaJSON(
+          `You are a character designer. From the user's scene, take the SINGLE most prominent character and describe them so they stay IDENTICAL across shots. Answer ONLY with JSON with these fields, each a dense ~10-20 word English string, no camera/scene/action wording: {"face":"...","hair":"...","outfit":"...","accessories":"...","palette":"..."}.`,
+          scene);
+        const fields = {};
+        for (const k of CHAR_FIELD_KEYS) fields[k] = fieldText(out[k]);
+        if (charDescFromFields(fields)) { addEvent("OK", `Fiche personnage générée par ${OLLAMA_MODEL}.`, "ok"); return fields; }
         throw new Error("format inattendu");
       } catch (e) {
-        addEvent("WARN", `Shot list LLM indisponible (${e.message}) — angles standards utilisés.`, "warn");
-        return SHOT_ANGLES.slice(0, n).map(a => `${scene} ${a}, cinematic storyboard keyframe.`);
+        addEvent("WARN", `Fiche personnage LLM indisponible (${e.message}) — brief utilisé tel quel.`, "warn");
+        return { face: scene, hair: "", outfit: "", accessories: "", palette: "" };
       }
+    }
+
+    // Fiche décor figée : OBJET de champs structurés gemma {place,architecture,materials,lighting,palette}
+    // (éditable dans le menu Décor du studio) ; locDescFromFields le compile en une chaîne.
+    async function locationSheetFromBrief() {
+      const scene = brief.value.trim();
+      try {
+        const out = await gemmaJSON(
+          `You are a location designer. From the user's scene, take the SINGLE main location/setting and describe it so the environment stays IDENTICAL across shots. Answer ONLY with JSON with these fields, each a dense ~10-20 word English string, no camera/character/action wording: {"place":"...","architecture":"...","materials":"...","lighting":"...","palette":"..."}.`,
+          scene);
+        const fields = {};
+        for (const k of LOC_FIELD_KEYS) fields[k] = fieldText(out[k]);
+        if (locDescFromFields(fields)) { addEvent("OK", `Fiche décor générée par ${OLLAMA_MODEL}.`, "ok"); return fields; }
+        throw new Error("format inattendu");
+      } catch (e) {
+        addEvent("WARN", `Fiche décor LLM indisponible (${e.message}) — brief utilisé tel quel.`, "warn");
+        return { place: scene, architecture: "", materials: "", lighting: "", palette: "" };
+      }
+    }
+
+    // Liste de N plans Scene DNA {camera, lighting, action, emotion, duration, extra} — gemma
+    // ne choisit QUE parmi les ids caméra/lumière autorisés ; normalizeShotList mappe la sortie
+    // sur des ids valides et complète au repli (fallbackShots) si trop court/malformé.
+    async function shotListFromBrief(n) {
+      const scene = brief.value.trim();
+      const segDur = Math.min(8, Math.max(1, parseInt($("videoDuration").value, 10) || 2));
+      const camIds = Object.keys(CAMERA_LIB).join(", ");
+      const lightIds = Object.keys(LIGHTING_LIB).join(", ");
+      let shots;
+      try {
+        const out = await gemmaJSON(
+          `You are a storyboard cinematographer. The user gives ONE scene with fixed character and setting. Break it into exactly ${n} sequential shots of THAT SAME scene. The character, costume and setting NEVER change — only camera, light and moment vary. For EACH shot output an object with: "camera" = EXACTLY ONE id from [${camIds}], "lighting" = EXACTLY ONE id from [${lightIds}], "action" = short English description of what the single main character (exactly one person in frame) is doing (~8-14 words), "emotion" = one or two words for the mood/expression. Answer ONLY with JSON: {"shots": [ {"camera":"...","lighting":"...","action":"...","emotion":"..."}, ... ]} with exactly ${n} entries.`,
+          scene);
+        shots = normalizeShotList(out.shots, n, scene);
+        addEvent("OK", `${n} plans Scene DNA (caméra/lumière/action) générés par ${OLLAMA_MODEL}.`, "ok");
+      } catch (e) {
+        addEvent("WARN", `Shot list LLM indisponible (${e.message}) — presets de secours utilisés.`, "warn");
+        shots = fallbackShots(n, scene);
+      }
+      // Schéma Scene DNA complet : duration (défaut = durée vidéo globale) + extra libre.
+      return shots.map(s => ({
+        camera: s.camera, lighting: s.lighting, action: s.action, emotion: s.emotion || "",
+        duration: segDur, extra: ""
+      }));
     }
 
     async function submitGraph(graph, label, sub) {
@@ -2528,21 +3397,1090 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
         throw new Error(`ComfyUI a rejeté le job : ${data.error?.message || JSON.stringify(data.node_errors || data).slice(0, 300)}`);
       trackJob(data.prompt_id, label, sub);
       addEvent("REQ", `Job soumis : ${label}.`, "req");
+      return data.prompt_id;
     }
 
-    async function generateStoryboardFull(seed, width, height) {
+    // ── Storyboard + Animatic v2 : orchestration multi-jobs côté page ──────
+    // Attend la complétion d'une liste de jobs (poll /history) → renvoie leurs entrées.
+    async function waitForJobs(promptIds) {
+      const pending = new Set(promptIds), done = {};
+      while (pending.size) {
+        await new Promise(r => setTimeout(r, 1500));
+        for (const id of [...pending]) {
+          let entry;
+          try { entry = (await (await fetch(`${COMFY}/history/${id}`, { cache: "no-store" })).json())[id]; }
+          catch { continue; }
+          if (!entry) continue;
+          if (entry.status?.status_str === "error") throw new Error(`Un job ComfyUI a échoué (${id}).`);
+          if (entry.status?.completed) { done[id] = entry; pending.delete(id); }
+        }
+      }
+      return done;
+    }
+
+    // Fichiers de sortie d'une entrée /history filtrés par extension.
+    function outputFiles(entry, ext) {
+      const files = [];
+      for (const nodeOut of Object.values(entry.outputs || {}))
+        for (const f of extractFiles(nodeOut))
+          if (f.filename.toLowerCase().endsWith(ext) && (f.type || "output") === "output") files.push(f);
+      return files;
+    }
+
+    // Récupère une sortie via /view puis la ré-uploade en entrée (pattern uploadBlob).
+    async function reupload(f) {
+      const q = `filename=${encodeURIComponent(f.filename)}&subfolder=${encodeURIComponent(f.subfolder || "")}&type=${f.type || "output"}`;
+      const blob = await (await fetch(`${COMFY}/view?${q}`)).blob();
+      const name = await uploadBlob(blob, f.filename.split("/").pop());
+      return { name, blob };
+    }
+
+    async function imageSize(blob) {
+      const bmp = await createImageBitmap(blob);
+      const s = { w: bmp.width, h: bmp.height };
+      bmp.close();
+      return s;
+    }
+    // Format vidéo dérivé d'une keyframe (côté long ≤ 1280, multiples de 32).
+    function videoSizeFor({ w, h }) {
+      const scale = Math.min(1, 1280 / Math.max(w, h));
+      return { w: Math.max(320, Math.round(w * scale / 32) * 32), h: Math.max(320, Math.round(h * scale / 32) * 32) };
+    }
+
+    // Krea 2 route le négatif dans ConditioningZeroOut : il n'est même pas encodé (LESSONS
+    // piège n°16). Les contraintes autrefois portées par CHARSHEET_NEG/LOCSHEET_NEG sont donc
+    // reformulées en instructions POSITIVES ci-dessous (même parade qu'au piège n°7).
+    // `negText` (champ négatif de l'UI) est conservé dans la signature mais sans effet ici.
+    const SHEET_CLEAN = "One single seamless uncut photograph filling the whole frame edge to edge, completely free of any text, letters, numbers, captions, labels, annotations, watermark, signature or logo, with no drawn borders, no panel lines, no grid lines, no black frame and no comic panel divisions. Pure photography: real photographic capture, sharp focus, high detail, correct anatomy, clean seamless background.";
+
+    // Planche personnage multi-vues (ancre d'apparence, image 1 des keyframes duales).
+    // Format 16:9 large obligatoire (layout prouvé au Lot 1), indépendant du ratio UI.
+    function buildCharsheetGraph(charDesc, negText, seed, width, height) {
+      const { g, add } = makeGraphBuilder();
+      const kx = addKrea2Shared(add);
+      const styleText = currentStyleText();
+      const dec = addKrea2Shot(add, kx,
+        `A professional photorealistic character reference sheet of one single person, composited as a clean multi-view layout on a smooth seamless light grey studio background: ${charDesc}. Arranged neatly, the sheet shows a full-body turnaround of the same person in four standing poses evenly spaced across a row - front view, three-quarter view, side profile view, and back view - all in a neutral relaxed stance, evenly studio-lit. Above the turnaround, one large tight close-up portrait of the face. A row of several smaller close-up headshots of the face showing different facial expressions: neutral, smiling, surprised, determined. A cluster of detailed close-up photographs of costume details. Along the bottom edge, a horizontal strip of solid rectangular color swatches sampling the exact colors of the outfit and hair. Every view shows the exact same single person with identical face, hair and costume, consistent character design. ${SHEET_CLEAN}${styleText ? " " + styleText : ""}`,
+        seed, 1920, 1088, 1);
+      add("SaveImage", { images: [dec, 0], filename_prefix: "studio/story/charsheet" });
+      return g;
+    }
+
+    // Planche décor multi-vues (ancre d'environnement, image 2 des keyframes duales).
+    function buildLocsheetGraph(locDesc, negText, seed, width, height) {
+      const { g, add } = makeGraphBuilder();
+      const kx = addKrea2Shared(add);
+      const styleText = currentStyleText();
+      const dec = addKrea2Shot(add, kx,
+        `A professional photorealistic environment reference sheet of one single location, composited as a clean multi-view layout on a smooth seamless dark neutral background: ${locDesc}. Arranged neatly, the sheet shows several wide establishing photographs of the same location from different angles across the top, below them a row of medium shots of key structures, and along the bottom a cluster of tight close-up material and detail studies. The location is completely empty and deserted, showing only architecture, materials and scenery. Consistent art direction, matching lighting and color palette across every view. ${SHEET_CLEAN}${styleText ? " " + styleText : ""}`,
+        seed, 1920, 1088, 1);
+      add("SaveImage", { images: [dec, 0], filename_prefix: "studio/story/locsheet" });
+      return g;
+    }
+
+    // Assemblage par cuts francs : chaque clip décomposé (images+audio), concaténés.
+    function buildAnimaticGraph(videoNames, withAudio) {
+      const { g, add } = makeGraphBuilder();
+      const comps = videoNames.map(n => add("GetVideoComponents", { video: [add("LoadVideo", { file: n }), 0] }));
+      let imgs = [comps[0], 0];
+      for (let k = 1; k < comps.length; k++) imgs = [add("ImageBatch", { image1: imgs, image2: [comps[k], 0] }), 0];
+      const inputs = { images: imgs, fps: LTX25_FPS, bit_depth: 8 };
+      if (withAudio) {
+        let aud = [comps[0], 1];
+        for (let k = 1; k < comps.length; k++) aud = [add("AudioConcat", { audio1: aud, audio2: [comps[k], 1], direction: "after" }), 0];
+        inputs.audio = aud;
+      }
+      const cv = add("CreateVideo", inputs);
+      add("SaveVideo", { video: [cv, 0], filename_prefix: "studio/story/animatic", format: "auto", codec: "auto" });
+      return g;
+    }
+
+    // charsheet → N keyframes ancrées Qwen-Edit → grille → 1 cut i2v/keyframe → assemblage.
+    // ── Storyboard v2 : sous-fonctions par étape (partagées Auto ↔ Réalisateur) ──
+    // Mêmes graphes/prompts que l'ancienne implémentation monolithique, juste sortis
+    // en fonctions réutilisables pour que le mode Réalisateur puisse s'arrêter entre
+    // chaque étape sans dupliquer la logique de construction de graphe.
+    async function submitCharsheetJob(charDesc, negText, seed, width, height, wf) {
+      return submitGraph(buildCharsheetGraph(charDesc, negText, seed, width, height),
+        "Storyboard · fiche personnage", `${wf.model} · charsheet · seed ${seed}`);
+    }
+    async function submitLocsheetJob(locDesc, negText, seed, width, height, wf) {
+      return submitGraph(buildLocsheetGraph(locDesc, negText, seed, width, height),
+        "Storyboard · fiche décor", `${wf.model} · locsheet · seed ${seed}`);
+    }
+    // Attend un job image et le ré-uploade (pattern charsheet→ancre / keyframe→cut).
+    // `file` = référence à la sortie disque ComfyUI (persistable — LOT C, contrairement à
+    // l'input ré-uploadé qui peut être écrasé/purgé).
+    async function resolveImageJob(promptId) {
+      const entry = (await waitForJobs([promptId]))[promptId];
+      const file = outputFiles(entry, ".png")[0];
+      const up = await reupload(file);
+      return { ...up, file };
+    }
+    async function submitKeyframeJob(anchorRaw, shot, charDesc, negText, charName, locName, seed, width, height, idx, n) {
+      const g = buildGraph(anchorRaw, {
+        prompt: compileKeyframePrompt(shot, charDesc), negative: negText,
+        seed, image: charName, image2: locName, width, height, batch: 1
+      });
+      for (const node of Object.values(g))
+        if (node.class_type === "SaveImage") node.inputs.filename_prefix = `studio/story/key_${String(idx + 1).padStart(2, "0")}`;
+      return submitGraph(g, `Storyboard · keyframe ${idx + 1}/${n}`, `Qwen-Edit ancré · seed ${seed}`);
+    }
+    async function submitGridJob(keys) {
+      const { g: gridG, add: gridAdd } = makeGraphBuilder();
+      const refs = keys.map(k => [gridAdd("LoadImage", { image: k.name }), 0]);
+      gridAdd("SaveImage", { images: addGrid(gridAdd, refs), filename_prefix: "studio/story/grid" });
+      return submitGraph(gridG, "Storyboard · grille", `contact-sheet ${keys.length} cases`);
+    }
+    async function submitCutJob(i2vRaw, keyObj, shot, charDesc, locDesc, negText, seed, idx, total, dur, holdMotion) {
+      const sz = videoSizeFor(await imageSize(keyObj.blob));
+      // Piège n°9 : l'enhancer LTX (TextGenerateLTX2Prompt) n'a AUCUNE entrée image et,
+      // à cfg 1, fait loi sur le rendu. Un prompt de mouvement seul le laisse inventer une
+      // scène sans rapport avec la keyframe. compileCutPrompt l'ancre sur le contenu réel de
+      // l'image guide : action + identité personnage + décor + lumière + mouvement de caméra.
+      const g = buildGraph(i2vRaw, {
+        prompt: compileCutPrompt(shot, charDesc, locDesc, holdMotion), negative: negText, seed,
+        image: keyObj.name, width: sz.w, height: sz.h, batch: 1, duration: dur
+      });
+      for (const node of Object.values(g))
+        if (node.class_type === "SaveVideo") node.inputs.filename_prefix = `studio/story/cut_${String(idx + 1).padStart(2, "0")}`;
+      return submitGraph(g, `Storyboard · cut ${idx + 1}/${total}`, `LTX 2.5 i2v · ${dur}s · ${sz.w}x${sz.h} · seed ${seed}`);
+    }
+    async function submitAnimaticJob(cutNames, withAudio, seed) {
+      return submitGraph(buildAnimaticGraph(cutNames, withAudio), "Storyboard · animatic (assemblage)",
+        `${cutNames.length} cuts francs · ${withAudio ? "audio" : "muet"} · fps 24 · seed ${seed}`);
+    }
+
+    // charsheet → N keyframes ancrées Qwen-Edit → grille → 1 cut i2v/keyframe → assemblage (mode Auto).
+    async function generateStoryboardV2(seed, width, height) {
       if (!brief.value.trim()) throw new Error("Décrivez la scène dans le brief avant de générer le storyboard.");
       const wf = currentWorkflow();
-      const n = Math.min(6, Math.max(2, parseInt($("shotCount").value, 10) || 6));
+      const n = Math.min(16, Math.max(4, parseInt($("shotCount").value, 10) || 4));
+      const holdDur = Math.min(8, Math.max(0, parseInt($("holdDuration").value, 10) || 0));
+      const negText = negative.value.trim(), withAudio = $("audioToggle").checked;
+
+      // 3 appels gemma distincts : fiche personnage + fiche décor (objets de champs,
+      // compilés en chaînes par les helpers) + liste de N plans Scene DNA.
+      addEvent("REQ", `Fiche personnage + fiche décor + ${n} plans via ${OLLAMA_MODEL}…`, "req");
+      const charDesc = charDescFromFields(await characterSheetFromBrief());
+      const locDesc = locDescFromFields(await locationSheetFromBrief());
+      const shots = await shotListFromBrief(n);
+
+      // (a) Planches personnage + décor (Krea 2) → attendre → ré-uploader comme ancres.
+      const csId = await submitCharsheetJob(charDesc, negText, seed, width, height, wf);
+      const lsId = await submitLocsheetJob(locDesc, negText, seed + 101, width, height, wf);
+      const charName = (await resolveImageJob(csId)).name;
+      const locName = (await resolveImageJob(lsId)).name;
+
+      // (c) 1 job Qwen-Edit dual par case : personnage (ancre 1) DANS le décor (ancre 2).
+      const anchorRaw = await getTemplate(wf.anchor);
+      const keyIds = [];
+      for (let i = 0; i < n; i++)
+        keyIds.push(await submitKeyframeJob(anchorRaw, shots[i], charDesc, negText, charName, locName, seed + 11 + i, width, height, i, n));
+      const keyEntries = await waitForJobs(keyIds);
+      const keys = [];
+      for (const id of keyIds) keys.push(await reupload(outputFiles(keyEntries[id], ".png")[0]));
+
+      // (d) Grille contact-sheet adaptative.
+      await submitGridJob(keys);
+
+      // (e) 1 cut i2v par plan (durée par plan issue du DNA) + tenue du plan final optionnelle.
+      const i2vRaw = await getTemplate("api/ltx25_i2v.json");
+      const plan = shots.map((shot, k) => ({ keyObj: keys[k], shot, dur: shot.duration, holdMotion: null }));
+      if (holdDur > 0)
+        plan.push({ keyObj: keys[keys.length - 1], shot: shots[shots.length - 1], dur: holdDur, holdMotion: HOLD_MOTION });
+      const cutIds = [];
+      for (let k = 0; k < plan.length; k++)
+        cutIds.push(await submitCutJob(i2vRaw, plan[k].keyObj, plan[k].shot, charDesc, locDesc, negText, seed + 31 + k, k, plan.length, plan[k].dur, plan[k].holdMotion));
+      const cutEntries = await waitForJobs(cutIds);
+      const cutNames = [];
+      for (const id of cutIds) cutNames.push((await reupload(outputFiles(cutEntries[id], ".mp4")[0])).name);
+
+      // (f) Assemblage par cuts francs + audio.
+      await submitAnimaticJob(cutNames, withAudio, seed);
+    }
+
+    // ── Reference2Video (Minimax H3 r2v, LOT 1) : réutilise la génération charsheet/locsheet
+    // existante (Krea 2) comme les deux références de MiniMaxH3ReferenceToVideo — personnage
+    // ET décor cohérents en un seul clip, sans passer par les keyframes/cuts du storyboard_v2.
+    async function generateReference2Video(seed, width, height) {
+      if (!brief.value.trim()) throw new Error("Décrivez le personnage et le décor dans le brief avant de générer.");
+      const wf = currentWorkflow();
+      const negText = negative.value.trim();
+      const duration = Math.min(10, Math.max(1, parseInt($("videoDuration").value, 10) || 5));
+      const turboOn = $("turboToggle").checked;
+
+      addEvent("REQ", `Fiche personnage + fiche décor via ${OLLAMA_MODEL}…`, "req");
+      const charDesc = charDescFromFields(await characterSheetFromBrief());
+      const locDesc = locDescFromFields(await locationSheetFromBrief());
+
+      // Mêmes planches Krea 2 que storyboard_v2 : elles servent ici directement de
+      // ref_image_0/ref_image_1 (personnage / décor) du template Minimax H3 r2v.
+      const csId = await submitCharsheetJob(charDesc, negText, seed, width, height, wf);
+      const lsId = await submitLocsheetJob(locDesc, negText, seed + 101, width, height, wf);
+      const charName = (await resolveImageJob(csId)).name;
+      const locName = (await resolveImageJob(lsId)).name;
+
+      const raw = await getTemplate(wf.file);
+      const graph = buildGraph(raw, {
+        // Ancrage double (piège n°9/n°10 LESSONS) : le prompt rappelle scène + personnage +
+        // décor plutôt que la seule action, pour ne pas laisser le modèle dériver.
+        prompt: `${charDesc}. ${locDesc}. ${brief.value.trim()}`, negative: negText,
+        seed: seed + 201, width, height, duration, image: charName, image2: locName
+      });
+      applyMinimaxTurbo(graph, turboOn);
+      await submitGraph(graph, "Personnage + décor cohérents (Minimax H3 r2v)",
+        `${wf.model} · r2v · ${duration}s · ${turboOn ? "turbo 8 steps" : "20 steps"} · seed ${seed}`);
+    }
+
+    // ── Mode Réalisateur (storyboard_v2) : studio plein écran ────────────────────
+    let directorMode = false; // état non persisté (défaut : Auto)
+    let director = null;      // session Réalisateur en cours
+
+    function setDirectorMode(on) {
+      directorMode = on;
+      $("modeAutoBtn").classList.toggle("active", !on);
+      $("modeDirectorBtn").classList.toggle("active", on);
+      resetDirectorZone();
+    }
+    $("modeAutoBtn").addEventListener("click", () => setDirectorMode(false));
+    $("modeDirectorBtn").addEventListener("click", () => setDirectorMode(true));
+
+    // Coquille studio : bascule vue classique ↔ studio (le header reste visible).
+    function enterStudio() { document.body.dataset.studio = "1"; }
+    function exitStudio() { delete document.body.dataset.studio; }
+
+    const STUDIO_SECTIONS = { character: "studioCharacter", location: "studioLocation",
+                              storyboard: "studioStoryboard", montage: "studioMontage" };
+    function selectStudioSection(name) {
+      for (const [key, id] of Object.entries(STUDIO_SECTIONS))
+        $(id).style.display = key === name ? "" : "none";
+      document.querySelectorAll("#studioNav .studio-nav-btn")
+        .forEach(b => b.classList.toggle("active", b.dataset.section === name));
+    }
+    document.querySelectorAll("#studioNav .studio-nav-btn").forEach(btn =>
+      btn.addEventListener("click", () => selectStudioSection(btn.dataset.section)));
+    // « Nouveau projet » : seul point qui EFFACE le projet persisté (LOT C) — quitter le
+    // studio ou changer de pipeline (resetDirectorZone) ne supprime jamais la clé.
+    $("studioNewBtn").addEventListener("click", () => {
+      if (!confirm(tr("Supprimer définitivement ce projet et repartir de zéro ?"))) return;
+      localStorage.removeItem("studioProject");
+      savedProjectCache = null;
+      updateResumeButton();
+      resetDirectorZone();
+      exitStudio();
+    });
+    // Quitter seul : l'état director survit — re-cliquer Generate relance une session.
+    $("studioExitBtn").addEventListener("click", exitStudio);
+
+    function resetDirectorZone() {
+      director = null;
+      exitStudio();
+      $("directorStep2").style.display = "none";
+      $("shotEditList").innerHTML = "";
+      $("shotEditList").style.display = "none";
+      $("keyframeGrid").innerHTML = "";
+      $("directorKeyframesBtn").style.display = "none";
+      $("directorKeyframesBtn").disabled = false;
+      $("directorLaunchBtn").disabled = true;
+      $("directorAssembleBtn").disabled = true;
+      $("montageList").innerHTML = "";
+      $("montagePlayer").innerHTML = "";
+      $("studioTimeline").innerHTML = "";
+      $("directorValidateBtn").disabled = true;
+      $("directorValidateBtn").textContent = tr("Valider les planches");
+      renderSheetMenu("char");
+      renderSheetMenu("loc");
+      updateGateState();
+      selectStudioSection("character");
+    }
+
+    // Étape 1 : fiches structurées gemma (objets de champs) + soumission des 2 planches
+    // (variante 0 de chaque historique) + liste de N plans → entrée dans le studio.
+    async function directorStep1(seed, width, height) {
+      if (!brief.value.trim()) throw new Error("Décrivez la scène dans le brief avant de générer le storyboard.");
+      const wf = currentWorkflow();
+      const n = Math.min(16, Math.max(4, parseInt($("shotCount").value, 10) || 4));
       const segDur = Math.min(8, Math.max(1, parseInt($("videoDuration").value, 10) || 2));
       const holdDur = Math.min(8, Math.max(0, parseInt($("holdDuration").value, 10) || 0));
-      addEvent("REQ", `Décomposition du brief en ${n} plans via ${OLLAMA_MODEL}…`, "req");
-      const prompts = await shotPromptsFromBrief(n);
-      const graph = buildStoryboardFullGraph(prompts, negative.value.trim(), seed, width, height,
-        segDur, holdDur, $("audioToggle").checked, wf.engine);
-      await submitGraph(graph, `Storyboard complet (${n} cases)`,
-        `${wf.model} · ${n} shots + grille · animatic ~${(n - 1) * segDur + holdDur}s · seed ${seed}`);
+      const negText = negative.value.trim(), withAudio = $("audioToggle").checked;
+
+      addEvent("REQ", `Mode Réalisateur : fiche personnage + fiche décor + ${n} plans via ${OLLAMA_MODEL}…`, "req");
+      const charFields = await characterSheetFromBrief();
+      const locFields = await locationSheetFromBrief();
+      // Les deux planches partent en génération tout de suite (pendant que gemma découpe les plans).
+      const csSeed = seed, lsSeed = seed + 101;
+      const csId = await submitCharsheetJob(charDescFromFields(charFields), negText, csSeed, width, height, wf);
+      const lsId = await submitLocsheetJob(locDescFromFields(locFields), negText, lsSeed, width, height, wf);
+      const shots = await shotListFromBrief(n);
+
+      resetDirectorZone();
+      director = {
+        seed, width, height, wf, negText, withAudio, n, segDur, holdDur, shots, keyframes: null,
+        style: $("styleSelect").value,           // style figé à l'ouverture de la session
+        cutPlan: null, cuts: null, order: null, animatic: null,  // état Montage
+        // Fiches structurées éditables (menus Personnage/Décor) + historiques de variantes.
+        charFields, locFields,
+        charVariants: [{ file: null, inputName: null, seed: csSeed, source: "generated",
+                         prompt: charDescFromFields(charFields), status: "pending", blob: null, url: null }],
+        locVariants: [{ file: null, inputName: null, seed: lsSeed, source: "generated",
+                        prompt: locDescFromFields(locFields), status: "pending", blob: null, url: null }],
+        charActive: 0, locActive: 0, validated: false,
+        // Compat directorStep2/3 + regenerateKeyframe : mêmes noms qu'avant, recalculés
+        // depuis la variante active / les champs édités.
+        get charName() { return this.charVariants[this.charActive]?.inputName || null; },
+        get locName() { return this.locVariants[this.locActive]?.inputName || null; },
+        get charDesc() { return charDescFromFields(this.charFields); },
+        get locDesc() { return locDescFromFields(this.locFields); }
+      };
+      enterStudio();
+      selectStudioSection("character");
+      renderSheetMenu("char");
+      renderSheetMenu("loc");
+      updateValidateButtonState();
+      updateGateState();
+      renderShotDNAList();
+      const watch = (kind, variant, promptId) => resolveVariantJob(kind, variant, promptId).catch(err => {
+        variant.status = "error";
+        refreshSheetUI(kind);
+        addEvent("WARN", err.message, "warn");
+      });
+      watch("char", director.charVariants[0], csId);
+      watch("loc", director.locVariants[0], lsId);
+      saveProject();
     }
+
+    // Résout un job planche déjà soumis : attend l'image, la ré-uploade en entrée
+    // (resolveImageJob) et complète la variante correspondante.
+    async function resolveVariantJob(kind, variant, promptId) {
+      const uploaded = await resolveImageJob(promptId);
+      variant.inputName = uploaded.name;
+      variant.file = uploaded.file; // référence à la sortie disque (persistable — LOT C)
+      variant.blob = uploaded.blob;
+      variant.url = URL.createObjectURL(uploaded.blob);
+      variant.status = "ready";
+      const arr = kind === "char" ? director?.charVariants : director?.locVariants;
+      if (!arr || !arr.includes(variant)) return; // session remplacée entre-temps
+      refreshSheetUI(kind);
+      saveProject();
+    }
+
+    // Prêt = la variante ACTIVE de chaque planche est prête (générée ou importée).
+    function anchorsReady() {
+      return !!director
+        && director.charVariants[director.charActive]?.status === "ready"
+        && director.locVariants[director.locActive]?.status === "ready";
+    }
+
+    // ── Menus Personnage / Décor : champs éditables + historique de variantes + import ──
+    function sheetSection(kind) { return $(kind === "char" ? "studioCharacter" : "studioLocation"); }
+
+    function renderSheetMenu(kind) {
+      const isChar = kind === "char";
+      const fields = director ? (isChar ? director.charFields : director.locFields) : null;
+      sheetSection(kind).querySelectorAll("[data-field]").forEach(input => {
+        input.value = fields ? (fields[input.dataset.field] || "") : "";
+        input.disabled = !fields;
+      });
+      renderVariantStrip(kind);
+    }
+
+    // Bande de vignettes : miniature + badge actif + seed/source ; clic = planche active.
+    function renderVariantStrip(kind) {
+      const isChar = kind === "char";
+      const section = sheetSection(kind);
+      const variants = director ? (isChar ? director.charVariants : director.locVariants) : [];
+      const active = director ? (isChar ? director.charActive : director.locActive) : -1;
+      const strip = section.querySelector(".variant-strip");
+      strip.innerHTML = "";
+      variants.forEach((v, idx) => {
+        const thumb = document.createElement("button");
+        thumb.type = "button";
+        thumb.className = "variant-thumb" + (idx === active ? " active" : "");
+        thumb.innerHTML = (v.status === "missing" ? `<div class="thumb-missing"></div>` : `<img alt="" />`)
+          + `<span class="variant-meta"></span>`;
+        if (v.status === "missing") thumb.querySelector(".thumb-missing").textContent = tr("Manquant");
+        else if (v.url) thumb.querySelector("img").src = v.url;
+        // LOT C : variante non active (jamais re-résolue au restore) → lecture directe /view.
+        else if (v.file) thumb.querySelector("img").src = viewURL(v.file);
+        const st = v.status === "pending" ? ` · ${tr("Génération…")}` : v.status === "error" ? ` · ${tr("Erreur")}`
+          : v.status === "missing" ? ` · ${tr("Manquant")}` : "";
+        thumb.querySelector(".variant-meta").textContent =
+          `#${idx + 1} · ${v.source === "imported" ? "import" : `seed ${v.seed}`}${st}`;
+        thumb.addEventListener("click", () => setActiveVariant(kind, idx));
+        strip.appendChild(thumb);
+      });
+      const av = variants[active];
+      const img = section.querySelector(".sheet-preview img");
+      const miss = section.querySelector(".sheet-preview .thumb-missing");
+      miss.hidden = av?.status !== "missing";
+      if (av?.status === "missing") miss.textContent = tr("Manquant");
+      if (av?.url && av.status !== "missing") { img.src = av.url; img.style.display = ""; }
+      else { img.removeAttribute("src"); img.style.display = "none"; }
+      const word = !av ? "" : av.status === "pending" ? "Génération…" : av.status === "error" ? "Erreur"
+        : av.status === "missing" ? "Manquant" : "Prêt";
+      section.querySelector(".sheet-status").textContent = word ? tr(word) : "";
+      section.querySelector(".sheet-regen").disabled = !director || variants.some(v => v.status === "pending");
+      section.querySelector(".sheet-import").disabled = !director;
+    }
+
+    function refreshSheetUI(kind) {
+      renderVariantStrip(kind);
+      updateValidateButtonState();
+      updateGateState();
+    }
+
+    // Sélection d'une planche de l'historique : ré-invalide la session (comme une régénération).
+    function setActiveVariant(kind, idx) {
+      if (!director) return;
+      const isChar = kind === "char";
+      if ((isChar ? director.charActive : director.locActive) === idx) return;
+      if (isChar) director.charActive = idx; else director.locActive = idx;
+      director.validated = false;
+      refreshSheetUI(kind);
+      saveProject();
+    }
+
+    // Régénère une planche depuis les champs édités : PUSH d'une nouvelle variante (l'historique
+    // ne remplace jamais), seed = seed de la dernière variante générée + 1, active = la nouvelle.
+    async function regenerateSheet(kind) {
+      if (!director) return;
+      const isChar = kind === "char";
+      const variants = isChar ? director.charVariants : director.locVariants;
+      if (variants.some(v => v.status === "pending")) return;
+      const lastGen = [...variants].reverse().find(v => v.source === "generated");
+      const seed = (lastGen ? lastGen.seed : director.seed + (isChar ? 0 : 101)) + 1;
+      const desc = isChar ? charDescFromFields(director.charFields) : locDescFromFields(director.locFields);
+      const variant = { file: null, inputName: null, seed, source: "generated", prompt: desc,
+                        status: "pending", blob: null, url: null };
+      variants.push(variant);
+      if (isChar) director.charActive = variants.length - 1; else director.locActive = variants.length - 1;
+      director.validated = false;
+      refreshSheetUI(kind);
+      try {
+        const promptId = isChar
+          ? await submitCharsheetJob(desc, director.negText, seed, director.width, director.height, director.wf)
+          : await submitLocsheetJob(desc, director.negText, seed, director.width, director.height, director.wf);
+        await resolveVariantJob(kind, variant, promptId);
+      } catch (err) {
+        variant.status = "error";
+        refreshSheetUI(kind);
+        addEvent("WARN", err.message, "warn");
+        saveProject();
+      }
+    }
+
+    // Import d'une image comme nouvelle variante active (uploadée comme entrée ComfyUI).
+    async function importSheetImage(kind, fileObj) {
+      if (!director) return;
+      const isChar = kind === "char";
+      try {
+        const name = await uploadBlob(fileObj, fileObj.name);
+        const variants = isChar ? director.charVariants : director.locVariants;
+        variants.push({ file: { filename: name, subfolder: "", type: "input" }, inputName: name,
+                        seed: null, source: "imported", prompt: null, status: "ready",
+                        blob: fileObj, url: URL.createObjectURL(fileObj) });
+        if (isChar) director.charActive = variants.length - 1; else director.locActive = variants.length - 1;
+        director.validated = false;
+        refreshSheetUI(kind);
+        addEvent("OK", `Planche ${isChar ? "personnage" : "décor"} importée : ${name}.`, "ok");
+        saveProject();
+      } catch (err) { addEvent("WARN", err.message, "warn"); }
+    }
+
+    // Câblage statique des deux menus (édition des champs → état, régénérer, importer, lightbox).
+    for (const kind of ["char", "loc"]) {
+      const isChar = kind === "char";
+      const section = sheetSection(kind);
+      section.querySelectorAll("[data-field]").forEach(input =>
+        input.addEventListener("change", () => {
+          if (!director) return;
+          (isChar ? director.charFields : director.locFields)[input.dataset.field] = input.value.trim();
+        }));
+      section.querySelector(".sheet-regen").addEventListener("click", () => regenerateSheet(kind));
+      const fileInput = section.querySelector(".sheet-import-input");
+      section.querySelector(".sheet-import").addEventListener("click", () => fileInput.click());
+      fileInput.addEventListener("change", () => {
+        if (fileInput.files[0]) importSheetImage(kind, fileInput.files[0]);
+        fileInput.value = "";
+      });
+      const pImg = section.querySelector(".sheet-preview img");
+      pImg.addEventListener("click", () => { if (pImg.src) openLightbox(pImg.src, false); });
+    }
+
+    function updateValidateButtonState() {
+      const btn = $("directorValidateBtn");
+      const ready = anchorsReady();
+      btn.disabled = !ready || (director?.validated ?? false);
+      btn.textContent = tr(director?.validated ? "Planches validées ✓" : "Valider les planches");
+    }
+
+    // Gate : nav Storyboard + liste des plans + bouton keyframes déverrouillés uniquement si
+    // les planches actives sont prêtes ET validées. Montage : déverrouillé quand toutes les
+    // keyframes sont prêtes (même sémantique que l'ancien updateLaunchButtonState).
+    function keyframesAllReady() {
+      return !!(director?.keyframes?.length) && director.keyframes.every(k => k.status === "ready");
+    }
+    function updateGateState() {
+      const unlocked = anchorsReady() && !!director?.validated;
+      $("shotEditList").style.display = unlocked ? "" : "none";
+      $("directorKeyframesBtn").style.display = unlocked ? "" : "none";
+      const sb = document.querySelector('#studioNav [data-section="storyboard"]');
+      sb.disabled = !unlocked;
+      sb.classList.toggle("locked", !unlocked);
+      const mtReady = keyframesAllReady();
+      const mt = document.querySelector('#studioNav [data-section="montage"]');
+      mt.disabled = !mtReady;
+      mt.classList.toggle("locked", !mtReady);
+    }
+
+    $("directorValidateBtn").addEventListener("click", () => {
+      if (!anchorsReady()) return;
+      director.validated = true;
+      updateValidateButtonState();
+      updateGateState();
+      saveProject();
+    });
+
+    // Éditeur Scene DNA : par plan, selects caméra/lumière (ids des libs) + action/emotion/extra
+    // + durée 1-8 s — édition répercutée en direct dans director.shots.
+    function libOptions(lib, selected) {
+      return Object.entries(lib)
+        .map(([id, v]) => `<option value="${id}"${id === selected ? " selected" : ""}>${tr(v.label)}</option>`).join("");
+    }
+    function renderShotDNAList() {
+      const list = $("shotEditList");
+      list.innerHTML = "";
+      director.shots.forEach((shot, i) => {
+        const item = document.createElement("div");
+        item.className = "shot-edit-item";
+        item.innerHTML = `<strong></strong>
+          <div class="two-cols">
+            <label><span class="lbl-cam"></span><select data-field="camera">${libOptions(CAMERA_LIB, shot.camera)}</select></label>
+            <label><span class="lbl-light"></span><select data-field="lighting">${libOptions(LIGHTING_LIB, shot.lighting)}</select></label>
+          </div>
+          <label><span class="lbl-action"></span><textarea class="small" data-field="action"></textarea></label>
+          <div class="two-cols">
+            <label><span class="lbl-emotion"></span><input type="text" data-field="emotion" /></label>
+            <label><span class="lbl-duration"></span><input type="number" min="1" max="8" data-field="duration" /></label>
+          </div>
+          <label><span class="lbl-extra"></span><input type="text" data-field="extra" /></label>
+          <p class="hint lbl-durhint"></p>`;
+        item.querySelector("strong").textContent = dyn("shotLabel", i + 1, director.n);
+        item.querySelector(".lbl-cam").textContent = tr("Caméra");
+        item.querySelector(".lbl-light").textContent = tr("Lumière");
+        item.querySelector(".lbl-action").textContent = tr("Action");
+        item.querySelector(".lbl-emotion").textContent = tr("Émotion");
+        item.querySelector(".lbl-duration").textContent = tr("Durée (s)");
+        item.querySelector(".lbl-extra").textContent = tr("Détails");
+        item.querySelector(".lbl-durhint").textContent = tr("arrondi 8n+1 au rendu");
+        const camEl = item.querySelector('[data-field="camera"]');
+        const lightEl = item.querySelector('[data-field="lighting"]');
+        const actionEl = item.querySelector('[data-field="action"]');
+        const emotionEl = item.querySelector('[data-field="emotion"]');
+        const durEl = item.querySelector('[data-field="duration"]');
+        const extraEl = item.querySelector('[data-field="extra"]');
+        actionEl.value = shot.action; emotionEl.value = shot.emotion;
+        durEl.value = shot.duration; extraEl.value = shot.extra;
+        camEl.addEventListener("change", () => { shot.camera = camEl.value; saveProject(); });
+        lightEl.addEventListener("change", () => { shot.lighting = lightEl.value; saveProject(); });
+        actionEl.addEventListener("change", () => { shot.action = actionEl.value.trim() || shot.action; saveProject(); });
+        emotionEl.addEventListener("change", () => { shot.emotion = emotionEl.value.trim(); saveProject(); });
+        durEl.addEventListener("change", () => { shot.duration = Math.min(8, Math.max(1, parseInt(durEl.value, 10) || shot.duration)); durEl.value = shot.duration; saveProject(); });
+        extraEl.addEventListener("change", () => { shot.extra = extraEl.value.trim(); saveProject(); });
+        list.appendChild(item);
+      });
+    }
+
+    // Étape 2 : 1 job Qwen-Edit par case, cartes régénérables/verrouillables.
+    $("directorKeyframesBtn").addEventListener("click", async () => {
+      const btn = $("directorKeyframesBtn");
+      btn.disabled = true;
+      try { await directorStep2(); btn.style.display = "none"; }
+      catch (err) { addEvent("WARN", err.message, "warn"); btn.disabled = false; }
+    });
+
+    async function directorStep2() {
+      // director.charName/locName (variantes actives) sont déjà résolus (gate : la nav Storyboard
+      // et directorKeyframesBtn ne sont accessibles qu'une fois les 2 planches prêtes ET validées).
+      addEvent("REQ", "Mode Réalisateur : keyframes ancrées sur les planches validées…", "req");
+      director.anchorRaw = await getTemplate(director.wf.anchor);
+      director.keyframes = director.shots.map(() => ({ status: "pending", locked: false, seed: 0, name: null, file: null, blob: null, url: null }));
+      // Nouvelles keyframes → l'ancien montage (cuts/animatic) est obsolète : on le repart de zéro.
+      director.cutPlan = null; director.cuts = null; director.order = null; director.animatic = null;
+      $("keyframeGrid").innerHTML = "";
+      $("montageList").innerHTML = ""; $("montagePlayer").innerHTML = ""; $("studioTimeline").innerHTML = "";
+      $("directorStep2").style.display = "";
+      updateGateState();
+      updateMontageButtons();
+      const ids = [];
+      for (let i = 0; i < director.n; i++) {
+        const seed = director.seed + 11 + i;
+        director.keyframes[i].seed = seed;
+        renderKeyframeCard(i);
+        ids.push(await submitKeyframeJob(director.anchorRaw, director.shots[i], director.charDesc, director.negText,
+          director.charName, director.locName, seed, director.width, director.height, i, director.n));
+      }
+      await Promise.all(ids.map((id, i) => trackKeyframeCompletion(i, id)));
+    }
+
+    async function trackKeyframeCompletion(i, promptId) {
+      const uploaded = await resolveImageJob(promptId);
+      const kf = director.keyframes[i];
+      kf.name = uploaded.name; kf.file = uploaded.file; kf.blob = uploaded.blob;
+      kf.url = URL.createObjectURL(uploaded.blob);
+      kf.status = "ready";
+      renderKeyframeCard(i);
+      updateLaunchButtonState();
+      saveProject();
+    }
+
+    // Carte keyframe : miniature + 🔄 régénérer (seed+1, sauf verrouillée) + 🔒 verrouiller.
+    function renderKeyframeCard(i) {
+      const kf = director.keyframes[i];
+      let card = document.getElementById(`kfCard_${i}`);
+      if (!card) {
+        card = document.createElement("div");
+        card.className = "asset fade-in";
+        card.id = `kfCard_${i}`;
+        card.innerHTML = `<img alt="" /><div class="thumb-missing" hidden></div><div class="meta"><strong></strong><span></span></div>
+          <div class="asset-actions"><button type="button" class="kf-regen"></button><button type="button" class="kf-lock"></button></div>`;
+        card.querySelector(".kf-regen").addEventListener("click", () => regenerateKeyframe(i));
+        card.querySelector(".kf-lock").addEventListener("click", () => toggleLockKeyframe(i));
+        $("keyframeGrid").appendChild(card);
+      }
+      card.classList.toggle("locked", kf.locked);
+      card.querySelector("strong").textContent = dyn("shotLabel", i + 1, director.n);
+      const statusWord = kf.locked ? "Verrouillé" : kf.status === "pending" ? "Génération…"
+        : kf.status === "error" ? "Erreur" : kf.status === "missing" ? "Manquant" : "Prêt";
+      card.querySelector("span").textContent = tr(statusWord);
+      const imgEl = card.querySelector("img"), missEl = card.querySelector(".thumb-missing");
+      if (kf.status === "missing") { imgEl.hidden = true; missEl.hidden = false; missEl.textContent = tr("Manquant"); }
+      else { missEl.hidden = true; imgEl.hidden = false; if (kf.url) imgEl.src = kf.url; }
+      const regenBtn = card.querySelector(".kf-regen");
+      regenBtn.textContent = tr("🔄 Régénérer");
+      regenBtn.disabled = kf.locked || kf.status === "pending";
+      const lockBtn = card.querySelector(".kf-lock");
+      lockBtn.textContent = tr(kf.locked ? "🔓 Déverrouiller" : "🔒 Verrouiller");
+      lockBtn.disabled = kf.status !== "ready" && !kf.locked;
+      lockBtn.classList.toggle("active", kf.locked);
+    }
+    function renderAllKeyframeCards() {
+      if (!director?.keyframes) return;
+      director.keyframes.forEach((_, i) => renderKeyframeCard(i));
+    }
+
+    async function regenerateKeyframe(i) {
+      const kf = director.keyframes[i];
+      if (kf.locked || kf.status === "pending") return;
+      kf.seed += 1;
+      kf.status = "pending";
+      renderKeyframeCard(i);
+      updateLaunchButtonState();
+      try {
+        const promptId = await submitKeyframeJob(director.anchorRaw, director.shots[i], director.charDesc, director.negText,
+          director.charName, director.locName, kf.seed, director.width, director.height, i, director.n);
+        await trackKeyframeCompletion(i, promptId);
+      } catch (err) {
+        kf.status = "error";
+        renderKeyframeCard(i);
+        addEvent("WARN", err.message, "warn");
+        saveProject();
+      }
+    }
+
+    function toggleLockKeyframe(i) {
+      const kf = director.keyframes[i];
+      if (kf.status !== "ready" && !kf.locked) return;
+      kf.locked = !kf.locked;
+      saveProject();
+      renderKeyframeCard(i);
+    }
+
+    // Keyframes prêtes → déverrouille la nav Montage + le bouton « Générer les cuts ».
+    function updateLaunchButtonState() {
+      updateGateState();
+      updateMontageButtons();
+    }
+
+    // ── Menu Montage : cuts i2v par plan (durée DNA) → clips réordonnables → animatic ──
+    // URL de lecture directe d'un fichier de sortie ComfyUI (vignette/lecteur, pas de blob).
+    function viewURL(f) {
+      return `${COMFY}/view?filename=${encodeURIComponent(f.filename)}&subfolder=${encodeURIComponent(f.subfolder || "")}&type=${f.type || "output"}`;
+    }
+    // Plan de cut par index : keyframe + shot source + mouvement de tenue (dernier plan).
+    function buildCutPlan() {
+      const { keyframes, shots, n, holdDur } = director;
+      const plan = shots.map((shot, k) => ({ keyObj: keyframes[k], shot, holdMotion: null, duration: shot.duration }));
+      if (holdDur > 0)
+        plan.push({ keyObj: keyframes[n - 1], shot: shots[n - 1], holdMotion: HOLD_MOTION, duration: holdDur });
+      return plan;
+    }
+
+    function updateMontageButtons() {
+      $("directorLaunchBtn").disabled = !keyframesAllReady();
+      const cuts = director?.cuts;
+      const ready = !!(cuts?.length) && cuts.every(c => c && (c.status === "ready" || c.status === "stale"));
+      $("directorAssembleBtn").disabled = !ready;
+    }
+
+    // « Générer les cuts » : grille (fire-and-forget) + 1 cut i2v par plan → director.cuts/order.
+    async function generateCuts() {
+      if (!director || !keyframesAllReady()) return;
+      $("directorLaunchBtn").disabled = true;
+      const { negText, seed, charDesc, locDesc } = director;
+      try {
+        addEvent("REQ", "Montage : grille + cuts i2v (1 par plan)…", "req");
+        await submitGridJob(director.keyframes); // fire-and-forget (non attendu)
+        const i2vRaw = await getTemplate("api/ltx25_i2v.json");
+        const plan = buildCutPlan();
+        director.cutPlan = plan;
+        director.cuts = new Array(plan.length).fill(null);
+        director.order = plan.map((_, k) => k);
+        const ids = [];
+        for (let k = 0; k < plan.length; k++)
+          ids.push(await submitCutJob(i2vRaw, plan[k].keyObj, plan[k].shot, charDesc, locDesc, negText,
+            seed + 31 + k, k, plan.length, plan[k].duration, plan[k].holdMotion));
+        const entries = await waitForJobs(ids);
+        for (let k = 0; k < ids.length; k++) {
+          const f = outputFiles(entries[ids[k]], ".mp4")[0];
+          const up = await reupload(f);
+          director.cuts[k] = { file: f, inputName: up.name, seed: seed + 31 + k, duration: plan[k].duration,
+            status: "ready", prompt: compileCutPrompt(plan[k].shot, charDesc, locDesc, plan[k].holdMotion) };
+        }
+        addEvent("OK", `${plan.length} cuts générés — réordonnez puis assemblez.`, "ok");
+      } catch (err) { addEvent("WARN", err.message, "warn"); }
+      renderMontage();
+      renderFooterTimeline();
+      updateMontageButtons();
+      saveProject();
+    }
+
+    // Re-rendre UN plan : un seul submitCutJob sur la MÊME keyframe (seed+1, durée courante).
+    async function regenerateCut(k) {
+      const cut = director.cuts?.[k], p = director.cutPlan?.[k];
+      if (!cut || !p || cut.status === "pending") return;
+      cut.status = "pending"; cut.seed += 1;
+      renderMontage(); renderFooterTimeline(); updateMontageButtons();
+      try {
+        const i2vRaw = await getTemplate("api/ltx25_i2v.json");
+        const id = await submitCutJob(i2vRaw, p.keyObj, p.shot, director.charDesc, director.locDesc, director.negText,
+          cut.seed, k, director.cutPlan.length, cut.duration, p.holdMotion);
+        const entry = (await waitForJobs([id]))[id];
+        const f = outputFiles(entry, ".mp4")[0];
+        const up = await reupload(f);
+        cut.file = f; cut.inputName = up.name; cut.status = "ready";
+        cut.prompt = compileCutPrompt(p.shot, director.charDesc, director.locDesc, p.holdMotion);
+      } catch (err) { cut.status = "error"; addEvent("WARN", err.message, "warn"); }
+      renderMontage(); renderFooterTimeline(); updateMontageButtons();
+      saveProject();
+    }
+
+    // Réordonne (mutation de director.order UNIQUEMENT — ne re-rend rien).
+    function moveClip(pos, dir) {
+      const order = director.order, j = pos + dir;
+      if (j < 0 || j >= order.length) return;
+      [order[pos], order[j]] = [order[j], order[pos]];
+      renderMontage(); renderFooterTimeline();
+      saveProject();
+    }
+
+    // « Assembler l'animatic » : RÉUTILISE les cuts uploadés dans l'ordre director.order (1 seul job).
+    async function assembleTimeline() {
+      if (!director?.cuts?.length) return;
+      $("directorAssembleBtn").disabled = true;
+      try {
+        const names = director.order.map(k => director.cuts[k].inputName);
+        addEvent("REQ", "Montage : assemblage de l'animatic (ordre du montage)…", "req");
+        const id = await submitAnimaticJob(names, director.withAudio, director.seed);
+        const entry = (await waitForJobs([id]))[id];
+        director.animatic = { file: outputFiles(entry, ".mp4")[0], seed: director.seed };
+        renderMontagePlayer();
+        addEvent("OK", "Montage : animatic assemblé.", "ok");
+      } catch (err) { addEvent("WARN", err.message, "warn"); }
+      updateMontageButtons();
+      saveProject();
+    }
+
+    // Rendu du menu Montage : clips dans l'ordre director.order.
+    function renderMontage() {
+      const list = $("montageList");
+      list.innerHTML = "";
+      if (!director?.cuts?.length) return;
+      director.order.forEach((k, pos) => {
+        const cut = director.cuts[k];
+        if (!cut) return;
+        const clip = document.createElement("div");
+        clip.className = "montage-clip";
+        clip.innerHTML = `<div class="clip-head"><strong></strong><span class="clip-meta"></span></div>
+          <video muted preload="metadata"></video>
+          <div class="thumb-missing" hidden></div>
+          <label><span class="lbl-dur"></span><input type="number" min="1" max="8" data-field="cutdur" /></label>
+          <div class="clip-actions">
+            <button type="button" class="clip-up"></button>
+            <button type="button" class="clip-down"></button>
+            <button type="button" class="clip-regen"></button>
+            <button type="button" class="clip-preview"></button>
+          </div>`;
+        clip.querySelector("strong").textContent = dyn("shotLabel", k + 1, director.cutPlan.length);
+        const stale = cut.status === "stale";
+        clip.querySelector(".clip-meta").innerHTML =
+          `seed ${cut.seed} · ${stale ? `<span class="stale">${tr("à re-rendre")}</span>` :
+            tr(cut.status === "pending" ? "Génération…" : cut.status === "error" ? "Erreur" : cut.status === "missing" ? "Manquant" : "Prêt")}`;
+        const vid = clip.querySelector("video"), missEl = clip.querySelector(".thumb-missing");
+        if (cut.status === "missing") { vid.hidden = true; missEl.hidden = false; missEl.textContent = tr("Manquant"); }
+        else { missEl.hidden = true; vid.hidden = false; if (cut.file) vid.src = viewURL(cut.file); }
+        clip.querySelector(".lbl-dur").textContent = tr("Durée (s)");
+        const durEl = clip.querySelector('[data-field="cutdur"]');
+        durEl.value = cut.duration;
+        durEl.addEventListener("change", () => {
+          const v = Math.min(8, Math.max(1, parseInt(durEl.value, 10) || cut.duration));
+          durEl.value = v;
+          if (v !== cut.duration) {
+            cut.duration = v; cut.status = "stale";
+            renderMontage(); renderFooterTimeline(); updateMontageButtons();
+            saveProject();
+          }
+        });
+        const upBtn = clip.querySelector(".clip-up"), downBtn = clip.querySelector(".clip-down");
+        upBtn.textContent = tr("↑ Monter"); downBtn.textContent = tr("↓ Descendre");
+        upBtn.disabled = pos === 0; downBtn.disabled = pos === director.order.length - 1;
+        upBtn.addEventListener("click", () => moveClip(pos, -1));
+        downBtn.addEventListener("click", () => moveClip(pos, 1));
+        const regenBtn = clip.querySelector(".clip-regen");
+        regenBtn.textContent = tr("🔄 Re-rendre ce plan");
+        regenBtn.disabled = cut.status === "pending";
+        regenBtn.addEventListener("click", () => regenerateCut(k));
+        const prevBtn = clip.querySelector(".clip-preview");
+        prevBtn.textContent = tr("⤢ Aperçu");
+        prevBtn.disabled = !cut.file || cut.status === "missing";
+        prevBtn.addEventListener("click", () => { if (cut.file) openLightbox(viewURL(cut.file), true); });
+        list.appendChild(clip);
+      });
+    }
+
+    function renderMontagePlayer() {
+      const wrap = $("montagePlayer");
+      wrap.innerHTML = "";
+      if (!director?.animatic) return;
+      const vid = document.createElement("video");
+      vid.controls = true; vid.playsInline = true;
+      vid.src = viewURL(director.animatic.file);
+      wrap.appendChild(vid);
+    }
+
+    // Bande timeline (footer) : vignettes ordonnées + point de statut ; clic → menu Montage.
+    function renderFooterTimeline() {
+      const foot = $("studioTimeline");
+      foot.innerHTML = "";
+      if (!director?.cuts?.length) return;
+      const strip = document.createElement("div");
+      strip.className = "timeline-strip";
+      director.order.forEach((k, pos) => {
+        const cut = director.cuts[k];
+        if (!cut) return;
+        const thumb = document.createElement("button");
+        thumb.type = "button";
+        thumb.className = "timeline-thumb";
+        const dotCls = cut.status === "ready" ? "ready" : cut.status === "stale" ? "stale"
+          : cut.status === "missing" ? "missing" : "pending";
+        thumb.innerHTML = `<span class="timeline-dot ${dotCls}"></span>`
+          + (cut.status === "missing" ? `<div class="thumb-missing"></div>` : `<video muted preload="metadata"></video>`)
+          + `<span class="timeline-cap"></span>`;
+        if (cut.status === "missing") thumb.querySelector(".thumb-missing").textContent = tr("Manquant");
+        else if (cut.file) thumb.querySelector("video").src = viewURL(cut.file);
+        thumb.querySelector(".timeline-cap").textContent = `${pos + 1} · ${cut.duration}s`;
+        thumb.addEventListener("click", () => selectStudioSection("montage"));
+        strip.appendChild(thumb);
+      });
+      foot.appendChild(strip);
+    }
+
+    $("directorLaunchBtn").addEventListener("click", generateCuts);
+    $("directorAssembleBtn").addEventListener("click", assembleTimeline);
+
+    // ── LOT C : persistance de session (clé localStorage "studioProject") ──────────
+    // Tout l'état projet du studio est sauvegardé PAR RÉFÉRENCES de fichiers ComfyUI
+    // ({filename, subfolder, type} — sorties disque re-lisibles via /view) : jamais de
+    // blob, dataURL ou objectURL en localStorage. Au chargement, les références sont
+    // re-résolues (fetch /view → ré-upload pour un inputName frais) avec tolérance 404
+    // par item (pattern preloadGallery : un fichier disparu → statut "missing" +
+    // vignette placeholder, la restauration continue).
+    let savedProjectCache = null; // projet valide détecté au boot (pilote le bouton Reprendre)
+
+    // Le replacer supprime tout ce qui n'est pas sérialisable ou volatil : blobs,
+    // objectURLs, template d'ancrage, objet workflow (remplacé par wfId). Les items
+    // "pending" perdent leur statut (au restore : file présent → ready, absent → error).
+    function projectReplacer(key, value) {
+      if (["blob", "url", "anchorRaw", "wf"].includes(key)) return undefined;
+      if (key === "status" && value === "pending") return undefined;
+      return value;
+    }
+
+    function saveProject() {
+      if (!director) return;
+      const p = {
+        version: 1, savedAt: new Date().toISOString(),
+        brief: brief.value.trim(), negText: director.negText, wfId: director.wf.id,
+        style: director.style, seed: director.seed, width: director.width, height: director.height,
+        n: director.n, segDur: director.segDur, holdDur: director.holdDur,
+        withAudio: director.withAudio, validated: director.validated,
+        charFields: director.charFields, locFields: director.locFields,
+        charVariants: director.charVariants, charActive: director.charActive,
+        locVariants: director.locVariants, locActive: director.locActive,
+        shots: director.shots, keyframes: director.keyframes,
+        cuts: director.cuts, order: director.order, animatic: director.animatic
+        // cutPlan : non persisté — reconstruit au restore via buildCutPlan().
+      };
+      try {
+        localStorage.setItem("studioProject", JSON.stringify(p, projectReplacer));
+        savedProjectCache = p;
+        updateResumeButton();
+      } catch (err) {
+        addEvent("WARN", `Sauvegarde du projet impossible : ${err.message}`, "warn");
+      }
+    }
+
+    // Lecture tolérante de la clé : JSON invalide, version inconnue ou workflow absent
+    // du manifest → clé ignorée silencieusement (WARN au journal, jamais bloquant).
+    function loadSavedProject() {
+      let p;
+      try { p = JSON.parse(localStorage.getItem("studioProject") || "null"); }
+      catch { addEvent("WARN", "Projet sauvegardé illisible — ignoré.", "warn"); return null; }
+      if (!p) return null;
+      if (p.version !== 1) { addEvent("WARN", `Projet sauvegardé ignoré (version ${p.version}).`, "warn"); return null; }
+      if (!p.wfId || !manifest.workflows.some(w => w.id === p.wfId)) {
+        addEvent("WARN", "Projet sauvegardé ignoré (workflow absent du manifest).", "warn");
+        return null;
+      }
+      return p;
+    }
+
+    // Bouton « Reprendre le projet » : visible dans modeWrap quand le pipeline
+    // storyboard_v2 est sélectionné et qu'un projet valide est en stock.
+    function updateResumeButton() {
+      const b = $("resumeProjectBtn");
+      if (b) b.style.display = savedProjectCache && pipelineSelect.value === "storyboard_v2" ? "" : "none";
+    }
+
+    // Re-résout une référence fichier persistée : /view (pattern reupload) → blob +
+    // objectURL + ré-upload pour un inputName FRAIS (les inputs ComfyUI peuvent avoir
+    // été purgés — on repart toujours de la sortie disque). Lève si le fichier a disparu.
+    async function resolveFileRef(ref) {
+      const res = await fetch(viewURL(ref));
+      if (!res.ok) throw new Error(`fichier introuvable : ${ref.filename}`);
+      const blob = await res.blob();
+      const name = await uploadBlob(blob, ref.filename.split("/").pop());
+      return { name, blob, url: URL.createObjectURL(blob) };
+    }
+
+    // Reconstruit director depuis le projet persisté puis re-résout les fichiers
+    // (variantes actives, keyframes, cuts, animatic) en async, item par item.
+    async function restoreProject() {
+      const p = loadSavedProject();
+      if (!p) { updateResumeButton(); return; }
+      const wf = manifest.workflows.find(w => w.id === p.wfId);
+      // Sélection scénario + pipeline + mode Réalisateur (mêmes chemins que l'UI).
+      if (activeScenario !== "storyboard")
+        document.querySelector('.scenario-tab[data-scenario="storyboard"]')?.click();
+      if (pipelineSelect.value !== "storyboard_v2" &&
+          [...pipelineSelect.options].some(o => o.value === "storyboard_v2")) {
+        pipelineSelect.value = "storyboard_v2";
+        updateModelOptions();
+      }
+      if ([...modelSelect.options].some(o => o.value === p.wfId)) { modelSelect.value = p.wfId; updateModelLabel(); }
+      setDirectorMode(true); // resetDirectorZone inclus — ne touche pas à la clé persistée
+      // Formulaire ré-aligné sur le projet.
+      brief.value = p.brief || brief.value;
+      negative.value = p.negText ?? negative.value;
+      $("shotCount").value = p.n; $("videoDuration").value = p.segDur; $("holdDuration").value = p.holdDur;
+      $("audioToggle").checked = !!p.withAudio;
+      if (STYLE_PACKS[p.style]) $("styleSelect").value = p.style;
+      $("seed").value = String(p.seed);
+      // Statut au restore : "pending" non persisté → file présent = ready (à re-résoudre),
+      // absent = error ; "missing" retenté (le fichier a pu revenir).
+      const revive = it => it && ({ ...it, blob: null, url: null,
+        status: !it.status || it.status === "missing" ? (it.file ? "ready" : "error") : it.status });
+      director = {
+        seed: p.seed, width: p.width, height: p.height, wf, negText: p.negText || "",
+        withAudio: !!p.withAudio, n: p.n, segDur: p.segDur, holdDur: p.holdDur,
+        shots: p.shots, style: p.style, validated: !!p.validated,
+        charFields: p.charFields, locFields: p.locFields,
+        charVariants: (p.charVariants || []).map(revive), charActive: p.charActive ?? 0,
+        locVariants: (p.locVariants || []).map(revive), locActive: p.locActive ?? 0,
+        keyframes: p.keyframes ? p.keyframes.map(revive) : null,
+        cutPlan: null, cuts: p.cuts ? p.cuts.map(revive) : null,
+        order: p.order || null, animatic: p.animatic || null,
+        get charName() { return this.charVariants[this.charActive]?.inputName || null; },
+        get locName() { return this.locVariants[this.locActive]?.inputName || null; },
+        get charDesc() { return charDescFromFields(this.charFields); },
+        get locDesc() { return locDescFromFields(this.locFields); }
+      };
+      if (director.keyframes) {
+        director.anchorRaw = await getTemplate(wf.anchor); // régénérations possibles d'emblée
+        if (director.cuts) director.cutPlan = buildCutPlan();
+      }
+      enterStudio();
+      selectStudioSection("character");
+      renderSheetMenu("char"); renderSheetMenu("loc");
+      updateValidateButtonState();
+      renderShotDNAList();
+      if (director.keyframes) { $("directorStep2").style.display = ""; renderAllKeyframeCards(); }
+      renderMontage(); renderFooterTimeline(); renderMontagePlayer();
+      updateMontageButtons();
+      updateGateState();
+      addEvent("OK", `Projet restauré (sauvé le ${p.savedAt}) — re-résolution des fichiers…`, "ok");
+      // Re-résolutions async : try/catch PAR ITEM, jamais bloquant (pattern preloadGallery).
+      const tasks = [];
+      for (const kind of ["char", "loc"]) {
+        const arr = kind === "char" ? director.charVariants : director.locVariants;
+        const v = arr[kind === "char" ? director.charActive : director.locActive];
+        if (v?.status === "ready" && v.file) tasks.push((async () => {
+          try {
+            const r = await resolveFileRef(v.file);
+            v.inputName = r.name; v.blob = r.blob; v.url = r.url;
+          } catch { v.status = "missing"; }
+          refreshSheetUI(kind);
+        })());
+      }
+      (director.keyframes || []).forEach((kf, i) => {
+        if (kf.status !== "ready" || !kf.file) { return; }
+        tasks.push((async () => {
+          try {
+            const r = await resolveFileRef(kf.file);
+            kf.name = r.name; kf.blob = r.blob; kf.url = r.url;
+          } catch { kf.status = "missing"; }
+          renderKeyframeCard(i);
+          updateLaunchButtonState();
+        })());
+      });
+      (director.cuts || []).forEach(cut => {
+        if (!cut?.file || !["ready", "stale"].includes(cut.status)) return;
+        tasks.push((async () => {
+          try { cut.inputName = (await resolveFileRef(cut.file)).name; }
+          catch { cut.status = "missing"; }
+        })());
+      });
+      if (director.animatic?.file) tasks.push((async () => {
+        try { if (!(await fetch(viewURL(director.animatic.file))).ok) throw new Error(); }
+        catch { director.animatic = null; renderMontagePlayer(); }
+      })());
+      await Promise.allSettled(tasks);
+      renderMontage(); renderFooterTimeline(); updateMontageButtons(); updateGateState();
+      const missing = [...(director.charVariants || []), ...(director.locVariants || []),
+        ...(director.keyframes || []), ...(director.cuts || [])].filter(x => x?.status === "missing").length;
+      addEvent(missing ? "WARN" : "OK",
+        missing ? `Projet restauré : ${missing} fichier(s) manquant(s) — régénérez-les.` : "Projet restauré : tous les fichiers re-résolus.",
+        missing ? "warn" : "ok");
+    }
+
+    $("resumeProjectBtn").addEventListener("click", () => {
+      const b = $("resumeProjectBtn");
+      b.disabled = true;
+      restoreProject()
+        .catch(err => addEvent("WARN", `Restauration impossible : ${err.message}`, "warn"))
+        .finally(() => { b.disabled = false; });
+    });
 
     async function generateCampaignFull(seed) {
       if (!brief.value.trim()) throw new Error("Décrivez la campagne dans le brief avant de générer.");
@@ -2550,7 +4488,7 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
       const batch = Math.min(4, Math.max(1, parseInt(variantsInput.value, 10) || 3));
       const teaserDur = Math.min(10, Math.max(1, parseInt($("videoDuration").value, 10) || 5));
       const graph = await buildCampaignFullGraph(brief.value.trim(), negative.value.trim(), seed,
-        batch, teaserDur, $("audioToggle").checked, wf.engine);
+        batch, teaserDur);
       await submitGraph(graph, "Campagne complète",
         `${wf.model} · ${batch} posters + ${batch} thumbnails + social + teaser ${teaserDur}s · seed ${seed}`);
     }
@@ -2593,7 +4531,7 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
       }
       const total = durations.reduce((s, d) => s + d, 0);
       trackJob(data.prompt_id, `Animatic FLF2V (${seqImages.length} images)`,
-        `LTX 2.3 · ${durations.length} segments · ~${total}s · ${width}x${height} · seed ${seed}`);
+        `LTX 2.5 · ${durations.length} segments · ~${total}s · ${width}x${height} · seed ${seed}`);
       addEvent("REQ", `Séquence FLF2V soumise : ${durations.length} segment(s), ~${total} s.`, "req");
     }
 
@@ -2616,8 +4554,10 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
     // ── Boot ───────────────────────────────────────────────────────
     addEvent("SYS", "AI Content Studio chargé (mode 100% local, sans backend).", "sys");
     applyLang(LANG);
+    renderStyleOptions();
     loadManifest();
     connectWS();
+    restoreGallery();
     preloadGallery();
     loadModels();
     pollMonitor();

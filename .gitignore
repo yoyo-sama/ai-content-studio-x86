@@ -1,3 +1,21 @@
 tools/object_info.json
 .claude/settings.local.json
 tools/__pycache__/
+
+# Volumes ComfyUI / Ollama (montés localement, pas versionnés)
+comfyui/basedir/
+comfyui/run/
+comfyui/userscripts_dir/
+
+# Poids de modèles (jamais dans le dépôt Git — trop volumineux)
+*.safetensors
+*.gguf
+*.ckpt
+*.pt
+*.pth
+*.bin
+
+# Sorties générées ComfyUI (au cas où elles finiraient ailleurs dans le repo)
+output/
+input/
+

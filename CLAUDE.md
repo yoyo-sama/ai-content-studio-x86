@@ -27,7 +27,7 @@ Modèles installés : `ls /home/sparks/comfyui-spark/basedir/models/<dossier>/` 
 
 ## Où est quoi dans index.html
 
-Un seul fichier, trois zones : `<style>` (variables CSS + `:root[data-theme="dark"]`), HTML, `<script>` (~1 400 lignes). Repères JS par commentaires `// ── Section ──` : config/RATIOS/PIPELINE_*, i18n (I18N + translateTree), manifest & menus (refreshPipelineOptions/updateModelOptions), scénarios, WebSocket+jobs, galerie (addAssetCard/groupFor/lightbox/prompts), Generate (handler + tryCloudGeneration), enrichissement Ollama, cloud (OpenAI/Gemini), marchés, **builders de graphes API** (makeGraphBuilder, addLtxShared, addFLF2VChain, addFluxShot, addErnieShot, addGrid, buildStoryboardFullGraph, buildCampaignFullGraph, applyLtxAudio, mergeGraph), séquence FLF2V manuelle, monitor. Détails : `docs/ARCHITECTURE.md`.
+Un seul fichier, trois zones : `<style>` (variables CSS + `:root[data-theme="dark"]`), HTML, `<script>` (~1 950 lignes). Repères JS par commentaires `// ── Section ──` : config/RATIOS/PIPELINE_*, i18n (I18N + translateTree), manifest & menus (refreshPipelineOptions/updateModelOptions), scénarios, WebSocket+jobs, galerie (addAssetCard/groupFor/lightbox/prompts), Generate (handler + tryCloudGeneration), enrichissement Ollama, cloud (OpenAI/Gemini), marchés, **builders de graphes API** (makeGraphBuilder, addLtxShared, addFLF2VChain, addFluxShot, addErnieShot, addGrid, buildCampaignFullGraph, applyLtxAudio, mergeGraph), **storyboard_v2** (orchestration multi-jobs : characterSheetFromBrief/shotListFromBrief, submitCharsheetJob/submitKeyframeJob/submitGridJob/submitCutJob/submitAnimaticJob, generateStoryboardV2 mode Auto + directorStep1/2/3 mode Réalisateur), séquence FLF2V manuelle, monitor. Détails : `docs/ARCHITECTURE.md`.
 
 ## Pièges critiques (résumé — détail dans docs/LESSONS.md)
 
@@ -37,7 +37,11 @@ Un seul fichier, trois zones : `<style>` (variables CSS + `:root[data-theme="dar
 - LTX 2.3 distillé = **cfg 1** → l'adhérence au prompt repose entièrement sur l'enhancer intégré `TextGenerateLTX2Prompt` (+ LoRA gemma abliterated sur l'encodeur) — ne jamais le retirer d'un graphe LTX.
 - `ComfyMathExpression` : slot 0 = FLOAT, slot 1 = INT.
 - Ids de graphe non numériques possibles ("PH") → filtrer avant `Math.max` pour générer des ids.
-- La hauteur vidéo LTX est arrondie au multiple de 32 inférieur (720 → 704).
+- La hauteur vidéo LTX est arrondie au multiple de 32 inférieur (720 → 704) ; les frames vidéo aussi, au 8n+1 inférieur (2 s@25fps calculé 51 → rendu réel 49).
+- Prompt Qwen-Edit : bannir tout vocabulaire "storyboard/keyframe" (fait dessiner une planche annotée) — tout exprimer positivement (cfg 1 → negative ignoré).
+- `storyboard_v2` : les cuts LTX i2v dérivaient souvent vers un contenu sans rapport (~4/9 sur le run N=8, prompt = `shot.motion` seul, enhancer `TextGenerateLTX2Prompt` sans entrée image à cfg 1). **Corrigé** : `submitCutJob` ancre le prompt sur `${scene}. ${charDesc}. ${locDesc}. Camera motion: ${motion}.` — vérifié 0 dérive sur le run qualifié LOT 4 (ancrage double). Ne jamais revenir à un prompt de mouvement seul. Détail : LESSONS piège n°9.
+- `storyboard_v2` ancrage double (`qwen_edit_dual.json`) : l'image 1 (charsheet) alimente le conditioning ET le latent de départ (`VAEEncode`) ; l'image 2 (locsheet) ne doit alimenter QUE le conditioning (`TextEncodeQwenImageEditPlus`) — jamais `VAEEncode`, sinon la géométrie de départ vient du décor et non du personnage. Détail : LESSONS piège n°10.
+- L'ancrage Qwen-Edit (`storyboard_v2`) ne suit **pas** les angles de caméra forts (zénithal, contre-plongée extrême) : il préserve la pose/composition de l'image de référence. Sans impact en usage normal (gemma ne propose pas ce type d'angle) — détail dans LESSONS piège n°8.
 
 ## Validation obligatoire avant de livrer
 

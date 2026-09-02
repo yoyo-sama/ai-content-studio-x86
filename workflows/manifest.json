@@ -3,66 +3,103 @@
     {
       "id": "text2image",
       "label": "Text2Image",
-      "controls": ["variants", "ratio"]
+      "controls": [
+        "variants",
+        "ratio"
+      ]
     },
     {
       "id": "image2image",
       "label": "Image2Image / Edit",
-      "controls": ["variants", "ratio", "image", "markets"]
+      "controls": [
+        "variants",
+        "ratio",
+        "image",
+        "markets"
+      ]
     },
     {
       "id": "image2video",
       "label": "Image2Video",
-      "controls": ["duration", "ratio", "image", "audio"]
+      "controls": [
+        "duration",
+        "ratio",
+        "image",
+        "audio",
+        "turbo"
+      ]
     },
     {
       "id": "text2video",
       "label": "Text2Video",
-      "controls": ["duration", "ratio", "audio"]
+      "controls": [
+        "duration",
+        "ratio",
+        "audio",
+        "turbo"
+      ]
     },
     {
       "id": "sequence2video",
       "label": "Animatic (FLF2V)",
       "scenario": "storyboard",
-      "controls": ["seq", "audio"]
+      "controls": [
+        "seq",
+        "audio"
+      ]
     },
     {
-      "id": "storyboard_full",
-      "label": "Storyboard complet (shots + grille + animatic)",
+      "id": "storyboard_v2",
+      "label": "Storyboard + Animatic (charsheet + keyframes + cuts)",
       "scenario": "storyboard",
-      "controls": ["duration", "shots", "hold", "ratio", "audio"],
-      "defaults": { "duration": 2 }
+      "controls": [
+        "mode",
+        "shots",
+        "duration",
+        "hold",
+        "ratio",
+        "style",
+        "audio"
+      ],
+      "defaults": {
+        "duration": 2
+      }
+    },
+    {
+      "id": "reference2video",
+      "label": "Personnage + Décor cohérents (Minimax H3 reference2video)",
+      "scenario": "storyboard",
+      "controls": [
+        "duration",
+        "ratio",
+        "audio",
+        "turbo"
+      ],
+      "defaults": {
+        "duration": 2
+      }
     },
     {
       "id": "campaign_full",
       "label": "Campagne complète (posters + thumbnails + teaser)",
       "scenario": "campaign",
-      "controls": ["duration", "variants", "audio"],
-      "defaults": { "duration": 5 }
+      "controls": [
+        "duration",
+        "variants",
+        "audio"
+      ],
+      "defaults": {
+        "duration": 5
+      }
     }
   ],
   "workflows": [
     {
-      "id": "flux2_t2i",
-      "label": "Flux2 Klein 9B — Qualité",
+      "id": "krea2_t2i",
+      "label": "Krea 2 Turbo — Text2Image",
       "pipeline": "text2image",
-      "model": "Flux2 Klein 9B fp8",
-      "file": "api/flux2_t2i.json"
-    },
-    {
-      "id": "ernie_turbo_t2i",
-      "label": "Ernie Turbo — Rapide + enrichissement LLM",
-      "pipeline": "text2image",
-      "model": "Ernie-Image Turbo",
-      "file": "api/ernie_turbo_t2i.json",
-      "enrich": "builtin"
-    },
-    {
-      "id": "zimage_t2i",
-      "label": "Z-Image Turbo — Exploration",
-      "pipeline": "text2image",
-      "model": "Z-Image Turbo",
-      "file": "api/zimage_t2i.json"
+      "model": "Krea 2 Turbo",
+      "file": "api/krea2_t2i.json"
     },
     {
       "id": "qwen_edit_i2i",
@@ -72,62 +109,67 @@
       "file": "api/qwen_edit_i2i.json"
     },
     {
-      "id": "ltx_t2v",
-      "label": "LTX 2.3 — Teaser vidéo (5 s)",
+      "id": "ltx25_t2v",
+      "label": "LTX 2.5 — Teaser vidéo + audio natif",
       "pipeline": "text2video",
-      "model": "LTX 2.3 22B",
-      "file": "api/ltx_t2v.json",
+      "model": "LTX 2.5 22B",
+      "file": "api/ltx25_t2v.json",
       "enrich": "builtin"
     },
     {
-      "id": "ltx_i2v",
-      "label": "LTX 2.3 — Animatic image→vidéo (5 s)",
+      "id": "ltx25_i2v",
+      "label": "LTX 2.5 — Animatic image→vidéo + audio natif",
       "pipeline": "image2video",
-      "model": "LTX 2.3 22B",
-      "file": "api/ltx_i2v.json",
+      "model": "LTX 2.5 22B",
+      "file": "api/ltx25_i2v.json",
       "enrich": "builtin"
+    },
+    {
+      "id": "minimax_h3_t2v",
+      "label": "Minimax H3 — Text2Video + audio natif",
+      "pipeline": "text2video",
+      "model": "Minimax H3",
+      "file": "api/minimax_h3_t2v.json"
+    },
+    {
+      "id": "minimax_h3_i2v",
+      "label": "Minimax H3 — Image2Video + audio natif",
+      "pipeline": "image2video",
+      "model": "Minimax H3",
+      "file": "api/minimax_h3_i2v.json"
+    },
+    {
+      "id": "minimax_h3_r2v",
+      "label": "Minimax H3 — Personnage + décor cohérents (reference2video)",
+      "pipeline": "reference2video",
+      "model": "Krea 2 + Minimax H3",
+      "file": "api/minimax_h3_r2v.json",
+      "builder": "reference2video"
     },
     {
       "id": "flf2v_chain",
-      "label": "LTX 2.3 — Chaîne FLF2V multi-images",
+      "label": "LTX 2.5 — Chaîne FLF2V multi-images",
       "pipeline": "sequence2video",
-      "model": "LTX 2.3 22B",
+      "model": "LTX 2.5 22B",
       "file": null,
       "builder": "flf2v"
     },
     {
-      "id": "storyboard_full",
-      "label": "Flux2 + LTX 2.3 — Shots, grille et animatic",
-      "pipeline": "storyboard_full",
-      "model": "Flux2 Klein 9B + LTX 2.3 22B",
+      "id": "storyboard_v2",
+      "label": "Krea 2 + Qwen-Edit + LTX 2.5 — Charsheet, keyframes ancrées, animatic",
+      "pipeline": "storyboard_v2",
+      "model": "Krea 2 + Qwen-Edit 2509 + LTX 2.5 22B",
       "file": null,
-      "builder": "storyboard_full"
-    },
-    {
-      "id": "storyboard_full_ernie",
-      "label": "Ernie + LTX 2.3 — Shots cohérents, grille et animatic",
-      "pipeline": "storyboard_full",
-      "model": "Ernie-Image + LTX 2.3 22B",
-      "file": null,
-      "builder": "storyboard_full",
-      "engine": "ernie"
+      "builder": "storyboard_v2",
+      "anchor": "api/qwen_edit_dual.json"
     },
     {
       "id": "campaign_full",
-      "label": "Flux2 + LTX 2.3 — Posters, thumbnails et teaser",
+      "label": "Krea 2 + LTX 2.5 — Posters, thumbnails et teaser",
       "pipeline": "campaign_full",
-      "model": "Flux2 Klein 9B + LTX 2.3 22B",
+      "model": "Krea 2 + LTX 2.5 22B",
       "file": null,
       "builder": "campaign_full"
-    },
-    {
-      "id": "campaign_full_ernie",
-      "label": "Ernie + LTX 2.3 — Posters, thumbnails et teaser",
-      "pipeline": "campaign_full",
-      "model": "Ernie-Image + LTX 2.3 22B",
-      "file": null,
-      "builder": "campaign_full",
-      "engine": "ernie"
     }
   ]
 }
