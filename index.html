@@ -314,11 +314,17 @@
       line-height: 1.5;
     }
 
-    /* ── Sélecteur de profil métier (couche au-dessus des scénarios) ── */
-    .profile-bar { margin-top: 26px; }
+    /* ── Rail de profils métiers (icônes, libellé au survol/sélection) ── */
+    .profile-bar {
+      margin-top: 22px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+    }
 
     .profile-lead {
-      margin: 0 0 10px;
+      margin: 0;
       font-size: 12px;
       letter-spacing: 0.18em;
       text-transform: uppercase;
@@ -326,28 +332,23 @@
       color: var(--text-2);
     }
 
-    .profile-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-    }
+    .profile-rail { display: flex; flex-wrap: wrap; gap: 8px; }
 
     .profile-card {
-      display: grid;
-      align-content: start;
-      gap: 6px;
-      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 0;
       cursor: pointer;
-      padding: 14px;
-      border-radius: 14px;
+      padding: 8px 10px;
+      border-radius: 12px;
       border: 1px solid var(--border-light);
       background: var(--card-2);
       color: var(--text);
       font: inherit;
-      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+      transition: border-color 0.2s ease, background 0.2s ease;
     }
 
-    .profile-card:hover { transform: translateY(-2px); border-color: var(--border-dark); }
+    .profile-card:hover { border-color: var(--border-dark); }
 
     .profile-card.active {
       background: var(--selected);
@@ -355,28 +356,20 @@
       box-shadow: inset 0 0 0 1px var(--highlight);
     }
 
-    .profile-icon { font-size: 22px; line-height: 1; }
+    .profile-icon { font-size: 20px; line-height: 1; }
 
-    .profile-card strong { font-size: 13px; line-height: 1.25; }
-
-    .profile-desc { color: var(--text-2); font-size: 12px; line-height: 1.35; }
-
-    .profile-route {
-      justify-self: start;
-      margin-top: 2px;
-      font-size: 10px;
+    .profile-name {
+      max-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      opacity: 0;
+      font-size: 12px;
       font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 3px 8px;
-      border-radius: 10px;
-      border: 1px solid var(--border-light);
-      color: var(--text-2);
-      line-height: 1.4;
-      max-width: 100%;
+      transition: max-width 0.22s ease, opacity 0.18s ease, margin-left 0.22s ease;
     }
 
-    .profile-card.active .profile-route { border-color: var(--highlight); color: var(--text); }
+    .profile-card:hover .profile-name,
+    .profile-card.active .profile-name { max-width: 260px; opacity: 1; margin-left: 8px; }
 
     .scenario-tabs {
       display: grid;
@@ -404,10 +397,11 @@
 
     .scenario-tab span { color: var(--text-2); font-size: 12px; line-height: 1.4; }
 
+    /* La barre Generate occupe toute la largeur : contrôles sur une ligne, galerie en dessous. */
     .studio-body {
       padding: 24px;
       display: grid;
-      grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+      grid-template-columns: minmax(0, 1fr);
       gap: 22px;
     }
 
@@ -460,6 +454,47 @@
     }
 
     .two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* ── Barre Generate : prompt + contrôles contextuels sur une seule ligne ── */
+    .generate-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--border-light);
+      border-radius: 18px;
+      background: var(--card-2);
+    }
+
+    .generate-bar .gb-prompt { flex: 4 1 260px; }
+    .generate-bar .gb-prompt textarea { min-height: 64px; }
+    .generate-bar .gb-field { flex: 0 1 165px; min-width: 130px; }
+    .generate-bar .gb-wide { flex: 0 1 240px; }
+    .generate-bar .gb-go { flex: 0 0 auto; padding: 13px 22px; }
+
+    .generate-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 12px 18px;
+      margin-top: 12px;
+    }
+    .generate-row:empty { display: none; }
+    .generate-row .gb-wide { flex: 1 1 260px; }
+    .generate-row .check-row { flex: 1 1 260px; }
+
+    .generate-more { margin-top: 12px; }
+    .generate-more > summary {
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-2);
+      padding: 8px 0;
+    }
+    .generate-more[open] > summary { margin-bottom: 6px; }
 
     .actions {
       display: grid;
@@ -572,8 +607,8 @@
 
     .gallery {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
     }
 
     .gallery-empty {
@@ -596,24 +631,49 @@
 
     .asset img, .asset video {
       width: 100%;
-      aspect-ratio: 4 / 3;
+      aspect-ratio: 16 / 10;
       object-fit: cover;
       display: block;
       background: var(--bg-mid);
       cursor: pointer;
     }
 
-    .asset .meta { padding: 10px 12px; }
-    .asset strong { font-size: 13px; display: block; }
-    .asset span { margin-top: 3px; display: block; color: var(--text-2); font-size: 11px; }
+    /* Hiérarchie : vignette large → prompt/label en tête → nom de fichier → actions */
+    .asset .meta { padding: 12px 14px 10px; }
+    .asset .meta strong {
+      font-size: 14px;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .asset .meta span {
+      margin-top: 5px;
+      display: block;
+      color: var(--text-2);
+      font-size: 11px;
+    }
+    .asset .meta .asset-file {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
 
-    .asset .asset-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 10px; }
+    .asset .asset-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 10px 14px 12px;
+      border-top: 1px solid var(--border-light);
+    }
     .asset .asset-actions button {
       border: 1px solid var(--border-light);
       background: var(--bg-light);
       color: var(--text);
       border-radius: 10px;
-      padding: 5px 9px;
+      padding: 6px 10px;
       font-size: 11px;
       cursor: pointer;
     }
@@ -734,6 +794,48 @@
       padding: 4px 8px;
       font-size: 11px;
       cursor: pointer;
+    }
+
+    /* ── Pastille d'identité (planches ancrées, toujours visible) ── */
+    #soulId {
+      position: fixed;
+      left: 18px;
+      bottom: 18px;
+      z-index: 90;
+      display: grid;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid var(--highlight);
+      border-radius: 16px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+    #soulId[hidden] { display: none; }
+    #soulId.pending { border-color: var(--border-dark); }
+    #soulId .soul-state {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+    #soulId .soul-thumbs { display: flex; gap: 8px; }
+    #soulId figure { margin: 0; display: grid; gap: 4px; justify-items: center; }
+    #soulId img {
+      width: 56px;
+      height: 56px;
+      object-fit: cover;
+      border-radius: 12px;
+      background: var(--bg-mid);
+      cursor: pointer;
+      display: block;
+    }
+    #soulId figcaption { font-size: 10px; color: var(--text-2); }
+
+    @media screen and (max-width: 760px) {
+      #soulId { left: 10px; bottom: 10px; padding: 8px; }
+      #soulId img { width: 44px; height: 44px; }
     }
 
     #lightbox {
@@ -908,10 +1010,6 @@
     :root[data-theme="dark"] .status.fallback { background: rgba(230, 196, 73, 0.16); }
     :root[data-theme="dark"] .badge { background: #1f8f4c; }
 
-    @media screen and (max-width: 1380px) {
-      .studio-body { grid-template-columns: 1fr; }
-    }
-
     @media screen and (max-width: 1180px) {
       .layout { grid-template-columns: 1fr; }
       .panel { position: static; }
@@ -921,15 +1019,17 @@
       .events { max-height: 150px; }
       /* aside pleine largeur : les étapes redeviennent une rangée */
       .panel .pipeline-flow { grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); }
-      .profile-grid { grid-template-columns: repeat(2, 1fr); }
     }
 
     @media screen and (max-width: 760px) {
       .app-shell { padding: 14px; }
-      .scenario-tabs, .pipeline-flow, .two-cols, .actions, .profile-grid {
+      .scenario-tabs, .pipeline-flow, .two-cols, .actions {
         grid-template-columns: 1fr;
       }
-      .gallery { grid-template-columns: repeat(2, 1fr); }
+      /* Barre Generate : repli en colonne (chaque contrôle sur sa ligne) */
+      .generate-bar .gb-prompt,
+      .generate-bar .gb-field,
+      .generate-bar .gb-go { flex-basis: 100%; }
       .gallery-header { flex-wrap: wrap; }
       .hero { padding: 20px; }
       .studio-body { padding: 16px; }
@@ -937,7 +1037,6 @@
     }
 
     @media screen and (max-width: 460px) {
-      .gallery { grid-template-columns: 1fr; }
       .seq-item { grid-template-columns: 44px 1fr auto; }
       .seq-item .seq-ctl { grid-column: 2 / -1; justify-content: flex-end; }
     }
@@ -1264,30 +1363,22 @@
 
           <div class="profile-bar">
             <p class="profile-lead">Je démarre en tant que…</p>
-            <div class="profile-grid" role="group" aria-label="Profils métiers">
+            <div class="profile-rail" role="group" aria-label="Profils métiers">
               <button type="button" class="profile-card" data-profile="director">
                 <span class="profile-icon" aria-hidden="true">🎬</span>
-                <strong>Réalisateur / Storyboard artist</strong>
-                <span class="profile-desc">Du script aux keyframes ancrées, jusqu'à l'animatic monté. Personnage et décor cohérents d'un plan à l'autre.</span>
-                <span class="profile-route">Storyboard + Animatic</span>
+                <span class="profile-name">Réalisateur / Storyboard artist</span>
               </button>
               <button type="button" class="profile-card" data-profile="art">
                 <span class="profile-icon" aria-hidden="true">🎨</span>
-                <strong>Directeur artistique / Motion designer</strong>
-                <span class="profile-desc">Charte graphique, styles et références visuelles contrôlés image par image avant la mise en mouvement.</span>
-                <span class="profile-route">Krea 2 · Image</span>
+                <span class="profile-name">Directeur artistique / Motion designer</span>
               </button>
               <button type="button" class="profile-card" data-profile="social">
                 <span class="profile-icon" aria-hidden="true">📣</span>
-                <strong>Social media / Marketing</strong>
-                <span class="profile-desc">Un brief, tous les formats : posters, thumbnails, déclinaisons sociales et teaser vidéo en une passe.</span>
-                <span class="profile-route">Campagne complète</span>
+                <span class="profile-name">Social media / Marketing</span>
               </button>
               <button type="button" class="profile-card" data-profile="post">
                 <span class="profile-icon" aria-hidden="true">🎞️</span>
-                <strong>Monteur / Post-production</strong>
-                <span class="profile-desc">Reprendre les assets générés, les décliner par marché et les exporter depuis la galerie.</span>
-                <span class="profile-route">Localisation · Galerie</span>
+                <span class="profile-name">Monteur / Post-production</span>
               </button>
             </div>
           </div>
@@ -1311,29 +1402,66 @@
         <div class="studio-body">
           <section>
             <h3 class="section-title">Creative Control</h3>
-            <div class="form-stack">
-              <label>
+
+            <div class="generate-bar">
+              <label class="gb-prompt">
                 Prompt ou brief
                 <textarea id="brief"></textarea>
               </label>
-
-              <label>
-                Negative prompt
-                <textarea id="negative" class="small">low quality, blurry, distorted faces, unreadable text, watermark, extra limbs</textarea>
+              <label class="gb-field">
+                Pipeline
+                <select id="pipelineSelect"></select>
               </label>
+              <label class="gb-field">
+                Modèle / Workflow
+                <select id="modelSelect"></select>
+              </label>
+              <label class="gb-field" id="styleWrap" style="display:none">
+                Style
+                <select id="styleSelect"></select>
+              </label>
+              <label class="gb-field" id="ratioWrap">
+                Ratio
+                <select id="ratioSelect">
+                  <option>16:9</option>
+                  <option>9:16</option>
+                  <option>1:1</option>
+                  <option>4:5</option>
+                </select>
+              </label>
+              <label class="gb-field" id="variantsWrap">
+                Variantes
+                <input type="number" id="variants" min="1" max="8" value="2" />
+              </label>
+              <label class="gb-field" id="durationWrap" style="display:none">
+                Durée vidéo (s)
+                <input type="number" id="videoDuration" min="1" max="10" value="5" />
+              </label>
+              <label class="gb-field" id="shotCountWrap" style="display:none">
+                Nombre de cases
+                <input type="number" id="shotCount" min="4" max="16" value="6" />
+              </label>
+              <label class="gb-field" id="holdWrap" style="display:none">
+                Tenue du plan final (s)
+                <input type="number" id="holdDuration" min="0" max="8" value="2" />
+              </label>
+              <label class="gb-field">
+                Seed
+                <input type="text" id="seed" value="Auto" />
+              </label>
+              <label class="gb-field gb-wide" id="imageInputWrap" style="display:none">
+                Image d'entrée
+                <input type="file" id="imageInput" accept="image/*" />
+                <span class="input-chip" id="assetChip" hidden>
+                  <span id="assetChipName"></span>
+                  <button type="button" id="assetChipClear" title="Retirer l'asset sélectionné">✕</button>
+                </span>
+              </label>
+              <button class="primary-btn gb-go" id="generateBtn">Generate</button>
+            </div>
 
-              <div class="two-cols">
-                <label>
-                  Pipeline
-                  <select id="pipelineSelect"></select>
-                </label>
-                <label>
-                  Modèle / Workflow
-                  <select id="modelSelect"></select>
-                </label>
-              </div>
-
-              <div id="modeWrap" style="display:none">
+            <div class="generate-row">
+              <div class="gb-field gb-wide" id="modeWrap" style="display:none">
                 <label>Mode de génération</label>
                 <div class="mode-toggle" id="modeToggle">
                   <button type="button" class="mode-btn active" id="modeAutoBtn" data-mode="auto">Auto</button>
@@ -1343,59 +1471,10 @@
                 <button type="button" class="secondary-btn" id="resumeProjectBtn" style="display:none; margin-top:8px">Reprendre le projet</button>
               </div>
 
-              <label id="imageInputWrap" style="display:none">
-                Image d'entrée
-                <input type="file" id="imageInput" accept="image/*" />
-                <span class="input-chip" id="assetChip" hidden>
-                  <span id="assetChipName"></span>
-                  <button type="button" id="assetChipClear" title="Retirer l'asset sélectionné">✕</button>
-                </span>
-              </label>
-
-              <div id="marketsWrap" style="display:none">
+              <div class="gb-field gb-wide" id="marketsWrap" style="display:none">
                 <label>Marchés cibles — Localized Assets</label>
                 <div class="market-chips" id="marketChips"></div>
                 <p class="hint">Un job par marché sélectionné, avec adaptation culturelle du prompt. Aucun sélectionné = prompt tel quel.</p>
-              </div>
-
-              <div class="two-cols">
-                <label id="ratioWrap">
-                  Ratio
-                  <select id="ratioSelect">
-                    <option>16:9</option>
-                    <option>9:16</option>
-                    <option>1:1</option>
-                    <option>4:5</option>
-                  </select>
-                </label>
-                <label id="variantsWrap">
-                  Variantes
-                  <input type="number" id="variants" min="1" max="8" value="2" />
-                </label>
-              </div>
-
-              <label id="styleWrap" style="display:none">
-                Style
-                <select id="styleSelect"></select>
-              </label>
-
-              <div class="two-cols">
-                <label>
-                  Seed
-                  <input type="text" id="seed" value="Auto" />
-                </label>
-                <label id="durationWrap" style="display:none">
-                  Durée vidéo (s)
-                  <input type="number" id="videoDuration" min="1" max="10" value="5" />
-                </label>
-                <label id="shotCountWrap" style="display:none">
-                  Nombre de cases
-                  <input type="number" id="shotCount" min="4" max="16" value="6" />
-                </label>
-                <label id="holdWrap" style="display:none">
-                  Tenue du plan final (s)
-                  <input type="number" id="holdDuration" min="0" max="8" value="2" />
-                </label>
               </div>
 
               <label id="audioWrap" class="check-row" style="display:none">
@@ -1407,16 +1486,24 @@
                 <input type="checkbox" id="turboToggle" checked />
                 <span>Turbo Minimax H3 (LoRA, 8 steps) — désactiver = 20 steps, qualité maximale</span>
               </label>
-
-              <div class="actions">
-                <button class="primary-btn" id="generateBtn">Generate</button>
-                <button class="secondary-btn" id="enrichBtn"
-                  title="Réécrit votre brief en prompt de diffusion détaillé (+ negative prompt) via le LLM, une seule fois, sans lancer de génération">Enrichir le brief (LLM)</button>
-              </div>
-              <button class="secondary-btn" id="autoEnrichBtn" style="margin-top:2px"
-                title="Enrichit automatiquement le brief via gemma4:e4b avant chaque génération (sauf workflows avec enrichissement intégré)">Auto-Enrich (gemma4:e4b) : OFF</button>
-              <button class="secondary-btn" id="fallbackBtn" style="margin-top:2px">Use Fallback Asset</button>
             </div>
+
+            <details class="generate-more">
+              <summary>Options avancées</summary>
+              <div class="form-stack">
+                <label>
+                  Negative prompt
+                  <textarea id="negative" class="small">low quality, blurry, distorted faces, unreadable text, watermark, extra limbs</textarea>
+                </label>
+                <div class="actions">
+                  <button class="secondary-btn" id="enrichBtn"
+                    title="Réécrit votre brief en prompt de diffusion détaillé (+ negative prompt) via le LLM, une seule fois, sans lancer de génération">Enrichir le brief (LLM)</button>
+                  <button class="secondary-btn" id="autoEnrichBtn"
+                    title="Enrichit automatiquement le brief via gemma4:e4b avant chaque génération (sauf workflows avec enrichissement intégré)">Auto-Enrich (gemma4:e4b) : OFF</button>
+                </div>
+                <button class="secondary-btn" id="fallbackBtn">Use Fallback Asset</button>
+              </div>
+            </details>
 
             <div class="form-stack" id="seqWrap" style="display:none; margin-top:22px">
               <h3 class="section-title">Animatic multi-images (FLF2V)</h3>
@@ -1542,6 +1629,15 @@
     </section>
   </div>
 
+  <!-- Pastille d'identité : planches ancrées (personnage/décor) toujours visibles -->
+  <aside id="soulId" hidden>
+    <span class="soul-state">Identité ancrée</span>
+    <div class="soul-thumbs">
+      <figure class="soul-char"><img alt="" /><figcaption>Personnage</figcaption></figure>
+      <figure class="soul-loc"><img alt="" /><figcaption>Décor</figcaption></figure>
+    </div>
+  </aside>
+
   <div id="lightbox" hidden>
     <button id="lightboxClose">✕ Fermer</button>
     <button id="lightboxCopy" hidden>📋 Copier le prompt</button>
@@ -1641,31 +1737,13 @@
         { en: "I'm starting as…", es: "Empiezo como…", de: "Ich starte als…" },
       "Réalisateur / Storyboard artist":
         { en: "Director / Storyboard artist", es: "Director / Artista de storyboard", de: "Regisseur / Storyboard-Artist" },
-      "Du script aux keyframes ancrées, jusqu'à l'animatic monté. Personnage et décor cohérents d'un plan à l'autre.":
-        { en: "From script to anchored keyframes and the edited animatic. Character and location stay consistent from shot to shot.",
-          es: "Del guion a los keyframes anclados y al animatic montado. Personaje y decorado coherentes de un plano a otro.",
-          de: "Vom Drehbuch zu verankerten Keyframes bis zum geschnittenen Animatic. Figur und Schauplatz bleiben von Einstellung zu Einstellung konsistent." },
       "Directeur artistique / Motion designer":
         { en: "Art director / Motion designer", es: "Director artístico / Motion designer", de: "Art Director / Motion Designer" },
-      "Charte graphique, styles et références visuelles contrôlés image par image avant la mise en mouvement.":
-        { en: "Brand guidelines, styles and visual references controlled frame by frame before anything moves.",
-          es: "Identidad gráfica, estilos y referencias visuales controlados imagen a imagen antes de animar.",
-          de: "Gestaltungsrichtlinien, Stile und visuelle Referenzen Bild für Bild steuern, bevor animiert wird." },
       "Social media / Marketing":
         { es: "Redes sociales / Marketing", de: "Social Media / Marketing" },
-      "Un brief, tous les formats : posters, thumbnails, déclinaisons sociales et teaser vidéo en une passe.":
-        { en: "One brief, every format: posters, thumbnails, social variants and video teaser in a single pass.",
-          es: "Un brief, todos los formatos: pósters, miniaturas, versiones para redes y teaser de vídeo en una sola pasada.",
-          de: "Ein Briefing, alle Formate: Poster, Thumbnails, Social-Varianten und Video-Teaser in einem Durchlauf." },
       "Monteur / Post-production":
         { en: "Editor / Post-production", es: "Montador / Postproducción", de: "Cutter / Postproduktion" },
-      "Reprendre les assets générés, les décliner par marché et les exporter depuis la galerie.":
-        { en: "Pick up generated assets, derive market variants and export them from the gallery.",
-          es: "Retomar los assets generados, declinarlos por mercado y exportarlos desde la galería.",
-          de: "Generierte Assets aufgreifen, marktspezifisch ableiten und aus der Galerie exportieren." },
-      "Krea 2 · Image": { es: "Krea 2 · Imagen", de: "Krea 2 · Bild" },
       "Campagne complète": { en: "Full campaign", es: "Campaña completa", de: "Komplette Kampagne" },
-      "Localisation · Galerie": { en: "Localization · Gallery", es: "Localización · Galería", de: "Lokalisierung · Galerie" },
       "Creative Control": { fr: "Contrôle créatif", es: "Control creativo", de: "Kreativsteuerung" },
       "Prompt ou brief": { en: "Prompt or brief", es: "Prompt o brief", de: "Prompt oder Briefing" },
       "Negative prompt": { fr: "Prompt négatif", es: "Prompt negativo", de: "Negativ-Prompt" },
@@ -1747,6 +1825,9 @@
       "Seed": {}, "Pipeline": {}, "Node Monitor": {}, "ComfyUI Console": {}, "100% Local (GB10)": {},
       // ── Mode Réalisateur (storyboard_v2) ──
       "Mode de génération": { en: "Generation mode", es: "Modo de generación", de: "Generierungsmodus" },
+      "Options avancées": { en: "Advanced options", es: "Opciones avanzadas", de: "Erweiterte Optionen" },
+      "Identité ancrée": { en: "Identity anchored", es: "Identidad anclada", de: "Identität verankert" },
+      "Identité à valider": { en: "Identity to validate", es: "Identidad por validar", de: "Identität zu bestätigen" },
       "Auto": {},
       "Réalisateur": { en: "Director", es: "Director", de: "Regisseur" },
       "Auto : chaîne complète en un clic. Réalisateur : validez chaque étape (plans, keyframes, animatic).":
@@ -1900,6 +1981,7 @@
       refreshCloudUI();
       updateStudioJobs(0);
       renderStyleOptions();
+      refreshSoulId();
       if (director) { renderSheetMenu("char"); renderSheetMenu("loc"); updateValidateButtonState(); renderShotDNAList(); renderAllKeyframeCards(); renderMontage(); renderFooterTimeline(); }
     });
 
@@ -1969,6 +2051,7 @@
       updateModelOptions.lastPipeline = p;
       updateModelLabel();
       updateResumeButton();
+      refreshSoulId(); // pastille d'identité : visible seulement sur storyboard_v2 / reference2video
     }
 
     // Animatic : le brief est un prompt de MOUVEMENT. Si l'utilisateur a laissé un
@@ -2076,6 +2159,37 @@
     // Choisir un scénario à la main sort du profil (les libellés ne correspondent plus).
     document.querySelectorAll(".scenario-tab").forEach(tab =>
       tab.addEventListener("click", () => { if (!applyingProfile) setActiveProfile(null); }));
+
+    // ── Pastille d'identité (planches ancrées) ─────────────────────
+    // AFFICHAGE PUR d'un état déjà produit ailleurs : planches actives de la session
+    // Réalisateur (`director`) ou dernières planches résolues d'un run Auto/reference2video
+    // (`soulAnchors`). Ne déclenche ni ne modifie aucune génération.
+    let soulAnchors = null;
+    function setSoulAnchors(charRef, locRef) {
+      soulAnchors = { char: viewURL(charRef.file), loc: viewURL(locRef.file), locked: true };
+      refreshSoulId();
+    }
+    function currentAnchors() {
+      if (director) {
+        const c = director.charVariants[director.charActive], l = director.locVariants[director.locActive];
+        if (c?.status === "ready" && l?.status === "ready")
+          return { char: c.url || viewURL(c.file), loc: l.url || viewURL(l.file), locked: !!director.validated };
+        return null;
+      }
+      return soulAnchors;
+    }
+    function refreshSoulId() {
+      const box = $("soulId");
+      const a = ["storyboard_v2", "reference2video"].includes(pipelineSelect.value) ? currentAnchors() : null;
+      box.hidden = !a;
+      if (!a) return;
+      box.querySelector(".soul-char img").src = a.char;
+      box.querySelector(".soul-loc img").src = a.loc;
+      box.querySelector(".soul-state").textContent = tr(a.locked ? "Identité ancrée" : "Identité à valider");
+      box.classList.toggle("pending", !a.locked);
+    }
+    $("soulId").querySelectorAll("img").forEach(img =>
+      img.addEventListener("click", () => { if (img.src) openLightbox(img.src, false); }));
 
     // ── ComfyUI WebSocket + jobs ───────────────────────────────────
     const clientId = crypto.randomUUID();
@@ -2279,9 +2393,11 @@
       card.firstChild.addEventListener("click", () => openLightbox(url, isVideo, assetKey));
       const meta = document.createElement("div");
       meta.className = "meta";
-      meta.innerHTML = `<strong></strong><span></span>`;
-      meta.querySelector("strong").textContent = filename;
-      meta.querySelector("span").textContent = label;
+      // Hiérarchie : le libellé du job (ce qu'on reconnaît) domine, le nom de fichier suit.
+      meta.innerHTML = `<strong></strong><span class="asset-file"></span>`;
+      meta.querySelector("strong").textContent = label;
+      meta.querySelector(".asset-file").textContent = filename;
+      meta.title = `${label} · ${filename}`;
       card.appendChild(meta);
       const actions = document.createElement("div");
       actions.className = "asset-actions";
@@ -3569,8 +3685,9 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
       // (a) Planches personnage + décor (Krea 2) → attendre → ré-uploader comme ancres.
       const csId = await submitCharsheetJob(charDesc, negText, seed, width, height, wf);
       const lsId = await submitLocsheetJob(locDesc, negText, seed + 101, width, height, wf);
-      const charName = (await resolveImageJob(csId)).name;
-      const locName = (await resolveImageJob(lsId)).name;
+      const charRef = await resolveImageJob(csId), locRef = await resolveImageJob(lsId);
+      const charName = charRef.name, locName = locRef.name;
+      setSoulAnchors(charRef, locRef); // affichage seul (pastille d'identité)
 
       // (c) 1 job Qwen-Edit dual par case : personnage (ancre 1) DANS le décor (ancre 2).
       const anchorRaw = await getTemplate(wf.anchor);
@@ -3618,8 +3735,9 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
       // ref_image_0/ref_image_1 (personnage / décor) du template Minimax H3 r2v.
       const csId = await submitCharsheetJob(charDesc, negText, seed, width, height, wf);
       const lsId = await submitLocsheetJob(locDesc, negText, seed + 101, width, height, wf);
-      const charName = (await resolveImageJob(csId)).name;
-      const locName = (await resolveImageJob(lsId)).name;
+      const charRef = await resolveImageJob(csId), locRef = await resolveImageJob(lsId);
+      const charName = charRef.name, locName = locRef.name;
+      setSoulAnchors(charRef, locRef); // affichage seul (pastille d'identité)
 
       const raw = await getTemplate(wf.file);
       const graph = buildGraph(raw, {
@@ -3675,6 +3793,7 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
 
     function resetDirectorZone() {
       director = null;
+      soulAnchors = null;
       exitStudio();
       $("directorStep2").style.display = "none";
       $("shotEditList").innerHTML = "";
@@ -3932,6 +4051,7 @@ Answer ONLY with JSON: {"positive_prompt": "...", "negative_prompt": "..."}`;
       const mt = document.querySelector('#studioNav [data-section="montage"]');
       mt.disabled = !mtReady;
       mt.classList.toggle("locked", !mtReady);
+      refreshSoulId();
     }
 
     $("directorValidateBtn").addEventListener("click", () => {

@@ -1,5 +1,36 @@
 # Tour de contrôle — changelog
 
+## 2026-09-02 — Promotion "Cockpit affiné" (Piste 1 de la refonte visuelle)
+
+Refonte ergonomique développée et qualifiée dans un projet distinct
+(`../ai-content-studio-cockpit`, cf. son propre `TOUR-DE-CONTROLE-CHANGELOG.md` pour le détail
+des lots et de la vérification par rendu réel), promue ici après validation utilisateur pour
+remplacer la version courante. `index.html` de ce projet était resté strictement identique au
+commit de départ du cockpit (`2b1243f`) entre-temps — promotion par simple copie de fichier,
+aucun conflit à résoudre.
+
+### Fichiers touchés
+- `index.html` — rail de profils métiers en icônes (au lieu de pleine largeur), formulaire
+  Generate condensé en barre horizontale, cartes de galerie agrandies, pastille d'identité
+  "Soul ID" persistante (charsheet/locsheet ancrée visible sans rouvrir l'étape 0 du mode
+  Réalisateur de `storyboard_v2`). Aucune logique de génération/graphe ComfyUI modifiée.
+- `docs/REFONTE-COCKPIT.md` — NOUVEAU, brief de la refonte (copié depuis le projet cockpit).
+
+### Vérification (déjà faite dans le projet cockpit avant promotion, non refaite ici)
+Cycle réel du mode Réalisateur avec ComfyUI/Ollama (charsheet+locsheet générées, pastille
+vérifiée par hash SHA-256 contre les fichiers PNG réels), i18n EN/DE vérifié sur DOM rendu,
+`git diff` limité à `index.html` — voir le changelog du projet cockpit pour le détail complet.
+
+### Suite prévue
+Un rapprochement visuel avec la maquette de refonte (typographie, palette, effet "glass", style
+des pastilles de nav — actuellement l'identité visuelle Dell d'origine a été conservée, la
+maquette n'a pas été suivie sur ce plan) est en cours dans le projet cockpit, à promouvoir ici
+de la même façon une fois qualifié.
+
+### Retour arrière
+`git diff HEAD~1 -- index.html docs/REFONTE-COCKPIT.md | git apply -R` restaure l'état
+précédent (ou `git revert` du commit).
+
 ## 2026-09-01 — Lot 5+6 : correctif de la dérive de noms de modèles (piège n°14)
 
 Découvert par la vérification du Lot 3 : 3 pipelines historiques + le nouveau
