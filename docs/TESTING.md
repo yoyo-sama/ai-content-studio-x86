@@ -18,7 +18,7 @@ d = json.load(open("workflows/xxx.json"))
 **Voie rapide** — `tools/validate.py` automatise tout ce qui suit (vérif structurelle + placeholders de test + soumission + poll + extraction frames/audio) :
 
 ```bash
-python3 tools/validate.py workflows/api/ltx_t2v.json --reduce --frames 0,12,24 --audio
+python3 tools/validate.py workflows/api/ltx25_t2v.json --reduce --frames 0,12,24 --audio
 ```
 
 Voie manuelle (debug fin) :

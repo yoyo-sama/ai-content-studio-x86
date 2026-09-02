@@ -1,6 +1,6 @@
 # Dell AI Content Studio — démo Media & Entertainment sur GB10
 
-Studio créatif IA **100 % local** : génération d'images (Flux2, Ernie, Z-Image, Qwen-Edit) et de vidéos avec audio (LTX 2.3) via ComfyUI sur un Dell Pro Max GB10, enrichissement de prompt par LLM local (Ollama). L'application est **une seule page statique** (`index.html`) servie par nginx — aucun backend, aucun build, aucun framework.
+Studio créatif IA **100 % local** : génération d'images (Krea 2, Qwen-Edit) et de vidéos avec audio (LTX 2.5, Minimax H3) via ComfyUI sur un Dell Pro Max GB10, enrichissement de prompt par LLM local (Ollama). L'application est **une seule page statique** (`index.html`) servie par nginx — aucun backend, aucun build, aucun framework.
 
 ## Déploiement (clone & run)
 
@@ -55,35 +55,18 @@ si vous avez changé le mapping de volume). Aucune URL n'est indiquée quand ell
 vérifiée — cherchez le fichier exact sur Hugging Face (piste : orgs `Comfy-Org`, `black-forest-labs`,
 `Lightricks`, `Qwen`, éditeurs des modèles concernés).
 
-#### Pipelines existants (Flux2, Ernie, Z-Image, Qwen-Edit, LTX 2.3)
+#### Pipelines actuels (Krea 2, Qwen-Edit, LTX 2.5, Minimax H3)
+
+Tailles vérifiées, reprises de `docs/NOUVEAUX-MODELES-LOT1.md` (15 fichiers Krea2/LTX2.5/H3,
+tous présents et qualifiés lors du LOT 1 ; les 4 lignes Qwen-Edit restent d'un lot antérieur,
+tailles non re-vérifiées).
 
 | Modèle / pipeline | Fichier | Dossier cible | Taille |
 |---|---|---|---|
-| Flux2 Klein 9B | `flux-2-klein-9b-fp8.safetensors` | `diffusion_models/` | `<à compléter>` |
-| Flux2 (encodeur) | `qwen_3_8b_fp8mixed.safetensors` | `text_encoders/` | `<à compléter>` |
-| Flux2 (VAE) | `flux2-vae.safetensors` | `vae/` | `<à compléter>` |
-| Ernie Turbo | `ernie-image-turbo.safetensors` | `diffusion_models/` | `<à compléter>` |
-| Ernie (encodeur) | `ministral-3-3b.safetensors` | `text_encoders/` | `<à compléter>` |
-| Ernie (enhancer prompt) | `ernie-image-prompt-enhancer.safetensors` | `text_encoders/` | `<à compléter>` |
-| Z-Image Turbo | `z_image_turbo_bf16.safetensors` | `diffusion_models/` | `<à compléter>` |
-| Z-Image (encodeur) | `qwen_3_4b.safetensors` | `text_encoders/` | `<à compléter>` |
-| Z-Image (VAE) | `ae.safetensors` | `vae/` | `<à compléter>` |
 | Qwen-Edit | `qwen_image_edit_2509_fp8_e4m3fn.safetensors` | `diffusion_models/` | `<à compléter>` |
 | Qwen-Edit (encodeur) | `qwen_2.5_vl_7b_fp8_scaled.safetensors` | `text_encoders/` | `<à compléter>` |
 | Qwen-Edit (VAE, partagé Krea 2) | `qwen_image_vae.safetensors` | `vae/` | 243 Mo |
 | Qwen-Edit (LoRA Lightning 4 steps) | `Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors` | `loras/` | `<à compléter>` |
-| LTX 2.3 (checkpoint transformer+audio+text encoder) | `ltx-2.3-22b-distilled-1.1.safetensors` | `checkpoints/` | `<à compléter>` |
-| LTX 2.3 (upscaler latent x2) | `ltx-2.3-spatial-upscaler-x2-1.1.safetensors` | `latent_upscale_models/` | `<à compléter>` |
-| LTX 2.3 (encodeur enhancer) | `gemma_3_12B_it_fp4_mixed.safetensors` | `text_encoders/` | `<à compléter>` |
-| LTX 2.3 (LoRA enhancer) | `gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors` | `loras/` | `<à compléter>` |
-
-#### LOT 1 — nouveaux pipelines (Krea 2, LTX 2.5, Minimax H3)
-
-Tailles vérifiées, reprises de `docs/NOUVEAUX-MODELES-LOT1.md` (15 fichiers, tous présents et
-qualifiés lors du LOT 1).
-
-| Modèle / pipeline | Fichier | Dossier cible | Taille |
-|---|---|---|---|
 | Krea 2 (transformer) | `krea2_turbo_fp8_scaled.safetensors` | `diffusion_models/` | 13 Go |
 | Krea 2 (encodeur) | `qwen3vl_4b_fp8_scaled.safetensors` | `text_encoders/` | 4,9 Go |
 | Krea 2 (VAE, partagé Qwen-Edit) | `qwen_image_vae.safetensors` | `vae/` | 243 Mo |
@@ -104,6 +87,12 @@ qualifiés lors du LOT 1).
 > `Lightricks` (LTX) / éditeur Minimax pour H3 — aucun lien n'est fourni ici tant qu'il n'a pas
 > été vérifié manuellement, pour éviter de pointer vers un mauvais fichier.
 
+> **Modèles legacy** (Flux2 Klein 9B, Ernie-Image, Z-Image, LTX 2.3) : plus utilisés par
+> l'app (:8090), mais toujours référencés par les workflows UI drag-drop `workflows/*.json`
+> (`campaign_generator.json`, `storyboard_animatic.json`, `ernie_turbo.json`, `ernie_quality.json`,
+> `localized_assets.json`) — voir `workflows/README.md` si vous voulez encore les charger
+> directement dans ComfyUI.
+
 ### Modèle Ollama requis
 
 `gemma4:e4b` — tiré automatiquement au démarrage du service `ollama` (voir plus haut), ou
@@ -118,10 +107,16 @@ docker compose exec ollama ollama pull gemma4:e4b
 | Scénario | Pipelines dédiés | Livrables |
 |---|---|---|
 | **Campaign Generator** | `campaign_full` (une tâche) + pipelines génériques | Posters 2:3, thumbnails 16:9, social 1:1, teaser vidéo vertical avec audio |
-| **Storyboard + Animatic** | `storyboard_full`, `sequence2video` (FLF2V) | N shots (découpage du brief par gemma), grille contact-sheet, animatic first-frame→last-frame avec audio |
+| **Storyboard + Animatic** | `storyboard_v2` (charsheet+locsheet+keyframes+cuts), `reference2video` (Minimax H3, 1 seul job), `sequence2video` (FLF2V manuel) | Storyboard N plans + animatic assemblé, OU vidéo unique personnage+décor cohérents, OU animatic first-frame→last-frame manuel, avec audio |
 | **Localized Assets** | image2image + marchés cibles | Variantes par plaque (North America, Europe, Middle East, Asia…) via Qwen-Edit |
 
-Pipelines génériques disponibles partout : text2image (Flux2 / Ernie / Z-Image), image2image (Qwen-Edit), text2video et image2video (LTX 2.3, audio optionnel).
+Une couche de **navigation par profils métiers** (Réalisateur/Storyboard artist, DA/Motion designer,
+Social media/Marketing, Monteur/Post-production) présélectionne scénario + pipeline sans changer le
+routing ci-dessus.
+
+Pipelines génériques disponibles partout : text2image (Krea 2 Turbo), image2image (Qwen-Edit 2509),
+text2video et image2video (LTX 2.5 et Minimax H3, au choix dans le menu Modèle ; audio natif
+optionnel, turbo Minimax H3 activable).
 
 ## Arborescence
 
