@@ -79,6 +79,12 @@
 
   .panel-title { font-size:10.5px; font-weight:700; letter-spacing:.08em;
                  text-transform:uppercase; color:var(--text-2); margin:0 0 12px; }
+  /* Logo Dell : fond clair fixe (le SVG source est en couleurs fixes #007db8/#808080,
+     pas de variante blanche) pour rester lisible identiquement en thème clair ET sombre,
+     sans filtre CSS conditionnel au thème. */
+  .brand-logo { display:block; margin:0 0 10px; padding:4px 8px; background:#fff;
+                border-radius:6px; width:fit-content; }
+  .brand-logo img { display:block; height:15px; width:auto; }
   .field { margin-bottom:10px; }
   .field > label { display:block; font-size:10.5px; color:var(--text-2); margin-bottom:4px; }
   .box, .panel select, .panel input[type=text], .panel input[type=number], .panel textarea {
@@ -167,6 +173,9 @@
 
 <!-- ── Panneau flottant gauche : ajouter une carte ─────────────────────────── -->
 <aside id="palette" class="panel glass">
+  <!-- Identité Dell : fond clair fixe (voir règle .brand-logo) pour rester lisible
+       identiquement quel que soit le thème, sans dupliquer le SVG. -->
+  <div class="brand-logo"><img src="assets/dell-technologies-logo.svg" alt="Dell Technologies"></div>
   <!-- Espace insécable avant le « ? » (typographie FR) : évite aussi le « ? » orphelin
        sur une 2ᵉ ligne dans un panneau étroit (230px). -->
   <p class="panel-title">Qu'est-ce que tu veux produire&nbsp;?</p>
@@ -275,6 +284,7 @@
 <script src="js/nodes-simple.js"></script>
 <script src="js/nodes-advanced.js"></script>
 <script src="js/update-check.js"></script>
+<script src="js/canvas-gallery.js"></script>
 <script>
 (function () {
   "use strict";
@@ -353,6 +363,10 @@
     // ── Noms de cartes (CARDS[x].label) ──
     "Personnage": { en: "Character", es: "Personaje", de: "Charakter" },
     "Décor": { en: "Location", es: "Escenario", de: "Kulisse" },
+    "Fiche de personnage": { en: "Character sheet", es: "Ficha de personaje", de: "Charakterblatt" },
+    "Fiche de décor": { en: "Location sheet", es: "Ficha de escenario", de: "Kulissenblatt" },
+    "Création d'image": { en: "Image creation", es: "Creación de imagen", de: "Bilderstellung" },
+    "Édition d'image": { en: "Image editing", es: "Edición de imagen", de: "Bildbearbeitung" },
     "Génération vidéo": { en: "Video generation", es: "Generación de vídeo", de: "Videogenerierung" },
     "Vidéo finale": { en: "Final video", es: "Vídeo final", de: "Finales Video" },
     "Vidéo": { en: "Video", es: "Vídeo", de: "Video" },
@@ -647,7 +661,7 @@
   };
   const CARDS = {
     "adv/charsheet": {
-      label: "Personnage", tech: "charsheet", grad: ["#efe9ff", "#c9b8f5"], model: "Krea 2",
+      label: "Fiche de personnage", tech: "charsheet", grad: ["#efe9ff", "#c9b8f5"], model: "Krea 2",
       subject: "brief", preview: "brief",
       meta: n => `Krea 2 · 1920×1088 · ${styleLabel(n.properties.style)}`,
       fields: [
@@ -658,7 +672,7 @@
       ]
     },
     "adv/locsheet": {
-      label: "Décor", tech: "locsheet", grad: ["#e6f1ff", "#b3d1f5"], model: "Krea 2",
+      label: "Fiche de décor", tech: "locsheet", grad: ["#e6f1ff", "#b3d1f5"], model: "Krea 2",
       subject: "brief", preview: "brief",
       meta: n => `Krea 2 · 1920×1088 · ${styleLabel(n.properties.style)}`,
       fields: [
@@ -731,7 +745,7 @@
       ]
     },
     "simple/krea2": {
-      label: "Krea 2", tech: "krea2", grad: ["#fdf1dd", "#e8cf9f"], model: "Krea 2 Turbo",
+      label: "Création d'image", tech: "krea2", grad: ["#fdf1dd", "#e8cf9f"], model: "Krea 2 Turbo",
       subject: "prompt", preview: "prompt",
       meta: n => {
         // Unité TOUJOURS 32 : pas de champ "engine" sur cette carte (même raisonnement que
@@ -750,7 +764,7 @@
       ]
     },
     "simple/qwen_edit": {
-      label: "Qwen-Edit", tech: "qwen_edit", grad: ["#fdf1dd", "#e8cf9f"], model: "Qwen-Edit 2509",
+      label: "Édition d'image", tech: "qwen_edit", grad: ["#fdf1dd", "#e8cf9f"], model: "Qwen-Edit 2509",
       subject: "instruction", preview: "instruction",
       meta: () => "Qwen-Edit 2509 · 1024×1024",
       fields: [{ k: "instruction", w: "instruction", label: "Instruction d'édition", type: "textarea", enhance: ENHANCE.qwenInstruction }]
@@ -818,8 +832,8 @@
   // par applyPipelineCategory() pour filtrer PIPELINE_ORDER. `simple/import` figure dans
   // les deux (carte utilitaire, ni image ni vidéo — source pour l'un ou l'autre).
   const PIPELINE_CATEGORIES = {
-    image: ["simple/krea2", "simple/qwen_edit", "simple/import"],
-    video: ["simple/video", "adv/charsheet", "adv/locsheet", "adv/storyboard", "adv/cutvideo", "adv/final_video", "adv/r2v", "simple/import"]
+    image: ["simple/krea2", "simple/qwen_edit", "adv/charsheet", "adv/locsheet", "adv/storyboard", "simple/import"],
+    video: ["simple/video", "adv/cutvideo", "adv/final_video", "adv/r2v", "simple/import"]
   };
   const STATUS_COLOR = { idle: "#94a3b8", running: "#c98a1b", error: "#c0392b", done: "#2a7d2a" };
   const skin = n => CARDS[n.type] || CARDS["test/note"];
@@ -1019,7 +1033,7 @@
     "simple/qwen_edit": { image: "image" },
     // Slots DYNAMIQUES (autogrow) : le « + » se pose naturellement sur le slot libre du
     // groupe, puisqu'il n'y en a qu'un à la fois (growSlots de js/nodes-advanced.js).
-    "adv/r2v": { [ADV.SLOT_IMG_REF]: "image", [ADV.SLOT_VID_REF]: "video" }
+    "adv/r2v": { charsheet: "image", locsheet: "image", [ADV.SLOT_IMG_REF]: "image", [ADV.SLOT_VID_REF]: "video" }
   };
   function plusSlots(node) {
     const map = PLUS_INPUTS[node.type];
