@@ -1,5 +1,35 @@
 # Tour de contrôle — changelog
 
+## 2026-09-07 (suite 4) — v1.0.2 — Galerie Canvas (onglets + glisser-déposer), logo Dell, renommage et reclassification des cartes
+
+### Galerie Canvas (`js/canvas-gallery.js`, nouveau, chargé par `canvas.html`)
+Tiroir fixé en bas de l'écran (poignée "Galerie"), qui s'ouvre à ~22 % de la hauteur d'écran
+au clic. Reprend le principe de la galerie de `index.html` (vignettes cliquables sur
+l'historique ComfyUI) mais en version simplifiée : deux onglets séparés Images/Vidéos (même
+logique que `.gallery-tabs`/`switchGalleryTab` côté Studio), alimentés par `GET
+/history?max_items=24` sur ComfyUI. Persistance via une clé `localStorage` dédiée, distincte
+de celle du Studio — la galerie survit donc aux rechargements de la page Canvas. Chaque
+vignette est `draggable` et peut être glissée-déposée sur une carte "Import média" posée sur
+le canvas, qui reçoit alors directement la référence du fichier déjà présent côté serveur
+ComfyUI (aucun ré-upload déclenché).
+
+### Portage depuis un repo voisin (dev)
+Les 4 éléments suivants ont été portés depuis un repo de développement voisin, jamais
+mentionné publiquement dans le README :
+- Logo Dell Technologies réel (`assets/dell-technologies-logo.svg`) affiché dans le panneau
+  flottant gauche du Canvas, sur fond clair fixe (le SVG source utilise des couleurs fixes
+  `#007db8`/`#808080`, illisibles telles quelles sur fond sombre).
+- Renommage de cartes pour plus de clarté fonctionnelle : Krea 2 → "Création d'image",
+  Qwen-Edit → "Édition d'image", Personnage → "Fiche de personnage", Décor → "Fiche de
+  décor".
+- Reclassification du mode avancé : Fiche de personnage, Fiche de décor et Storyboard sont
+  désormais classées dans la catégorie "Image" (et non plus "Vidéo"), ces cartes produisant
+  des images et non des vidéos.
+- Boutons "+" ajoutés sur les entrées charsheet/locsheet de la carte Reference2Video.
+
+Le repo voisin a sa propre galerie plein écran ; elle n'a **délibérément pas** été portée,
+le tiroir déjà en place dans ce repo (voir ci-dessus) la remplace fonctionnellement.
+
 ## 2026-09-07 (suite 3) — v1.0.1 — Mise à jour depuis l'UI (popup Studio/Canvas)
 
 Cadré via `/architect` (deux points tranchés avec l'utilisateur : check au chargement de page

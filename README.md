@@ -2,7 +2,7 @@
 
 # Dell AI Content Studio — Media & Entertainment demo on GB10
 
-**Current version: 1.0.1** — see `TOUR-DE-CONTROLE-CHANGELOG.md` for the change history.
+**Current version: 1.0.2** — see `TOUR-DE-CONTROLE-CHANGELOG.md` for the change history.
 
 **Fully local** AI creative studio: image generation (Krea 2, Qwen-Edit) and video generation with audio (LTX 2.5, Minimax H3) via ComfyUI on a Dell Pro Max GB10, with prompt enrichment by a local LLM (Ollama). The application is served by nginx, with no build step and no framework (aside from a small `updater` backend service that handles in-app updates — see below) — two static modes to choose from: the `index.html` form (guided scenarios, see below) and the `canvas.html` node editor (see dedicated section below).
 
@@ -175,7 +175,9 @@ In addition to the `index.html` form, the application offers a second mode: `can
 ComfyUI-style node editor (drag-and-drop cards, visual wiring). Accessible via
 `http://<host>:8090/canvas.html`, or via the "Canvas" button in the header of the main
 interface. This is an additional mode — it doesn't replace the `index.html` form, the two
-coexist and share the same origin (no extra nginx/Docker configuration is needed).
+coexist and share the same origin (no extra nginx/Docker configuration is needed). A drawer
+docked at the bottom of the screen gives access to the generation history (Images/Videos
+tabs), and a thumbnail can be dragged onto a "Media import" card to reuse it directly.
 
 ### `comfy_kitchen` acceleration (DGX Spark / ARM64)
 
