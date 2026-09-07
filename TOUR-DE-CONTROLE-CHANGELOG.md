@@ -1,6 +1,6 @@
 # Tour de contrôle — changelog
 
-## 2026-09-07 (suite 3) — Mise à jour depuis l'UI (popup Studio/Canvas)
+## 2026-09-07 (suite 3) — v1.0.1 — Mise à jour depuis l'UI (popup Studio/Canvas)
 
 Cadré via `/architect` (deux points tranchés avec l'utilisateur : check au chargement de page
 uniquement, pas de poll en tâche de fond ; aucune authentification sur les nouveaux
