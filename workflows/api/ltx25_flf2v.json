@@ -241,7 +241,7 @@
   "class_type": "LTXVDualCFGGuider",
   "inputs": {
    "model": [
-    "230",
+    "230-attn",
     0
    ],
    "positive": [
@@ -510,6 +510,16 @@
   "class_type": "LoadImage",
   "inputs": {
    "image": "{{IMAGE}}"
+  }
+ },
+ "230-attn": {
+  "class_type": "ModelAttentionBackend",
+  "inputs": {
+   "model": [
+    "230",
+    0
+   ],
+   "attention": "comfy kitchen attention"
   }
  }
 }

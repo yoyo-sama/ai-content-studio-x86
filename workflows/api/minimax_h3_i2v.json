@@ -179,7 +179,7 @@
   "class_type": "LoraLoaderModelOnly",
   "inputs": {
    "model": [
-    "6",
+    "6-attn",
     0
    ],
    "lora_name": "H3/minimax_h3_turbo_v4_step600_ema_pruned_comfyui.safetensors",
@@ -234,6 +234,16 @@
     "h0",
     0
    ]
+  }
+ },
+ "6-attn": {
+  "class_type": "ModelAttentionBackend",
+  "inputs": {
+   "model": [
+    "6",
+    0
+   ],
+   "attention": "comfy kitchen attention"
   }
  }
 }

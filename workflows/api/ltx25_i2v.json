@@ -195,7 +195,7 @@
   "class_type": "LTXVDualCFGGuider",
   "inputs": {
    "model": [
-    "384",
+    "384-attn",
     0
    ],
    "positive": [
@@ -449,7 +449,7 @@
   "class_type": "LTXVDualCFGGuider",
   "inputs": {
    "model": [
-    "384",
+    "384-attn",
     0
    ],
    "positive": [
@@ -562,6 +562,16 @@
    "filename_prefix": "studio/ltx25_i2v",
    "format": "auto",
    "codec": "auto"
+  }
+ },
+ "384-attn": {
+  "class_type": "ModelAttentionBackend",
+  "inputs": {
+   "model": [
+    "384",
+    0
+   ],
+   "attention": "comfy kitchen attention"
   }
  }
 }

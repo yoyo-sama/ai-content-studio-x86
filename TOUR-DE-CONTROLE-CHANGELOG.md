@@ -1,5 +1,59 @@
 # Tour de contrôle — changelog
 
+## 2026-09-07 (suite 2) — Installation automatique (`install.sh`), URLs de modèles vérifiées, comfy_kitchen embarqué
+
+Chantier de fiabilisation du déploiement : jusqu'ici la procédure était manuelle (`docker
+compose up -d` + téléchargement des modèles un par un, avec plusieurs URLs jamais vérifiées)
+et `comfy_kitchen` (accélération d'attention ARM64/DGX Spark) devait être installé et câblé
+à la main.
+
+### `install.sh` (nouveau, racine)
+Script bash unique, idempotent (testé sur deux exécutions consécutives : réutilisation
+confirmée, aucun retéléchargement). Détecte les 3 services (app web `:8090`, ComfyUI
+`:8188`, Ollama `:11434`) **par rôle réel** (santé HTTP), pas par nom de conteneur —
+réutilise tout ce qui tourne déjà et ne recrée/ne détruit jamais un conteneur qu'il ne
+possède pas (vérification par les labels docker-compose). Met à jour ComfyUI par
+`pull`+`recreate` uniquement s'il est géré par CE `docker-compose.yml`. Copie
+`docker/userscripts/*.sh` vers le dossier `userscripts_dir` réel du conteneur ComfyUI
+utilisé. Télécharge les modèles manquants depuis `scripts/models.txt` (skip si déjà présent
+avec la bonne taille). Gère un `HF_TOKEN` optionnel en variable d'environnement pour les
+dépôts Hugging Face gated (`HF_TOKEN=xxx ./install.sh`). Tire `gemma4:e4b` sur Ollama si
+absent.
+
+### `scripts/models.txt` (nouveau) — 19 fichiers, URLs vérifiées par requête HTTP réelle
+Deux réserves honnêtes, documentées dans le README, pas escamotées :
+- Les 4 fichiers LTX 2.5 viennent d'un dépôt Hugging Face **gated** — téléchargement anonyme
+  en 401 tant que les conditions n'ont pas été acceptées sur `huggingface.co/Lightricks/LTX-2.5`
+  avec un compte, et qu'un jeton d'accès n'a pas été fourni (`HF_TOKEN`).
+- Les 3 fichiers Minimax H3 (2 checkpoints quantifiés `w4a8_mixed` + LoRA turbo) viennent de
+  **reuploads communautaires** (`AX1Y2JP/MiniMax-H3-W4A8-ConvRot`,
+  `koongrizzly/MiniMax_H3_int4_W4A8_ConvRot_Pruned`), pas d'un dépôt officiel Comfy-Org/Minimax
+  — nom de fichier et taille conformes et vérifiés, mais l'intégrité du contenu ne repose que
+  sur la réputation/traction du dépôt, pas sur un éditeur officiel.
+
+### `docker/userscripts/` (nouveau) — `comfy_kitchen` embarqué et câblé
+2 scripts (copies strictes de scripts déjà validés ailleurs) installent `comfy_kitchen`
+(accélération d'attention ARM64/DGX Spark) au démarrage du conteneur ComfyUI, de façon
+idempotente. `install.sh` les déploie automatiquement, rien à faire manuellement. Le nœud
+`ModelAttentionBackend` (`comfy kitchen attention`) a été câblé juste après le chargeur de
+modèle dans les 9 templates `workflows/api/*.json` — **vérifié par rendu réel** (frames +
+audio inspectés) sur au moins un représentant de chaque famille (Krea 2, LTX 2.5, Minimax
+H3, Qwen-Edit) sans dégradation constatée ; les autres templates de la même famille ont été
+câblés **par analogie de topologie** (même schéma de nœuds), pas individuellement testés par
+rendu.
+
+### Documentation
+`README.md` : section Déploiement réécrite (installation automatique en une commande en
+premier, procédure manuelle/dépannage conservée en repli explicite), `HF_TOKEN` documenté,
+tableau des 19 modèles aligné sur `scripts/models.txt` (URLs directes `resolve/main`, 3
+tailles jusqu'ici `<à compléter>` renseignées), les deux réserves ci-dessus rendues visibles,
+mention de `canvas.html` (mode additionnel) et de `comfy_kitchen` (automatique, ARM64
+uniquement).
+
+### Reste ouvert
+Rien n'est encore poussé vers GitHub à ce stade — le push est géré séparément par
+l'orchestrateur après validation finale.
+
 ## 2026-09-07 (suite) — Point d'entrée visible vers le canvas dans le rail
 
 Suite immédiate de la promotion ci-dessous : l'utilisateur a fourni une capture d'écran du
