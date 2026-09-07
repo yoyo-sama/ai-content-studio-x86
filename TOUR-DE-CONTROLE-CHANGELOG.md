@@ -1,5 +1,49 @@
 # Tour de contrôle — changelog
 
+## 2026-09-07 (suite 3) — Mise à jour depuis l'UI (popup Studio/Canvas)
+
+Cadré via `/architect` (deux points tranchés avec l'utilisateur : check au chargement de page
+uniquement, pas de poll en tâche de fond ; aucune authentification sur les nouveaux
+endpoints, cohérent avec `/comfy/`/`/ollama/`) puis exécuté par tour-de-controle en 2 lots
+parallèles (backend/frontend, fichiers disjoints, contrat JSON figé au plan) + vérification
+d'intégration par l'orchestrateur.
+
+### Nouveau service `updater` (`docker/updater/Dockerfile`, `docker/updater/server.py`)
+Serveur HTTP Python stdlib (zéro dépendance), `network_mode: host`, écoute
+`127.0.0.1:8093` — le port 8091 initialement prévu au plan était déjà occupé par un
+conteneur de prod sans rapport (`ai-content-studio-cockpit-web`), vérifié avant bascule.
+Monte le repo en lecture-écriture (`./:/repo:rw`, contrairement au mount `:ro` de nginx) via
+`REPO_DIR` (défaut `/repo`). Deux routes : `GET /status` (compare `git rev-parse HEAD` local
+à `git ls-remote origin main` distant) et `POST /apply` (`git fetch` + `git pull --ff-only`,
+refuse proprement si le working tree n'est pas clean — jamais de force/stash). Ajouté à
+`docker-compose.yml`, reverse-proxifié par `nginx.conf` sous `location /update/` (même
+modèle que le bloc `/ollama/` existant).
+
+### `js/update-check.js` (nouveau, partagé Studio + Canvas)
+Au chargement de `index.html` et `canvas.html` : `fetch("update/status")` (silencieux si le
+service est down) → si mise à jour dispo, `confirm()` natif ("l'installer ?") → sur oui,
+`POST update/apply` → sur succès, `confirm()` natif ("rafraîchir maintenant ?") →
+`location.reload()`. Décision prise après lecture du code réel : aucun système de modale
+custom n'existait dans ces deux pages (juste une lightbox média inadaptée dans `index.html`
+et un `confirm()` déjà utilisé une fois pour la suppression) — `confirm()`/`alert()` natifs
+retenus plutôt que d'en inventer un.
+
+### Vérification (orchestrateur, pas seulement les rapports de lots)
+Re-lu chaque diff (`docker-compose.yml`, `nginx.conf`, `index.html`/`canvas.html` : +1 ligne
+chacun, 0 suppression). Cycle complet `/status`→`/apply`→`/status` rejoué sur un **clone
+jetable** du repo (jamais sur la prod réelle) désynchronisé d'un commit : `updateAvailable`
+passe bien de `true` à `false` après un apply réussi, avec les bons SHA à chaque étape.
+Sur le vrai repo de prod (dirty pendant ce chantier) : `/apply` refuse bien
+(`{"success": false, "error": "working tree not clean"}`) sans toucher à git. Processus de
+test et clone jetable nettoyés après coup.
+
+### Réserve assumée (signalée, pas corrigée dans ce lot)
+Les deux endpoints sont exposés sans authentification sur le port 8090 déjà public — décision
+explicitement validée par l'utilisateur au cadrage (cohérence avec `/comfy/`/`/ollama/`,
+usage perso/LAN), pas un oubli. Limite du MVP également assumée : un futur commit qui
+toucherait `nginx.conf`/`docker-compose.yml` ne serait pas pleinement appliqué par un simple
+`git pull` (pas de restart de conteneur automatique).
+
 ## 2026-09-07 (suite 2) — Installation automatique (`install.sh`), URLs de modèles vérifiées, comfy_kitchen embarqué
 
 Chantier de fiabilisation du déploiement : jusqu'ici la procédure était manuelle (`docker

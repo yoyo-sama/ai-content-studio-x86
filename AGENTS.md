@@ -1,6 +1,6 @@
 # AGENTS.md — guide agent pour AI Content Studio
 
-Démo Dell GB10 : page statique unique (`index.html`) qui pilote ComfyUI (`:8188`) et Ollama (`:11434`). Pas de build, pas de dépendances, pas de backend. Publique via nginx sur `:8090` (`docker compose up -d`).
+Démo Dell GB10 : page statique unique (`index.html`) qui pilote ComfyUI (`:8188`) et Ollama (`:11434`). Pas de build, pas de dépendances côté frontend. Publique via nginx sur `:8090` (`docker compose up -d`). Seule exception backend : le service `updater` (`docker/updater/`, Python stdlib, `127.0.0.1:8093`) qui expose `/update/status` et `/update/apply` (proxifiés par nginx) pour la mise à jour git déclenchée depuis l'UI — voir le changelog du 2026-09-07 (suite 3).
 
 ## Commandes essentielles
 

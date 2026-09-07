@@ -56,5 +56,15 @@ services:
         wait
     restart: unless-stopped
 
+  updater:
+    build: ./docker/updater
+    container_name: ai-content-studio-updater
+    network_mode: host
+    environment:
+      - REPO_DIR=/repo
+    volumes:
+      - ./:/repo:rw
+    restart: unless-stopped
+
 volumes:
   ollama-data:
