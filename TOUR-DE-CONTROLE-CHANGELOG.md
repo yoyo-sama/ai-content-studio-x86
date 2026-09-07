@@ -1,5 +1,24 @@
 # Tour de contrôle — changelog
 
+## 2026-09-07 (suite) — Point d'entrée visible vers le canvas dans le rail
+
+Suite immédiate de la promotion ci-dessous : l'utilisateur a fourni une capture d'écran du
+header et demandé un bouton "Canvas" à côté de "Studio", avec le logo Dell décalé pour
+éviter le chevauchement qu'un second bouton créerait.
+
+- Nouveau lien `.rail-canvas` → `canvas.html`, dans un conteneur `.rail-top` (flex row) qui
+  place Studio+Canvas côte à côte en tête du rail vertical — le reste du rail (Monitor/
+  Models/LLM/Advanced) reste empilé verticalement, inchangé. Style volontairement distinct
+  du panneau actif (contour au lieu de rempli) : Canvas est une sortie vers une autre page,
+  pas un panneau du studio.
+- `.brand` (logo Dell) gagne un `margin-left: 150px` : le rail est en `overflow:visible` et
+  déborde par-dessus le header plutôt que de le repousser (ce sont deux frères flex
+  indépendants, pas liés par une grille commune) — élargir `grid-template-columns` du
+  header n'aurait rien changé, d'où ce choix après mesure réelle du rendu.
+
+Vérifié en direct sur le port 8090 : positionnement sans chevauchement (clair/sombre),
+navigation Canvas fonctionnelle, non-régression du système de panneaux existant.
+
 ## 2026-09-07 — Promotion du canvas créatif (Piste 3) comme mode additionnel, sans toucher à index.html
 
 Développé et qualifié dans le projet sœur `../ai-content-studio-canvas` (voir son propre
