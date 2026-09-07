@@ -1,5 +1,19 @@
 # Tour de contrôle — changelog
 
+## 2026-09-07 (suite 5) — v1.0.3 — Correctif : install.sh ne démarrait jamais le service updater
+
+Bug trouvé lors d'une relecture d'`install.sh` : sur une installation fraîche, le script
+démarrait bien ComfyUI, Ollama et l'app web, mais oubliait le 4e service du
+`docker-compose.yml`, `updater` (backend du module de mise à jour depuis l'UI, voir suite 3
+ci-dessous). Résultat silencieux — aucune erreur à l'installation, le popup de mise à jour ne
+fonctionnait simplement jamais côté Studio/Canvas.
+
+Correctif : ajout d'un bloc `docker compose up -d updater` inconditionnel en section 2/7,
+d'une ligne dédiée dans le récapitulatif final (section 7/7), et d'un health-check réel sur
+`/update/status` (et non une simple vérification que le conteneur est "up"). Vérifié en
+conditions réelles : HTTP 200 sur `/update/status`, comportement idempotent sur 2 exécutions
+successives d'`install.sh`.
+
 ## 2026-09-07 (suite 4) — v1.0.2 — Galerie Canvas (onglets + glisser-déposer), logo Dell, renommage et reclassification des cartes
 
 ### Galerie Canvas (`js/canvas-gallery.js`, nouveau, chargé par `canvas.html`)

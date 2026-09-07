@@ -164,6 +164,12 @@ else
   WEB_STATUS="créé ($WEB_CONTAINER)"
 fi
 
+# --- Module de mise à jour (updater) ---
+UPDATER_STATUS=""
+echo "--- Module de mise à jour (updater) ---"
+$COMPOSE up -d updater >/dev/null 2>&1 && UPDATER_STATUS="démarré" || UPDATER_STATUS="échec du démarrage (voir 'docker compose logs updater')"
+echo "Service updater : $UPDATER_STATUS"
+
 # ---------------------------------------------------------------------------
 section "3/7 (fusionnée dans l'étape 2 ci-dessus : détection + mise à jour ComfyUI)"
 # ---------------------------------------------------------------------------
@@ -272,6 +278,7 @@ echo "Services :"
 echo "  - ComfyUI : ${COMFY_STATUS:-inconnu}"
 echo "  - Ollama  : ${OLLAMA_STATUS:-inconnu}"
 echo "  - Web     : ${WEB_STATUS:-inconnu}"
+echo "  - Updater : ${UPDATER_STATUS:-inconnu}"
 echo
 echo "Modèle Ollama gemma4:e4b : $GEMMA_STATUS"
 echo
@@ -295,3 +302,5 @@ for p in 8188 11434 8090; do
   code="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:${p}/" 2>/dev/null || echo "000")"
   echo "  - :$p -> HTTP $code"
 done
+code_update="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8090/update/status" 2>/dev/null || echo "000")"
+echo "  - /update/status -> HTTP $code_update"
