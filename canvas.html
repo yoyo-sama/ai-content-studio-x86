@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Content Studio — Canvas</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litegraph.js@0.7.18/css/litegraph.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap">
+<style>
+  /* ── Tokens de la maquette validée (CanvasCreatif.dc.html) ───────────────── */
+  /* Le bloc `:root` porte le thème CLAIR : valeurs d'origine, INCHANGÉES. Le thème
+     sombre (bloc suivant) ne fait que REDÉFINIR ces mêmes tokens — aucune règle
+     n'est dupliquée. Les 5 derniers tokens sont nouveaux : ils remontent en variables
+     les couleurs qui étaient écrites en dur ailleurs dans cette feuille (fond de
+     scène, points de la grille, ombre des panneaux, champs désactivés, cas d'usage
+     déplié), pour qu'aucune couleur de thème ne reste hors du système de tokens. */
+  :root{
+    color-scheme:light;
+    --bg:#ffffff; --border:#e3e8ef; --brand:#343ced; --highlight:#0b5cab;
+    --text:#202a3a; --text-2:#6b778c; --card:rgba(255,255,255,.86); --card-2:rgba(255,255,255,.95);
+    --radius:16px;
+    --stage:#f7f8fb;                    /* fond de la scène (= lgcanvas.clear_background_color) */
+    --dot:#dfe4ec;                      /* points de la grille de fond (repli CSS) */
+    --shadow:rgba(15,23,42,.10);        /* ombre portée des panneaux .glass */
+    --disabled:#f4f6fa;                 /* fond des champs désactivés */
+    --accent-soft:rgba(52,60,237,.05);  /* fond du cas d'usage déplié */
+  }
+  /* ── Thème sombre ─────────────────────────────────────────────────────────
+     MÊME identité que le clair : même typographie (DM Sans) et même bleu d'accent
+     (teinte 237°, simplement éclairci #343ced → #5a63f5 pour rester lisible sur
+     fond sombre — le blanc posé dessus garde 4,6:1 et le bleu lui-même 4:1 sur le
+     fond). Rien d'autre n'est un thème « différent » : ce sont les MÊMES tokens,
+     inversés en luminosité. Posé sur <html> par le boot script du <head>. */
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --bg:#12141c; --border:#2c3244; --brand:#5a63f5; --highlight:#2f5ad6;
+    --text:#e6eaf3; --text-2:#9aa6bd; --card:rgba(24,27,38,.86); --card-2:rgba(32,36,50,.95);
+    --stage:#0d0f16;
+    --dot:#2b3346;
+    --shadow:rgba(0,0,0,.55);
+    --disabled:#1b1f2b;
+    --accent-soft:rgba(90,99,245,.14);
+  }
+  *{box-sizing:border-box;}
+  html, body { margin:0; height:100%; overflow:hidden;
+               font-family:'DM Sans', Inter, system-ui, -apple-system, sans-serif;
+               font-size:13px; line-height:1.4; color:var(--text);
+               background:var(--stage); }
+  a{color:var(--highlight);text-decoration:none;} a:hover{color:var(--brand);}
+
+  .glass{background:var(--card);backdrop-filter:blur(14px);border:1px solid var(--border);
+         border-radius:var(--radius);box-shadow:0 22px 50px var(--shadow);}
+
+  /* Le fond en grille de points est peint par litegraph (background_image + clear_background_color)
+     pour qu'il suive le pan/zoom ; ce fond CSS n'est qu'un repli avant le premier rendu. */
+  #stage { position:fixed; inset:0;
+           background: radial-gradient(circle, var(--dot) 1px, transparent 1px) 0 0/22px 22px, var(--stage); }
+  #lgcanvas { display:block; width:100%; height:100%; }
+
+  /* Couche DOM superposée au canvas : c'est elle qui porte les <img>/<video>.
+     pointer-events:none pour laisser passer le pan/zoom ; réactivé sur les médias.
+     Inchangée depuis le Lot 1 hormis l'habillage (fond clair, pas de coins arrondis :
+     la vignette est encastrée entre l'en-tête et le pied de carte). */
+  #mediaLayer { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+  .media-overlay { position:absolute; top:0; left:0; transform-origin:0 0;
+                   pointer-events:auto; overflow:hidden; background:#0e1524; border-radius:0; }
+  .media-overlay > * { width:100%; height:100%; display:block; object-fit:contain; background:#0e1524; }
+
+  /* ── Panneaux flottants ──────────────────────────────────────────────────── */
+  .panel { position:fixed; top:18px; z-index:20; padding:14px; }
+  /* Largeur INCHANGÉE (230px) : le placement automatique des cartes (AUTO_GRID_START_X=300)
+     est calé sur le bord droit de ce panneau. Le panneau étant devenu plus haut (3 cas
+     d'usage + accordéon + mode avancé), il défile au besoin sur les petites hauteurs. */
+  #palette { left:18px; width:230px; max-height:calc(100vh - 36px); overflow:auto; }
+  #props   { right:18px; width:250px; max-height:calc(100vh - 36px); overflow:auto; }
+  #props[hidden] { display:none; }
+
+  .panel-title { font-size:10.5px; font-weight:700; letter-spacing:.08em;
+                 text-transform:uppercase; color:var(--text-2); margin:0 0 12px; }
+  .field { margin-bottom:10px; }
+  .field > label { display:block; font-size:10.5px; color:var(--text-2); margin-bottom:4px; }
+  .box, .panel select, .panel input[type=text], .panel input[type=number], .panel textarea {
+    width:100%; display:block; font:inherit; font-size:12px; color:var(--text);
+    background:var(--card-2); border:1px solid var(--border); border-radius:10px;
+    padding:7px 9px; outline:none; -webkit-appearance:none; appearance:none;
+  }
+  .panel select { background-image:none; cursor:pointer; }
+  .panel textarea { resize:vertical; min-height:54px; line-height:1.35; }
+  .panel select:focus, .panel input:focus, .panel textarea:focus { border-color:var(--brand); }
+  .panel select:disabled, .panel input:disabled { color:var(--text-2); background:var(--disabled); cursor:default; }
+
+  .btn-primary { width:100%; border:0; border-radius:10px; padding:9px 10px; cursor:pointer;
+                 font:inherit; font-size:12.5px; font-weight:700; color:#fff;
+                 background:linear-gradient(135deg,var(--brand),var(--highlight)); }
+  .btn-primary:hover { filter:brightness(1.08); }
+  .btn-outline { width:100%; border:1px solid var(--border); border-radius:10px; padding:8px 10px;
+                 cursor:pointer; font:inherit; font-size:12.5px; font-weight:600;
+                 color:var(--text); background:var(--card-2); }
+  .btn-outline:hover { border-color:var(--brand); color:var(--brand); }
+
+  /* ── Cas d'usage (haut du panneau gauche) ────────────────────────────────
+     Pattern « titre + description courte » repris des scenario-tabs de la maquette
+     d'origine (dell_ai_content_studio_prototype.html) : <strong> puis <span>. */
+  .usecases { display:flex; flex-direction:column; gap:8px; }
+  .usecase, .usecase-opt {
+    display:block; width:100%; text-align:left; font:inherit; cursor:pointer;
+    background:var(--card-2); border:1px solid var(--border); border-radius:12px;
+    transition:border-color .18s ease, background .18s ease;
+  }
+  .usecase { padding:10px 11px; }
+  .usecase-opt { padding:8px 10px; }
+  .usecase:hover, .usecase-opt:hover { border-color:var(--brand); }
+  .usecase.open { border-color:var(--brand); background:var(--accent-soft); }
+  .usecase > strong { display:block; font-size:12.5px; font-weight:700; color:var(--text); margin-bottom:3px; }
+  .usecase-opt > strong { display:block; font-size:11.5px; font-weight:700; color:var(--text); margin-bottom:2px; }
+  .usecase > span, .usecase-opt > span { display:block; font-size:10.5px; color:var(--text-2); line-height:1.35; }
+  /* Sous-options du cas B : simple zone dépliée sous le bouton, dans le panneau (pas de modale). */
+  .usecase-sub { display:flex; flex-direction:column; gap:6px;
+                 margin:2px 0 2px 8px; padding-left:9px; border-left:2px solid var(--border); }
+  .usecase-sub[hidden] { display:none; }
+
+  /* Disclosure « Mode avancé » : lien discret, replié par défaut. */
+  .disclosure { display:block; width:100%; text-align:left; border:0; background:none; padding:0;
+                font:inherit; font-size:11px; font-weight:600; color:var(--text-2); cursor:pointer; }
+  .disclosure:hover { color:var(--brand); }
+  #advBlock[hidden] { display:none; }
+  #advBlock { margin-top:10px; }
+
+  .sep { height:1px; background:var(--border); margin:12px 0 10px; }
+  .icon-row { display:flex; gap:8px; }
+  .icon-btn { flex:1; text-align:center; border:1px solid var(--border); border-radius:10px;
+              padding:6px 0; font-size:14px; cursor:pointer; background:var(--card-2); color:var(--text-2); }
+  .icon-btn:hover { border-color:var(--brand); color:var(--brand); }
+  /* État actif du bascule Image/Vidéo (mode avancé) : mêmes tokens que .usecase.open
+     (border-color + background), + la couleur déjà utilisée par .icon-btn:hover — pas de
+     nouvelle couleur inventée, seulement la réutilisation de ce qui marque déjà un état
+     « actif/sélectionné » ailleurs dans ce fichier. */
+  .icon-btn.open { border-color:var(--brand); color:var(--brand); background:var(--accent-soft); }
+
+  /* Panneau droit : titre de carte, aperçu du prompt, lignes label/valeur */
+  #propsCardTitle { font-size:14px; font-weight:700; margin:0 0 2px; }
+  #propsCardType  { font-size:10.5px; color:var(--text-2); margin:0 0 8px; }
+  #propsPreview   { font-size:11.5px; color:var(--text-2); margin:0 0 4px; line-height:1.45; }
+  #propsStatus    { font-size:10.5px; margin:0 0 6px; min-height:13px; }
+  .row { border-top:1px solid var(--border); padding-top:8px; margin-top:8px; }
+  .row > label { display:block; font-size:10.5px; color:var(--text-2); margin-bottom:4px; }
+  .actions { margin-top:14px; display:flex; flex-direction:column; gap:8px; }
+</style>
+<!-- Thème posé sur la racine du document AVANT le premier rendu. Le gros bloc de script
+     de fin de page s'exécute après le chargement de litegraph (CDN) et des 3 js/ locaux :
+     y poser le thème laisserait un flash de thème clair sur les panneaux. Même règle de
+     valeur par défaut que l'app de prod (ai-content-studio/index.html) : localStorage
+     sinon `prefers-color-scheme`. Pas de 3ᵉ mode « auto » — la préférence système n'est
+     lue qu'ici, une seule fois, à défaut de valeur mémorisée.
+     Ce bloc porte un `id` : l'extraction JS documentée dans AGENTS.md ne matche que la
+     balise ouvrante NUE, elle continue donc de viser le seul bloc principal. Ne jamais
+     écrire de balise de script littérale dans ce commentaire, cela casserait la regex. -->
+<script id="themeBoot">
+  document.documentElement.dataset.theme =
+    localStorage.getItem("canvasTheme") ||
+    (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+</script>
+</head>
+<body>
+
+<!-- ── Panneau flottant gauche : ajouter une carte ─────────────────────────── -->
+<aside id="palette" class="panel glass">
+  <!-- Espace insécable avant le « ? » (typographie FR) : évite aussi le « ? » orphelin
+       sur une 2ᵉ ligne dans un panneau étroit (230px). -->
+  <p class="panel-title">Qu'est-ce que tu veux produire&nbsp;?</p>
+  <div class="usecases">
+    <!-- A — pose directement une carte simple/krea2, sans sous-choix. -->
+    <button type="button" class="usecase" id="ucPoster">
+      <strong>Affiche / visuel produit</strong>
+      <span>Une image fixe soignée, à partir d'une simple description.</span>
+    </button>
+
+    <!-- B — déplie 2 sous-options juste sous le bouton (aucune modale). -->
+    <button type="button" class="usecase" id="ucTeaser" aria-expanded="false" aria-controls="ucTeaserOptions">
+      <strong>Pub courte / teaser</strong>
+      <span>Un plan vidéo de quelques secondes, prêt à diffuser.</span>
+    </button>
+    <div class="usecase-sub" id="ucTeaserOptions" hidden>
+      <button type="button" class="usecase-opt" id="ucTeaserImage">
+        <strong>J'ai déjà une image précise à animer</strong>
+        <span>On met en mouvement cette image telle quelle.</span>
+      </button>
+      <button type="button" class="usecase-opt" id="ucTeaserSheets">
+        <strong>Je pars de fiches Personnage/Décor</strong>
+        <span>Le plan est composé depuis vos planches de référence.</span>
+      </button>
+    </div>
+
+    <!-- C — pose 2 cartes d'un coup (planches de référence), rien de plus. -->
+    <button type="button" class="usecase" id="ucTrailer">
+      <strong>Trailer narratif (plusieurs plans)</strong>
+      <span>On commence par les 2 planches : personnage et décor.</span>
+    </button>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- Sélecteur technique historique : INCHANGÉ, simplement replié sous ce disclosure. -->
+  <button type="button" class="disclosure" id="advToggle" aria-expanded="false" aria-controls="advBlock">
+    Mode avancé (choisir un type de carte précis) <span id="advChevron">▾</span>
+  </button>
+  <div id="advBlock" hidden>
+    <div class="field">
+      <div class="icon-row">
+        <div class="icon-btn open" id="advCatImage">Image</div>
+        <div class="icon-btn" id="advCatVideo">Vidéo</div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="pipelineSelect">Pipeline</label>
+      <select id="pipelineSelect"></select>
+    </div>
+    <div class="field">
+      <label for="modelSelect">Modèle</label>
+      <select id="modelSelect"></select>
+    </div>
+    <button id="addCard" class="btn-primary">+ Nouvelle carte</button>
+  </div>
+
+  <div class="sep"></div>
+  <!-- Sélecteur de langue : mêmes 4 langues que l'app de prod (index.html), même
+       persistance localStorage. Placé juste au-dessus de la rangée d'icônes, dans le
+       même idiome « label + select » que Pipeline/Modèle. Les libellés d'options sont
+       des endonymes : ils ne se traduisent jamais (donc absents de I18N). -->
+  <div class="field">
+    <label for="langSelect">Langue</label>
+    <select id="langSelect" title="Langue / Language">
+      <option value="fr">Français</option>
+      <option value="en">English</option>
+      <option value="es">Español</option>
+      <option value="de">Deutsch</option>
+    </select>
+  </div>
+  <!-- Bascule de thème : posée en tête de la rangée d'icônes, donc juste sous le
+       sélecteur de langue — les deux préférences d'affichage (langue, thème) se
+       suivent, et les 3 icônes existantes gardent leur ordre relatif. Même balise,
+       même classe `.icon-btn` que ⤢ / 🗑 / ⌂ : aucun style nouveau. Icône ☀️/🌙
+       comme dans l'app de prod (index.html, `themeBtn`). -->
+  <div class="icon-row">
+    <div class="icon-btn" id="themeBtn" title="Thème clair / sombre">🌙</div>
+    <div class="icon-btn" id="btnFit" title="Recadrer la vue">⤢</div>
+    <div class="icon-btn" id="btnClear" title="Vider le canvas">🗑</div>
+    <a class="icon-btn" href="index.html" title="App formulaire">⌂</a>
+  </div>
+</aside>
+
+<!-- ── Panneau flottant droit : propriétés de la carte sélectionnée ────────── -->
+<aside id="props" class="panel glass" hidden>
+  <p class="panel-title">Propriétés — carte sélectionnée</p>
+  <h2 id="propsCardTitle"></h2>
+  <p id="propsCardType"></p>
+  <p id="propsPreview"></p>
+  <p id="propsStatus"></p>
+  <div id="propsFields"></div>
+  <div class="actions">
+    <button id="btnRegen" class="btn-primary">Régénérer</button>
+    <button id="btnDup" class="btn-outline">Dupliquer</button>
+  </div>
+</aside>
+
+<div id="stage">
+  <canvas id="lgcanvas"></canvas>
+  <div id="mediaLayer"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/litegraph.js@0.7.18/build/litegraph.min.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/nodes-simple.js"></script>
+<script src="js/nodes-advanced.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  const STORAGE_KEY = "canvasGraphState";
+  const LANG_KEY = "canvasLang";
+  const THEME_KEY = "canvasTheme";   // même clé que le boot script du <head>
+
+  // ══ Thème clair / sombre ══════════════════════════════════════════════════
+  // MÊME schéma que LANG/tr()/applyLang() juste au-dessous : une variable globale,
+  // persistée en localStorage, LUE AU MOMENT DU DESSIN (jamais figée au chargement),
+  // et un applyTheme() qui termine par `lgcanvas.setDirty(true, true)`.
+  // La valeur initiale a déjà été calculée par le boot script du <head> (localStorage
+  // sinon `prefers-color-scheme`) et posée sur <html data-theme> : on la relit ici
+  // plutôt que de refaire la détection, pour qu'il n'existe qu'UNE source de vérité.
+  let THEME = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+
+  // ══ i18n (FR source → EN / ES / DE) ═══════════════════════════════════════
+  // MÊME mécanisme que l'app de prod (ai-content-studio/index.html) : le dictionnaire
+  // est inline, les CLÉS sont le texte français d'origine (jamais traduit vers lui-même,
+  // `tr()` le renvoie tel quel), `translateTree()` réécrit les nœuds texte du DOM en
+  // mémorisant l'original sur `node.__orig`. Seule extension par rapport à prod : la
+  // boucle sur `[title]` (l'UI canvas porte ses libellés d'icônes dans des `title`).
+  //
+  // NE SONT PAS TRADUITS, volontairement :
+  //   · le texte saisi par l'utilisateur (prompts, briefs, instructions Qwen-Edit) ;
+  //   · tout texte anglais de fabrication de prompt destiné aux modèles IA
+  //     (STYLE_PACKS[x].text, CAMERA_LIB/LIGHTING_LIB, SHEET_CLEAN…) — js/engine.js
+  //     n'est d'ailleurs pas modifié par ce lot ;
+  //   · les noms de produits / moteurs / modèles (Krea 2, Qwen-Edit, LTX 2.5,
+  //     Minimax H3, Reference2Video, Animatic, Storyboard, Pipeline, Prompt, Anime…) ;
+  //   · les étiquettes techniques d'en-tête de carte (CARDS[x].tech : charsheet,
+  //     locsheet, cutvideo, r2v, krea2, qwen_edit…) : ce sont des identifiants de code,
+  //     copies des types litegraph (`adv/charsheet`) et des noms de templates ComfyUI.
+  const I18N = {
+    // ── Panneau gauche ──
+    // La clé porte l'ESPACE INSÉCABLE de `produire&nbsp;?` (typographie FR) : le nœud
+    // texte du DOM contient U+00A0, la clé doit donc le contenir aussi pour correspondre.
+    "Qu'est-ce que tu veux produire ?": { en: "What do you want to produce?", es: "¿Qué quieres producir?", de: "Was möchtest du produzieren?" },
+    "Affiche / visuel produit": { en: "Poster / product visual", es: "Cartel / visual de producto", de: "Poster / Produktvisual" },
+    "Une image fixe soignée, à partir d'une simple description.": { en: "A polished still image, from a simple description.", es: "Una imagen fija cuidada, a partir de una simple descripción.", de: "Ein sorgfältiges Standbild, aus einer einfachen Beschreibung." },
+    "Pub courte / teaser": { en: "Short ad / teaser", es: "Anuncio corto / teaser", de: "Kurzer Werbespot / Teaser" },
+    "Un plan vidéo de quelques secondes, prêt à diffuser.": { en: "A few-second video shot, ready to publish.", es: "Un plano de vídeo de unos segundos, listo para difundir.", de: "Eine Videoeinstellung von wenigen Sekunden, sendefertig." },
+    "J'ai déjà une image précise à animer": { en: "I already have a specific image to animate", es: "Ya tengo una imagen concreta para animar", de: "Ich habe bereits ein konkretes Bild zum Animieren" },
+    "On met en mouvement cette image telle quelle.": { en: "We set that image in motion as it is.", es: "Ponemos esa imagen en movimiento tal cual.", de: "Dieses Bild wird unverändert in Bewegung gesetzt." },
+    "Je pars de fiches Personnage/Décor": { en: "I start from Character/Location sheets", es: "Parto de fichas de Personaje/Escenario", de: "Ich starte von Charakter-/Kulissenblättern" },
+    "Le plan est composé depuis vos planches de référence.": { en: "The shot is composed from your reference sheets.", es: "El plano se compone a partir de tus láminas de referencia.", de: "Die Einstellung wird aus deinen Referenzblättern komponiert." },
+    "Trailer narratif (plusieurs plans)": { en: "Narrative trailer (several shots)", es: "Tráiler narrativo (varios planos)", de: "Erzählerischer Trailer (mehrere Einstellungen)" },
+    "On commence par les 2 planches : personnage et décor.": { en: "We start with the 2 sheets: character and location.", es: "Empezamos por las 2 láminas: personaje y escenario.", de: "Wir beginnen mit den 2 Blättern: Charakter und Kulisse." },
+    "Mode avancé (choisir un type de carte précis)": { en: "Advanced mode (pick a specific card type)", es: "Modo avanzado (elegir un tipo de tarjeta concreto)", de: "Erweiterter Modus (bestimmten Kartentyp wählen)" },
+    "Modèle": { en: "Model", es: "Modelo", de: "Modell" },
+    "+ Nouvelle carte": { en: "+ New card", es: "+ Nueva tarjeta", de: "+ Neue Karte" },
+    "Langue": { en: "Language", es: "Idioma", de: "Sprache" },
+    "Thème clair / sombre": { en: "Light / dark theme", es: "Tema claro / oscuro", de: "Helles / dunkles Thema" },
+    "Recadrer la vue": { en: "Reset the view", es: "Reencuadrar la vista", de: "Ansicht zurücksetzen" },
+    "Vider le canvas": { en: "Clear the canvas", es: "Vaciar el lienzo", de: "Leinwand leeren" },
+    "App formulaire": { en: "Form app", es: "App de formulario", de: "Formular-App" },
+
+    // ── Panneau droit ──
+    "Propriétés — carte sélectionnée": { en: "Properties — selected card", es: "Propiedades — tarjeta seleccionada", de: "Eigenschaften — ausgewählte Karte" },
+    "Régénérer": { en: "Regenerate", es: "Regenerar", de: "Neu generieren" },
+    "Dupliquer": { en: "Duplicate", es: "Duplicar", de: "Duplizieren" },
+    "Oui": { en: "Yes", es: "Sí", de: "Ja" },
+    "Non": { en: "No", es: "No", de: "Nein" },
+    "Vider": { en: "Clear", es: "Vaciar", de: "Leeren" },
+    "aucun": { en: "none", es: "ninguno", de: "keine" },
+    // Bouton d'enrichissement gemma d'un champ textarea (cf. addEnhanceButton) + ses 2
+    // états de retour. Le corps de l'erreur vient de l'exception, non traduit (même règle
+    // que le journal d'événements).
+    "✨ Enrichir (LLM)": { en: "✨ Enhance (LLM)", es: "✨ Enriquecer (LLM)", de: "✨ Anreichern (LLM)" },
+    "Enrichissement…": { en: "Enhancing…", es: "Enriqueciendo…", de: "Anreichern…" },
+    "Enrichissement impossible : ": { en: "Enhancement failed: ", es: "Enriquecimiento imposible: ", de: "Anreicherung fehlgeschlagen: " },
+    "réponse sans champ ": { en: "response missing field ", es: "respuesta sin campo ", de: "Antwort ohne Feld " },
+    "Supprimer toutes les cartes du canvas ? Cette action est irréversible.": { en: "Delete every card on the canvas? This action cannot be undone.", es: "¿Eliminar todas las tarjetas del lienzo? Esta acción es irreversible.", de: "Alle Karten der Leinwand löschen? Diese Aktion ist unwiderruflich." },
+
+    // ── Noms de cartes (CARDS[x].label) ──
+    "Personnage": { en: "Character", es: "Personaje", de: "Charakter" },
+    "Décor": { en: "Location", es: "Escenario", de: "Kulisse" },
+    "Génération vidéo": { en: "Video generation", es: "Generación de vídeo", de: "Videogenerierung" },
+    "Vidéo finale": { en: "Final video", es: "Vídeo final", de: "Finales Video" },
+    "Vidéo": { en: "Video", es: "Vídeo", de: "Video" },
+    "Média": { en: "Media", es: "Medio", de: "Medien" },
+    "Import média": { en: "Media import", es: "Importar medio", de: "Medien-Import" },
+    "Note": { en: "Note", es: "Nota", de: "Notiz" },
+
+    // ── Libellés de champs (CARDS[x].fields[].label) ──
+    "Style": { en: "Style", es: "Estilo", de: "Stil" },
+    "Style (LoRA)": { en: "Style (LoRA)", es: "Estilo (LoRA)", de: "Stil (LoRA)" },
+    "Seed (0 = auto)": { en: "Seed (0 = auto)", es: "Semilla (0 = auto)", de: "Seed (0 = automatisch)" },
+    "Brief": { en: "Brief", es: "Brief", de: "Briefing" },
+    "Nombre de plans": { en: "Number of shots", es: "Número de planos", de: "Anzahl Einstellungen" },
+    "Durée / plan (s)": { en: "Duration / shot (s)", es: "Duración / plano (s)", de: "Dauer / Einstellung (s)" },
+    "Moteur vidéo": { en: "Video engine", es: "Motor de vídeo", de: "Video-Engine" },
+    "Moteur": { en: "Engine", es: "Motor", de: "Engine" },
+    "Prompt négatif (LTX 2.5)": { en: "Negative prompt (LTX 2.5)", es: "Prompt negativo (LTX 2.5)", de: "Negativ-Prompt (LTX 2.5)" },
+    "Turbo LoRA (Minimax H3)": { en: "Turbo LoRA (Minimax H3)", es: "LoRA turbo (Minimax H3)", de: "Turbo-LoRA (Minimax H3)" },
+    "Steps (Minimax H3 turbo)": { en: "Steps (Minimax H3 turbo)", es: "Pasos (Minimax H3 turbo)", de: "Schritte (Minimax H3 turbo)" },
+    "Piste audio": { en: "Audio track", es: "Pista de audio", de: "Tonspur" },
+    "Ratio": { en: "Aspect ratio", es: "Proporción", de: "Seitenverhältnis" },
+    "Durée (s)": { en: "Duration (s)", es: "Duración (s)", de: "Dauer (s)" },
+    "Turbo (8 steps)": { en: "Turbo (8 steps)", es: "Turbo (8 pasos)", de: "Turbo (8 Schritte)" },
+    "Audios de référence (max 3)": { en: "Reference audios (max 3)", es: "Audios de referencia (máx. 3)", de: "Referenz-Audios (max. 3)" },
+    "Instruction d'édition": { en: "Editing instruction", es: "Instrucción de edición", de: "Bearbeitungsanweisung" },
+    "Prompt (mouvement)": { en: "Prompt (motion)", es: "Prompt (movimiento)", de: "Prompt (Bewegung)" },
+    "Texte": { en: "Text", es: "Texto", de: "Text" },
+    "Type de média": { en: "Media type", es: "Tipo de medio", de: "Medientyp" },
+    "Fichier local": { en: "Local file", es: "Archivo local", de: "Lokale Datei" },
+    "Image": { en: "Image", es: "Imagen", de: "Bild" },
+    "8 (défaut)": { en: "8 (default)", es: "8 (por defecto)", de: "8 (Standard)" },
+
+    // ── Fragments fixes des pieds de carte (CARDS[x].meta) ──
+    "plans": { en: "shots", es: "planos", de: "Einstellungen" },
+    "s/plan": { en: "s/shot", es: "s/plano", de: "s/Einst." },
+    "cuts": { en: "cuts", es: "cortes", de: "Schnitte" },
+    "cuts francs": { en: "hard cuts", es: "cortes secos", de: "harte Schnitte" },
+    "audio natif": { en: "native audio", es: "audio nativo", de: "Originalton" },
+    "muet": { en: "silent", es: "mudo", de: "stumm" },
+    "steps": { en: "steps", es: "pasos", de: "Schritte" },
+    "aucun média": { en: "no media", es: "sin medio", de: "kein Medium" },
+    "aucun fichier": { en: "no file", es: "sin archivo", de: "keine Datei" },
+    "note libre": { en: "free note", es: "nota libre", de: "freie Notiz" },
+
+    // ── STYLE_PACKS[x].label + KREA2_LORAS (js/engine.js, LABELS uniquement — jamais
+    //    STYLE_PACKS[x].text, qui est du texte de fabrication de prompt pour l'IA) ──
+    "Aucun": { en: "None", es: "Ninguno", de: "Keiner" },
+    "Cinématique": { en: "Cinematic", es: "Cinematográfico", de: "Filmisch" },
+    "Film noir": { en: "Film noir", es: "Cine negro", de: "Film noir" },
+    "Documentaire": { en: "Documentary", es: "Documental", de: "Dokumentarisch" },
+    "Réalisme": { en: "Realism", es: "Realismo", de: "Realismus" },
+    "Vieillissement": { en: "Ageing", es: "Envejecimiento", de: "Alterung" },
+
+    // ── Messages de statut (js/nodes-simple.js + js/nodes-advanced.js, via window.tr) ──
+    "Erreur : ": { en: "Error: ", es: "Error: ", de: "Fehler: " },
+    "Terminé : ": { en: "Done: ", es: "Terminado: ", de: "Fertig: " },
+    "en cours…": { en: "running…", es: "en curso…", de: "läuft…" },
+    "Erreur : prompt vide.": { en: "Error: empty prompt.", es: "Error: prompt vacío.", de: "Fehler: leerer Prompt." },
+    "Erreur : instruction vide.": { en: "Error: empty instruction.", es: "Error: instrucción vacía.", de: "Fehler: leere Anweisung." },
+    "Erreur : brief vide.": { en: "Error: empty brief.", es: "Error: brief vacío.", de: "Fehler: leeres Briefing." },
+    "Erreur : description personnage vide.": { en: "Error: empty character description.", es: "Error: descripción de personaje vacía.", de: "Fehler: leere Charakterbeschreibung." },
+    "Erreur : description décor vide.": { en: "Error: empty location description.", es: "Error: descripción de escenario vacía.", de: "Fehler: leere Kulissenbeschreibung." },
+    "Erreur : image d'entrée non résolue (connecte un nœud terminé).": { en: "Error: input image not resolved (connect a finished node).", es: "Error: imagen de entrada no resuelta (conecta un nodo terminado).", de: "Fehler: Eingabebild nicht aufgelöst (verbinde einen fertigen Knoten)." },
+    "Erreur : storyboard amont non résolu (aucune keyframe).": { en: "Error: upstream storyboard not resolved (no keyframe).", es: "Error: storyboard previo no resuelto (ninguna keyframe).", de: "Fehler: vorgelagertes Storyboard nicht aufgelöst (keine Keyframe)." },
+    "Erreur : storyboard amont non résolu (aucun cut).": { en: "Error: upstream storyboard not resolved (no cut).", es: "Error: storyboard previo no resuelto (ningún corte).", de: "Fehler: vorgelagertes Storyboard nicht aufgelöst (kein Schnitt)." },
+    "Génération Krea 2 en cours…": { en: "Krea 2 generation running…", es: "Generación Krea 2 en curso…", de: "Krea-2-Generierung läuft…" },
+    "Génération vidéo": { en: "Video generation", es: "Generación de vídeo", de: "Videogenerierung" },
+    "Édition Qwen-Edit en cours…": { en: "Qwen-Edit editing running…", es: "Edición Qwen-Edit en curso…", de: "Qwen-Edit-Bearbeitung läuft…" },
+    "Fiche personnage : gemma…": { en: "Character sheet: gemma…", es: "Ficha de personaje: gemma…", de: "Charakterblatt: gemma…" },
+    "Fiche décor : gemma…": { en: "Location sheet: gemma…", es: "Ficha de escenario: gemma…", de: "Kulissenblatt: gemma…" },
+    "Planche personnage (Krea 2) en cours…": { en: "Character sheet (Krea 2) running…", es: "Lámina de personaje (Krea 2) en curso…", de: "Charakterblatt (Krea 2) läuft…" },
+    "Planche décor (Krea 2) en cours…": { en: "Location sheet (Krea 2) running…", es: "Lámina de escenario (Krea 2) en curso…", de: "Kulissenblatt (Krea 2) läuft…" },
+    "fiche personnage": { en: "character sheet", es: "ficha de personaje", de: "Charakterblatt" },
+    "fiche décor": { en: "location sheet", es: "ficha de escenario", de: "Kulissenblatt" },
+    "non résolue — les 2 entrées sont requises.": { en: "not resolved — both inputs are required.", es: "no resuelta — las 2 entradas son obligatorias.", de: "nicht aufgelöst — beide Eingänge sind erforderlich." },
+    "non résolue en amont du storyboard — requise par le mode": { en: "not resolved upstream of the storyboard — required by mode", es: "no resuelta antes del storyboard — requerida por el modo", de: "vor dem Storyboard nicht aufgelöst — erforderlich für den Modus" },
+    "via gemma…": { en: "via gemma…", es: "vía gemma…", de: "über gemma…" },
+    "soumises": { en: "submitted", es: "enviadas", de: "übermittelt" },
+    "soumis": { en: "submitted", es: "enviados", de: "übermittelt" },
+    "Grille contact-sheet…": { en: "Contact-sheet grid…", es: "Rejilla de hoja de contactos…", de: "Kontaktbogen-Raster…" },
+    "keyframes prêtes.": { en: "keyframes ready.", es: "keyframes listas.", de: "Keyframes bereit." },
+    "cuts prêts.": { en: "cuts ready.", es: "cortes listos.", de: "Schnitte bereit." },
+    "Cuts": { en: "Cuts", es: "Cortes", de: "Schnitte" },
+    "Assemblage de": { en: "Assembling", es: "Ensamblaje de", de: "Zusammenfügen von" },
+    "Upload de l'audio de référence…": { en: "Uploading the reference audio…", es: "Subiendo el audio de referencia…", de: "Referenz-Audio wird hochgeladen…" },
+    "Upload du fichier…": { en: "Uploading the file…", es: "Subiendo el archivo…", de: "Datei wird hochgeladen…" },
+    "Importé : ": { en: "Imported: ", es: "Importado: ", de: "Importiert: " },
+    "audios de référence au maximum.": { en: "reference audios at most.", es: "audios de referencia como máximo.", de: "Referenz-Audios maximal." },
+    "audio(s) de référence.": { en: "reference audio(s).", es: "audio(s) de referencia.", de: "Referenz-Audio(s)." },
+    "aucune image en sortie": { en: "no image in output", es: "ninguna imagen de salida", de: "kein Bild in der Ausgabe" },
+    "aucune vidéo en sortie": { en: "no video in output", es: "ningún vídeo de salida", de: "kein Video in der Ausgabe" }
+  };
+  let LANG = localStorage.getItem(LANG_KEY) || "fr";
+  function tr(key) { return LANG === "fr" ? key : (I18N[key]?.[LANG] ?? key); }
+  function translateTree(root) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node.parentElement?.closest("script, style")) continue;
+      const orig = node.__orig ?? (node.__orig = node.nodeValue.trim());
+      if (I18N[orig]) node.nodeValue = tr(orig);
+    }
+    for (const el of [root, ...root.querySelectorAll?.("[placeholder]") ?? []]) {
+      if (el.placeholder !== undefined && el.placeholder) {
+        const orig = el.__origPh ?? (el.__origPh = el.placeholder);
+        if (I18N[orig]) el.placeholder = tr(orig);
+      }
+    }
+    // Extension par rapport à prod : les libellés de la rangée d'icônes (« Vider le
+    // canvas »…) vivent dans des attributs `title`, pas dans des nœuds texte.
+    for (const el of [root, ...root.querySelectorAll?.("[title]") ?? []]) {
+      if (el.title) {
+        const orig = el.__origTitle ?? (el.__origTitle = el.title);
+        if (I18N[orig]) el.title = tr(orig);
+      }
+    }
+  }
+  function applyLang(lang) {
+    LANG = lang;
+    localStorage.setItem(LANG_KEY, lang);
+    document.documentElement.lang = lang === "en" ? "en-US" : lang;
+    translateTree(document.body);
+    // Le panneau de propriétés est CONSTRUIT en JS au moment de la sélection : ses
+    // libellés de champs sont posés par `tr(f.label)` et ne repassent donc pas par
+    // translateTree. On le re-rend si une carte est sélectionnée.
+    if (selected) showProps(selected);
+    // Texte DESSINÉ sur le canvas : getTitle() et meta() appellent tr() au moment du
+    // dessin, il n'y a donc AUCUN mécanisme de redraw à écrire — il suffit de demander
+    // un repeint. La boucle requestAnimationFrame de syncOverlays() ne suffit pas : elle
+    // ne fait que repositionner les overlays DOM, et `LGraphCanvas.draw()` (litegraph
+    // 0.7.18, ligne ~7816) sort sans rien peindre tant que `dirty_canvas`/`dirty_bgcanvas`
+    // est faux — VÉRIFIÉ en headless : sans ce setDirty, les pixels du canvas ne bougent
+    // pas d'un octet après un changement de langue. C'est le même geste qu'ailleurs dans
+    // ce fichier (setProp, btnFit), pas un mécanisme nouveau.
+    lgcanvas.setDirty(true, true);
+  }
+  // js/engine.js, js/nodes-simple.js et js/nodes-advanced.js sont chargés AVANT ce
+  // script : ils résolvent `window.tr` au moment de l'appel (jamais au chargement).
+  window.tr = tr;
+
+  const canvasEl = document.getElementById("lgcanvas");
+  const mediaLayer = document.getElementById("mediaLayer");
+  const FOOTER_H = 24;   // hauteur (en unités graphe) du pied de carte, réservée sous la vignette
+  // Marge haute (en unités graphe) laissée libre par l'overlay média, pour que les connecteurs
+  // d'entrée/sortie dessinés par litegraph juste sous le titre restent visibles ET cliquables :
+  // sans elle, l'overlay DOM (pointer-events:auto) plein-corps recouvre exactement leur zone dès
+  // qu'un résultat est généré (voir bug : connecteur disparaît après génération). Mesuré via
+  // node.getConnectionPos() : 1er rang de slots à pos[1]+14, 2e rang (types à 2 entrées empilées :
+  // adv/storyboard, adv/r2v — vérifié via addInput dans js/nodes-advanced.js) à pos[1]+34.
+  // 44px couvre les deux rangs avec marge pour le rayon du connecteur.
+  const OVERLAY_TOP_MARGIN = 44;
+  // Lot 5 : adv/r2v et adv/storyboard ont désormais des slots d'entrée DYNAMIQUES
+  // (jusqu'à 12 entrées empilées pour r2v : 2 planches + 7 images de réf + 3 vidéos de réf).
+  // La marge devient donc calculée PAR NŒUD à partir du nombre réel de rangs de slots :
+  // 20 px par rang (LiteGraph.NODE_SLOT_HEIGHT, 1er rang centré à +14) + 4 px pour le rayon
+  // du connecteur — la formule redonne EXACTEMENT 44 px à 2 rangs, valeur historique. Le
+  // plancher à OVERLAY_TOP_MARGIN garantit zéro changement visuel pour tous les nœuds à
+  // 2 rangs ou moins (tous les autres types).
+  function overlayTopMargin(node) {
+    const rows = Math.max((node.inputs || []).length, (node.outputs || []).length);
+    return Math.max(OVERLAY_TOP_MARGIN, 20 * rows + 4);
+  }
+
+  // ── Nœud de test trivial ─────────────────────────────────────────────────
+  function NoteNode() {
+    this.addInput("in", 0);
+    this.addOutput("out", 0);
+    this.properties = { text: "note" };
+    this.addWidget("text", "texte", this.properties.text, v => { this.properties.text = v; });
+    this.size = [200, 60];
+  }
+  NoteNode.title = "Note";
+  LiteGraph.registerNodeType("test/note", NoteNode);
+
+  // ── Nœud média : rendu riche (image / vidéo jouable) ─────────────────────
+  // litegraph dessine dans un CanvasRenderingContext2D : ctx.drawImage() sait afficher
+  // un <img> ET un <video>, mais donne une frame peinte — sans contrôles, sans piste
+  // audio, sans scrub. Pour une vidéo réellement JOUABLE on superpose donc un vrai
+  // élément DOM (<video controls>) au-dessus du canvas, repositionné à chaque frame
+  // depuis node.pos / node.size et la transformation de vue de litegraph (ds.offset,
+  // ds.scale). Le corps du nœud est laissé vide côté canvas pour que l'overlay le remplisse.
+  function MediaNode() {
+    this.addInput("in", 0);
+    this.addOutput("out", 0);
+    this.properties = { src: "" };
+    this.size = [320, 200];
+  }
+  MediaNode.title = "Média";
+
+  MediaNode.prototype.onAdded = function () { this.buildOverlay(); };
+  MediaNode.prototype.onRemoved = function () {
+    if (this.overlay) { this.overlay.remove(); this.overlay = null; }
+  };
+  // Appelé après graph.configure() : les properties restaurées sont en place.
+  MediaNode.prototype.onConfigure = function () { this.buildOverlay(); };
+
+  MediaNode.prototype.buildOverlay = function () {
+    if (this.overlay) this.overlay.remove();
+    const box = document.createElement("div");
+    box.className = "media-overlay";
+    box.dataset.nodeId = String(this.id);
+    const src = this.properties.src || "";
+    let el;
+    if (/\.(mp4|webm|mov)$/i.test(src)) {
+      el = document.createElement("video");
+      el.src = src;
+      el.controls = true;   // vidéo réellement jouable (play/pause, scrub, volume)
+      el.loop = true;
+      el.playsInline = true;
+      el.preload = "metadata";
+    } else {
+      el = document.createElement("img");
+      el.src = src;
+      el.alt = "";
+    }
+    box.appendChild(el);
+    mediaLayer.appendChild(box);
+    this.overlay = box;
+    this.mediaEl = el;
+  };
+
+  // Corps vide côté canvas : l'overlay DOM occupe exactement la zone du corps.
+  MediaNode.prototype.onDrawBackground = function (ctx) {
+    if (this.flags.collapsed) return;
+    ctx.fillStyle = TC().emptyMedia;
+    ctx.fillRect(0, 0, this.size[0], this.size[1]);
+  };
+  LiteGraph.registerNodeType("media/preview", MediaNode);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HABILLAGE (reskin) — présentation uniquement. Aucune logique de génération,
+  // de gating ou d'upstreamFile n'est touchée ici : ce bloc ne fait que peindre.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Catalogue d'habillage des 8 types de cartes de génération (+ les 2 nœuds de test).
+  // `label`/`tech` = en-tête de la carte ; `grad` = vignette dégradée tant qu'aucun
+  // résultat n'est généré ; `model` = modèle affiché (fixe sauf simple/video) ;
+  // `meta` = ligne de métadonnées du pied de carte ; `fields` = schéma du panneau droit ;
+  // `subject` = propriété servant à personnaliser le titre ("Personnage — a lighthouse…").
+  // `STYLE_PACKS` porte un `label` humain (« Cinématique »…) à côté du `text` anglais de
+  // fabrication de prompt. Le select expose désormais [id, label] : la VALEUR envoyée reste
+  // l'id ("cinematic"), seul l'affichage change — `STYLE_PACKS[x].text` n'est jamais touché.
+  const STYLES = () => Object.entries(window.Engine.STYLE_PACKS).map(([id, p]) => [id, p.label]);
+  const styleLabel = id => tr((window.Engine.STYLE_PACKS[id] || {}).label || id);
+  // LoRA de style Krea 2 : catalogue UNIQUE, déclaré dans js/engine.js (libellés humains
+  // inclus) et partagé par les 3 cartes Krea 2 (Personnage / Décor / Krea 2).
+  const KREA2_LORAS = () => window.Engine.KREA2_LORAS;
+  // LoRA de style Minimax H3 : même mécanisme (catalogue UNIQUE dans js/engine.js), partagé
+  // par les 3 cartes vidéo Minimax H3 (Vidéo / Génération vidéo / Reference2Video). N'expose
+  // aujourd'hui que "Aucun" (aucun fichier de style non-explicite sur disque pour l'instant,
+  // cf. le commentaire d'H3_STYLE_LORAS dans engine.js) — le mécanisme de cumul avec le turbo
+  // existant est construit malgré tout, prêt à recevoir de vrais fichiers.
+  const H3_STYLE_LORAS = () => window.Engine.H3_STYLE_LORAS;
+  const RATIOS = ["16:9", "9:16", "1:1", "4:5"];
+  // Mégapixels (résolution vidéo Minimax H3 / LTX 2.5, cf. Engine.computeMPResolution) :
+  // mêmes 14 valeurs pour les 2 familles de moteurs, seule l'unité d'arrondi diffère
+  // (Engine.mpUnitForEngine) — [valeur, libellé] au même format que KREA2_LORAS/STYLES.
+  const MP_OPTIONS = () => window.Engine.MP_VALUES.map(v => [String(v), `${v} MP`]);
+  // Steps Minimax H3 turbo. 4 n'est fiable qu'avec la LoRA fl2v 4-step (Engine bascule
+  // automatiquement dessus) — cf. commentaire d'`applyMinimaxTurbo` dans js/engine.js.
+  const MINIMAX_STEPS = [[4, "4 (LoRA fl2v v1.2)"], [6, "6"], [8, "8 (défaut)"]];
+  // Moteurs de la carte « Génération vidéo » — MÊME liste que `CUT_ENGINES` de
+  // js/nodes-advanced.js (widget litegraph « moteur »). Le mode r2v part de 3 références
+  // (fiche personnage + fiche décor BRUTES + keyframe) au lieu d'une first_frame, sur le
+  // checkpoint `*_ref2va_*` : le champ « steps » ci-dessous n'a AUCUN effet dans ce mode
+  // (LoRA 4-step réservée au checkpoint i2v `*_fl2va_*` — cf. AGENTS.md).
+  const CUT_ENGINES = [["ltx25", "LTX 2.5"], ["minimax_h3", "Minimax H3"], ["minimax_h3_r2v", "Minimax H3 (r2v)"]];
+  const CUT_ENGINE_META = { ltx25: "LTX 2.5 i2v", minimax_h3: "Minimax H3 i2v", minimax_h3_r2v: "Minimax H3 r2v" };
+  // System prompts du bouton « ✨ Enrichir (LLM) » (cf. `addEnhanceButton`, plus bas).
+  // Un champ de `fields[]` devient enrichissable en portant une clé `enhance` qui pointe
+  // ici. Chacun impose à gemma la clé de sortie ATTENDUE — TOUJOURS `f.k` du champ, d'où
+  // {"prompt": …} pour k:"prompt", {"instruction": …} pour k:"instruction", etc.
+  const ENHANCE = {
+    // Krea 2 : cfg tel que le négatif n'est jamais encodé (piège n°16) → tout doit être
+    // formulé positivement, d'où l'absence de toute consigne de type « éviter … ».
+    krea2Prompt: "Tu es un ingénieur de prompts pour un modèle de diffusion texte→image (Krea 2). Réécris le brief de l'utilisateur en un prompt riche et précis en anglais (sujet, style, éclairage, composition, ambiance), sans inventer de contrainte technique. Réponds UNIQUEMENT en JSON : {\"prompt\": \"...\"}.",
+    // Minimax H3 i2v uniquement. LTX 2.5 est volontairement EXCLU (cf. le `enhance` de
+    // simple/video) : son graphe embarque déjà `TextGenerateLTX2Prompt` à cfg 1, un second
+    // enrichissement côté client ferait double emploi — même arbitrage que le cockpit
+    // (ai-content-studio-cockpit/index.html, « Enrichissement intégré au workflow »).
+    videoPrompt: "Tu es un ingénieur de prompts pour un modèle de diffusion texte/image→vidéo (Minimax H3). Réécris la description de mouvement de l'utilisateur en un prompt riche en anglais décrivant l'action et le mouvement de caméra, sans inventer de personnage ou de décor non mentionné. Ce moteur n'utilise aucun prompt négatif : n'en génère pas. Réponds UNIQUEMENT en JSON : {\"prompt\": \"...\"}.",
+    // Qwen-Edit : interdiction explicite du vocabulaire « storyboard/keyframe/panel », qui
+    // fait dessiner une planche annotée au lieu d'éditer l'image (AGENTS.md, pièges).
+    qwenInstruction: "Tu es un ingénieur de prompts pour un modèle d'édition d'image (Qwen-Edit). Réécris l'instruction de l'utilisateur en une consigne d'édition claire et positive en anglais (décris le résultat voulu, jamais ce qu'il faut éviter). N'utilise JAMAIS les mots \"storyboard\", \"keyframe\", \"panel\" ou équivalents — ils font dessiner une planche annotée au lieu d'éditer l'image. Réponds UNIQUEMENT en JSON : {\"instruction\": \"...\"}.",
+    // r2v : personnage et décor sont préfixés automatiquement au brief par
+    // `generateReference2Video` — les redécrire ici les dupliquerait dans le prompt final.
+    r2vBrief: "Tu es un ingénieur de prompts pour Minimax H3 reference2video. Le personnage et le décor sont DÉJÀ décrits séparément et ajoutés automatiquement avant ton texte — ne les redécris pas. Réécris uniquement l'action/le contexte/l'ambiance du brief de l'utilisateur, en anglais, sans inventer de nouveau personnage ou lieu. N'utilise pas de balises entre chevrons ni de syntaxe de référence d'image. Ce moteur n'utilise aucun prompt négatif : n'en génère pas. Réponds UNIQUEMENT en JSON : {\"brief\": \"...\"}.",
+    // Fiches + storyboard : ce brief est ENSUITE repassé à gemma par
+    // characterSheetFromBrief/locationSheetFromBrief/shotListFromBrief pour en extraire des
+    // champs structurés. On enrichit donc en prose simple, sans anticiper cette structuration.
+    sheetBrief: "Tu enrichis un brief créatif en prose, en anglais, avec plus de détails descriptifs concrets (apparence, ambiance, contexte), SANS structurer en JSON ni en liste, SANS inventer de contrainte technique — ce texte sera ensuite analysé par un autre système pour en extraire des champs structurés, garde donc un texte narratif simple. Réponds UNIQUEMENT en JSON : {\"brief\": \"...\"}."
+  };
+  const CARDS = {
+    "adv/charsheet": {
+      label: "Personnage", tech: "charsheet", grad: ["#efe9ff", "#c9b8f5"], model: "Krea 2",
+      subject: "brief", preview: "brief",
+      meta: n => `Krea 2 · 1920×1088 · ${styleLabel(n.properties.style)}`,
+      fields: [
+        { k: "brief", w: "personnage", label: "Personnage", type: "textarea", enhance: ENHANCE.sheetBrief },
+        { k: "style", w: "style", label: "Style", type: "select", values: STYLES },
+        { k: "lora", w: "style (LoRA)", label: "Style (LoRA)", type: "select", values: KREA2_LORAS },
+        { k: "seed", w: "seed (0=auto)", label: "Seed (0 = auto)", type: "number" }
+      ]
+    },
+    "adv/locsheet": {
+      label: "Décor", tech: "locsheet", grad: ["#e6f1ff", "#b3d1f5"], model: "Krea 2",
+      subject: "brief", preview: "brief",
+      meta: n => `Krea 2 · 1920×1088 · ${styleLabel(n.properties.style)}`,
+      fields: [
+        { k: "brief", w: "décor", label: "Décor", type: "textarea", enhance: ENHANCE.sheetBrief },
+        { k: "style", w: "style", label: "Style", type: "select", values: STYLES },
+        { k: "lora", w: "style (LoRA)", label: "Style (LoRA)", type: "select", values: KREA2_LORAS },
+        { k: "seed", w: "seed (0=auto)", label: "Seed (0 = auto)", type: "number" }
+      ]
+    },
+    "adv/storyboard": {
+      label: "Storyboard", tech: "storyboard", grad: ["#fdf1dd", "#e8cf9f"], model: "Krea 2 / Qwen-Edit",
+      subject: "brief", preview: "brief",
+      meta: n => `Qwen-Edit · ${n.properties.shotCount} ${tr("plans")} · ${n.properties.segmentDuration} ${tr("s/plan")}`,
+      fields: [
+        { k: "brief", w: "brief", label: "Brief", type: "textarea", enhance: ENHANCE.sheetBrief },
+        { k: "shotCount", w: "plans", label: "Nombre de plans", type: "number", min: 1, max: 16 },
+        { k: "segmentDuration", w: "durée/plan (s)", label: "Durée / plan (s)", type: "number", min: 1, max: 10 },
+        { k: "style", w: "style", label: "Style", type: "select", values: STYLES },
+        { k: "seed", w: "seed (0=auto)", label: "Seed (0 = auto)", type: "number" }
+      ]
+    },
+    "adv/cutvideo": {
+      label: "Génération vidéo", tech: "cutvideo", grad: ["#1d2a55", "#0d1430"], video: true,
+      // Seul autre type (avec simple/video) à offrir un vrai choix de modèle : le moteur i2v
+      // des cuts est décidé APRÈS validation du storyboard.
+      modelProp: "engine", modelWidget: "moteur", model: "LTX 2.5 / Minimax H3",
+      modelValues: CUT_ENGINES,
+      meta: n => `${CUT_ENGINE_META[n.properties.engine] || CUT_ENGINE_META.ltx25} · ${n.properties.duration} ${tr("s/plan")} · ${(n.properties.cutNames || []).length} ${tr("cuts")}`,
+      fields: [
+        { k: "engine", w: "moteur", label: "Moteur vidéo", type: "select", values: () => CUT_ENGINES },
+        // Pas de champ prompt : le prompt positif des cuts est produit automatiquement par
+        // `compileCutPrompt` (ancrage scène + personnage + décor + mouvement, piège n°9).
+        // Le négatif n'est réellement encodé que par LTX 2.5.
+        { k: "negative", label: "Prompt négatif (LTX 2.5)", type: "textarea" },
+        { k: "duration", w: "durée/plan (s)", label: "Durée / plan (s)", type: "number", min: 1, max: 10 },
+        // turbo/steps/style (LoRA) : LTX 2.5 n'a structurellement aucun LoraLoaderModelOnly
+        // dans ses templates — masqués hors Minimax H3 (showProps, champ `when`).
+        { k: "turbo", w: "turbo (LoRA)", label: "Turbo LoRA (Minimax H3)", type: "toggle", when: n => n.properties.engine === "minimax_h3" },
+        { k: "steps", w: "steps", label: "Steps (Minimax H3 turbo)", type: "select", values: () => MINIMAX_STEPS, when: n => n.properties.engine === "minimax_h3" },
+        { k: "lora", w: "style H3 (LoRA)", label: "Style H3 (LoRA)", type: "select", values: H3_STYLE_LORAS, when: n => n.properties.engine === "minimax_h3" },
+        { k: "seed", w: "seed (0=auto)", label: "Seed (0 = auto)", type: "number" }
+      ]
+    },
+    "adv/final_video": {
+      label: "Vidéo finale", tech: "animatic", grad: ["#1d2a55", "#0d1430"], video: true, model: "—",
+      meta: n => `Animatic · ${tr("cuts francs")} · ${tr(n.properties.audio ? "audio natif" : "muet")}`,
+      fields: [{ k: "audio", w: "audio", label: "Piste audio", type: "toggle" }]
+    },
+    "adv/r2v": {
+      label: "Reference2Video", tech: "r2v", grad: ["#1d2a55", "#0d1430"], video: true, model: "Minimax H3",
+      subject: "brief", preview: "brief",
+      meta: n => {
+        const [w, h] = window.Engine.computeMPResolution(parseFloat(n.properties.mp), n.properties.ratio, window.Engine.mpUnitForEngine(n.properties.engine));
+        return `Minimax H3 r2v · ${w}×${h} · ${n.properties.duration} s · ${n.properties.turbo ? "turbo 8" : "20"} ${tr("steps")}`;
+      },
+      fields: [
+        { k: "brief", w: "brief", label: "Brief", type: "textarea", enhance: ENHANCE.r2vBrief },
+        { k: "ratio", w: "ratio", label: "Ratio", type: "select", values: () => RATIOS },
+        { k: "mp", w: "mégapixels", label: "Mégapixels", type: "select", values: MP_OPTIONS },
+        { k: "duration", w: "durée (s)", label: "Durée (s)", type: "number", min: 1, max: 10 },
+        // Pas de champ "engine" sur cette carte (toujours Minimax H3) : turbo et style
+        // (LoRA) restent INCONDITIONNELS, contrairement à simple/video et adv/cutvideo.
+        { k: "turbo", w: "turbo (8 steps)", label: "Turbo (8 steps)", type: "toggle" },
+        { k: "lora", w: "style H3 (LoRA)", label: "Style H3 (LoRA)", type: "select", values: H3_STYLE_LORAS },
+        { k: "seed", w: "seed (0=auto)", label: "Seed (0 = auto)", type: "number" },
+        // Lot 5 : 3ᵉ famille de références du nœud Minimax H3 (ref_audios, audio AUTONOME).
+        // Images et vidéos de référence arrivent par les slots dynamiques de la carte ;
+        // l'audio seul n'a aucune carte source dans le canvas → fichier local.
+        { k: "refAudios", label: "Audios de référence (max 3)", type: "audiofiles" }
+      ]
+    },
+    "simple/krea2": {
+      label: "Krea 2", tech: "krea2", grad: ["#fdf1dd", "#e8cf9f"], model: "Krea 2 Turbo",
+      subject: "prompt", preview: "prompt",
+      meta: n => {
+        // Unité TOUJOURS 32 : pas de champ "engine" sur cette carte (même raisonnement que
+        // adv/r2v) — résolution live via computeMPResolution, plus figée par ratio seul.
+        // `|| 1` : même repli que l'ancien code de résolution par ratio fixe avant ce lot, pour un
+        // nœud sans `properties.mp` (mp="1" est sinon toujours posé par le constructeur).
+        const [w, h] = window.Engine.computeMPResolution(parseFloat(n.properties.mp) || 1, n.properties.ratio, 32);
+        const lora = n.properties.lora && KREA2_LORAS().find(([f]) => f === n.properties.lora);
+        return lora ? `Krea 2 Turbo · ${w}×${h} · LoRA: ${lora[1]}` : `Krea 2 Turbo · ${w}×${h}`;
+      },
+      fields: [
+        { k: "prompt", w: "prompt", label: "Prompt", type: "textarea", enhance: ENHANCE.krea2Prompt },
+        { k: "ratio", w: "ratio", label: "Ratio", type: "select", values: () => RATIOS },
+        { k: "mp", w: "mégapixels", label: "Mégapixels", type: "select", values: MP_OPTIONS },
+        { k: "lora", w: "style (LoRA)", label: "Style (LoRA)", type: "select", values: KREA2_LORAS }
+      ]
+    },
+    "simple/qwen_edit": {
+      label: "Qwen-Edit", tech: "qwen_edit", grad: ["#fdf1dd", "#e8cf9f"], model: "Qwen-Edit 2509",
+      subject: "instruction", preview: "instruction",
+      meta: () => "Qwen-Edit 2509 · 1024×1024",
+      fields: [{ k: "instruction", w: "instruction", label: "Instruction d'édition", type: "textarea", enhance: ENHANCE.qwenInstruction }]
+    },
+    "simple/video": {
+      label: "Vidéo", tech: "video", grad: ["#1d2a55", "#0d1430"], video: true,
+      // Seul type à réellement offrir un choix de modèle (widget "moteur" de nodes-simple.js).
+      modelProp: "engine", modelWidget: "moteur",
+      modelValues: [["ltx25", "LTX 2.5"], ["minimax_h3", "Minimax H3"]],
+      meta: n => {
+        const unit = window.Engine.mpUnitForEngine(n.properties.engine);
+        const [w, h] = window.Engine.computeMPResolution(parseFloat(n.properties.mp), n.properties.ratio, unit);
+        return `${n.properties.engine === "minimax_h3" ? "Minimax H3" : "LTX 2.5"} · ${w}×${h} · ${n.properties.duration} s`;
+      },
+      fields: [
+        { k: "engine", w: "moteur", label: "Moteur", type: "select", values: () => [["ltx25", "LTX 2.5"], ["minimax_h3", "Minimax H3"]] },
+        // `enhance` est ici une FONCTION (et non une chaîne) : sous LTX 2.5 elle renvoie
+        // null, donc aucun bouton « Enrichir » — ce moteur enrichit déjà côté serveur via
+        // `TextGenerateLTX2Prompt` (cfg 1, à ne jamais retirer du graphe), un second passage
+        // client serait redondant. Actif pour Minimax H3 seul.
+        { k: "prompt", label: "Prompt (mouvement)", type: "textarea", enhance: n => n.properties.engine === "minimax_h3" ? ENHANCE.videoPrompt : null },
+        // Le négatif n'est réellement encodé que par LTX 2.5 ({{NEGATIVE_PROMPT}} du template) ;
+        // Minimax H3 n'a pas ce placeholder, la valeur y est simplement sans effet.
+        // Pas d'`enhance` ici : les 2 system prompts vidéo interdisent explicitement de
+        // produire un négatif, il n'y a donc rien à enrichir sur ce champ.
+        { k: "negative", label: "Prompt négatif (LTX 2.5)", type: "textarea" },
+        { k: "ratio", w: "ratio", label: "Ratio", type: "select", values: () => RATIOS },
+        { k: "mp", w: "mégapixels", label: "Mégapixels", type: "select", values: MP_OPTIONS },
+        { k: "duration", w: "durée (s)", label: "Durée (s)", type: "number", min: 1, max: 10 },
+        // turbo/steps/style (LoRA) : LTX 2.5 n'a structurellement aucun LoraLoaderModelOnly
+        // dans ses templates — masqués hors Minimax H3 (showProps, champ `when`).
+        { k: "turbo", w: "turbo (LoRA)", label: "Turbo LoRA (Minimax H3)", type: "toggle", when: n => n.properties.engine === "minimax_h3" },
+        { k: "steps", w: "steps", label: "Steps (Minimax H3 turbo)", type: "select", values: () => MINIMAX_STEPS, when: n => n.properties.engine === "minimax_h3" },
+        { k: "lora", w: "style H3 (LoRA)", label: "Style H3 (LoRA)", type: "select", values: H3_STYLE_LORAS, when: n => n.properties.engine === "minimax_h3" }
+      ]
+    },
+    // Fichier LOCAL importé (image ou vidéo) uploadé dans l'input ComfyUI par
+    // ImportNode.importFile — la carte devient une source connectable comme une autre.
+    "simple/import": {
+      label: "Import média", tech: "import", grad: ["#eef1f6", "#d5dbe6"], model: "—",
+      meta: n => n.properties.filename || tr("aucun fichier"),
+      fields: [
+        { k: "kind", label: "Type de média", type: "select", values: () => [["image", "Image"], ["video", "Vidéo"]] },
+        { k: "file", label: "Fichier local", type: "file" }
+      ]
+    },
+    "media/preview": {
+      label: "Média", tech: "preview", grad: ["#eef1f6", "#d5dbe6"], model: "—",
+      meta: n => (n.properties.src || "").split("/").pop() || tr("aucun média"),
+      fields: []
+    },
+    "test/note": {
+      label: "Note", tech: "note", grad: ["#eef1f6", "#d5dbe6"], model: "—",
+      subject: "text", preview: "text",
+      meta: () => tr("note libre"),
+      fields: [{ k: "text", w: "texte", label: "Texte", type: "textarea" }]
+    }
+  };
+  // Ordre affiché dans le sélecteur Pipeline (les 9 types de génération réels).
+  const PIPELINE_ORDER = [
+    "adv/charsheet", "adv/locsheet", "adv/storyboard", "adv/cutvideo", "adv/final_video", "adv/r2v",
+    "simple/krea2", "simple/qwen_edit", "simple/video", "simple/import"
+  ];
+  // Classification Image/Vidéo du bascule de #advBlock : SEULE table de vérité, consultée
+  // par applyPipelineCategory() pour filtrer PIPELINE_ORDER. `simple/import` figure dans
+  // les deux (carte utilitaire, ni image ni vidéo — source pour l'un ou l'autre).
+  const PIPELINE_CATEGORIES = {
+    image: ["simple/krea2", "simple/qwen_edit", "simple/import"],
+    video: ["simple/video", "adv/charsheet", "adv/locsheet", "adv/storyboard", "adv/cutvideo", "adv/final_video", "adv/r2v", "simple/import"]
+  };
+  const STATUS_COLOR = { idle: "#94a3b8", running: "#c98a1b", error: "#c0392b", done: "#2a7d2a" };
+  const skin = n => CARDS[n.type] || CARDS["test/note"];
+
+  // ── Couleurs des cartes DESSINÉES au canvas ────────────────────────────────
+  // Pendant canvas du bloc `:root` / `:root[data-theme="dark"]` de la feuille de style :
+  // le contexte 2D ne lit pas les variables CSS, ces couleurs doivent donc exister en JS.
+  // L'entrée `light` reprend À L'IDENTIQUE les littéraux qui étaient en dur dans les
+  // fonctions de dessin ci-dessous — le thème clair est bit-à-bit inchangé.
+  // Lues via TC() À CHAQUE FRAME (même principe que tr() pour l'i18n) : un changement de
+  // THEME se voit dès le repeint suivant, sans mécanisme de redraw par couleur.
+  const THEME_COLORS = {
+    light: {
+      titleBar: "#ffffff", titleBarSel: "#343ced",              // onDrawTitleBar : fond d'en-tête
+      titleRule: "#e3e8ef", titleRuleSel: "rgba(255,255,255,.35)", // onDrawTitleBar : filet bas
+      statusDot: "#94a3b8",                                     // onDrawTitleBox : pastille par défaut (idle)
+      tech: "#94a3b8", techSel: "rgba(255,255,255,.75)",        // onDrawTitle : type technique
+      mediaBed: "#0e1524",                                      // onDrawBackground : lit du média généré
+      footer: "#ffffff", footerRule: "#e3e8ef", footerText: "#94a3b8",
+      selHalo: "rgba(52,60,237,.12)", selBorder: "#343ced", selHandleStroke: "#ffffff",
+      emptyMedia: "#000",                                       // MediaNode.onDrawBackground : corps vide
+      // Reversés dans les globales litegraph par applyCanvasTheme()
+      nodeBg: "#ffffff",           // NODE_DEFAULT_BGCOLOR : corps + coins arrondis de la carte
+      nodeFg: "#ffffff",           // NODE_DEFAULT_COLOR : bordure + repli d'en-tête
+      nodeTitle: "#6b778c",        // titre de carte non sélectionnée
+      nodeTitleSel: "#ffffff",     // titre de carte sélectionnée (sur en-tête brand)
+      shadow: "rgba(15,23,42,.14)",
+      link: "#343ced", slotOff: "#c8cede",
+      stage: "#f7f8fb", dot: "#dfe4ec"                          // grille de points du fond
+    },
+    // Mêmes rôles, luminosité inversée. Le bleu d'accent est le `--brand` sombre du CSS
+    // (#5a63f5), pour que l'en-tête d'une carte sélectionnée et la bordure de sélection
+    // restent le MÊME bleu que les boutons du panneau. `stage`/`dot` doivent rester
+    // synchronisés avec les tokens --stage / --dot (fond CSS de repli de #stage).
+    dark: {
+      titleBar: "#1b1f2b", titleBarSel: "#5a63f5",
+      titleRule: "#2c3244", titleRuleSel: "rgba(255,255,255,.35)",
+      statusDot: "#94a3b8",
+      tech: "#8b98ad", techSel: "rgba(255,255,255,.75)",
+      mediaBed: "#0b0e16",
+      footer: "#1b1f2b", footerRule: "#2c3244", footerText: "#8b98ad",
+      selHalo: "rgba(90,99,245,.22)", selBorder: "#5a63f5", selHandleStroke: "#12141c",
+      emptyMedia: "#000",
+      nodeBg: "#1b1f2b",
+      nodeFg: "#1b1f2b",
+      nodeTitle: "#c8d2e4",
+      nodeTitleSel: "#ffffff",
+      shadow: "rgba(0,0,0,.55)",
+      link: "#5a63f5", slotOff: "#4a5570",
+      stage: "#0d0f16", dot: "#2b3346"
+    }
+  };
+  const TC = () => THEME_COLORS[THEME];
+
+  // Fond : grille de points, peinte par litegraph (donc solidaire du pan/zoom).
+  // `background_image` attend une image tuilable → on la fabrique en 22×22 px.
+  // Paramétrée par thème depuis le lot « thème sombre » (était une IIFE à couleurs fixes).
+  function makeDotGrid(theme) {
+    const t = THEME_COLORS[theme];
+    const c = document.createElement("canvas");
+    c.width = c.height = 22;
+    const g = c.getContext("2d");
+    g.fillStyle = t.stage; g.fillRect(0, 0, 22, 22);
+    g.fillStyle = t.dot; g.beginPath(); g.arc(1, 1, 1, 0, Math.PI * 2); g.fill();
+    return c.toDataURL("image/png");
+  }
+
+  // Reverse le thème courant dans tout ce que litegraph lit ailleurs que dans nos
+  // fonctions de dessin (globales LiteGraph.* + propriétés de l'instance LGraphCanvas).
+  // Toutes sont relues à chaque frame par litegraph : les réécrire suffit, il n'y a
+  // rien à reconstruire. Appelée par applyTheme() — donc APRÈS `const lgcanvas`.
+  function applyCanvasTheme() {
+    const t = TC();
+    LiteGraph.NODE_DEFAULT_COLOR = t.nodeFg;      // fgcolor : bordure + repli d'en-tête
+    LiteGraph.NODE_DEFAULT_BGCOLOR = t.nodeBg;    // corps de carte
+    LiteGraph.NODE_TITLE_COLOR = t.nodeTitle;
+    LiteGraph.NODE_SELECTED_TITLE_COLOR = t.nodeTitleSel;
+    LiteGraph.NODE_TEXT_COLOR = t.nodeTitle;
+    LiteGraph.NODE_BOX_OUTLINE_COLOR = t.selBorder;  // marqueur de sélection natif
+    LiteGraph.DEFAULT_SHADOW_COLOR = t.shadow;
+    LiteGraph.LINK_COLOR = t.link;
+    lgcanvas.node_title_color = t.nodeTitle;         // priorité sur NODE_TITLE_COLOR (copié au constructeur)
+    lgcanvas.default_link_color = t.link;
+    lgcanvas.default_connection_color = { input_off: t.slotOff, input_on: t.link,
+                                          output_off: t.slotOff, output_on: t.link };
+    lgcanvas.clear_background_color = t.stage;
+    lgcanvas.background_image = makeDotGrid(THEME);
+    // litegraph met en cache le CanvasPattern dans `_pattern` et ne le reconstruit QUE
+    // s'il vaut null (`if (this._pattern == null && this._bg_img.width > 0)`). Sans cette
+    // invalidation la grille de l'ANCIEN thème resterait peinte — c'est le même piège que
+    // celui déjà rencontré au chargement initial (le constructeur de LGraphCanvas a déjà
+    // rendu une frame avec la grille sombre par défaut de la lib). Il s'applique donc à
+    // CHAQUE bascule de thème, pas seulement au démarrage.
+    lgcanvas._pattern = null;
+    lgcanvas._bg_img = null;
+  }
+
+  // Les widgets litegraph ne sont plus PEINTS ni CLIQUÉS sur la carte : la maquette
+  // impose un corps « en-tête / vignette / pied », et l'édition des champs passe
+  // désormais par le panneau de propriétés à droite. Les widgets restent déclarés
+  // (nodes-simple.js / nodes-advanced.js intouchés) et leurs valeurs restent
+  // synchronisées avec node.properties par le panneau.
+  LGraphCanvas.prototype.drawNodeWidgets = function () {};
+  LGraphCanvas.prototype.processNodeWidgets = function () { return null; };
+
+  // ── Peinture d'une carte ───────────────────────────────────────────────────
+  function shorten(ctx, text, max) {
+    let t = String(text || "");
+    if (ctx.measureText(t).width <= max) return t;
+    while (t.length > 1 && ctx.measureText(t + "…").width > max) t = t.slice(0, -1);
+    return t + "…";
+  }
+  // En-tête : fond blanc (brand quand sélectionné) + filet bas. Remplace le remplissage
+  // par node.color, que setStatus() colore en rouge/vert/orange — l'état reste lisible
+  // via la pastille discrète de onDrawTitleBox et la ligne du pied de carte.
+  function onDrawTitleBar(ctx, titleHeight, size) {
+    const t = TC();
+    ctx.beginPath();
+    ctx.roundRect(0, -titleHeight, size[0] + 1, titleHeight, [14, 14, 0, 0]);
+    ctx.fillStyle = this.is_selected ? t.titleBarSel : t.titleBar;
+    ctx.fill();
+    ctx.fillStyle = this.is_selected ? t.titleRuleSel : t.titleRule;
+    ctx.fillRect(0, -1, size[0] + 1, 1);
+  }
+  // Pastille d'état (idle/running/error/done) : 7 px au lieu du gros carré par défaut.
+  function onDrawTitleBox(ctx, titleHeight) {
+    ctx.beginPath();
+    ctx.arc(titleHeight * 0.5, titleHeight * -0.5, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = this.boxcolor || TC().statusDot;
+    ctx.fill();
+  }
+  // Type technique, aligné à droite dans l'en-tête (ex. "charsheet").
+  function onDrawTitle(ctx) {
+    const s = skin(this), t = TC();
+    ctx.save();
+    ctx.font = "600 10.5px 'DM Sans', Inter, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillStyle = this.is_selected ? t.techSel : t.tech;
+    ctx.fillText(s.tech, this.size[0] - 12, -10);
+    ctx.restore();
+  }
+  // Corps : vignette dégradée par type tant qu'aucun résultat n'est généré ; une fois
+  // le résultat là, l'overlay média DOM (mécanisme du Lot 1) recouvre exactement cette zone.
+  function onDrawBackground(ctx) {
+    if (this.flags.collapsed) return;
+    const s = skin(this), t = TC(), w = this.size[0], h = this.size[1], bh = h - FOOTER_H;
+    if (this.properties && this.properties.src) {
+      ctx.fillStyle = t.mediaBed;
+      ctx.fillRect(0, 0, w, bh);
+    } else {
+      const g = ctx.createLinearGradient(0, 0, w, bh);
+      g.addColorStop(0, s.grad[0]); g.addColorStop(1, s.grad[1]);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, bh);
+      if (s.video) {   // pictogramme ▶ centré pour les cartes vidéo
+        ctx.fillStyle = "rgba(255,255,255,.85)";
+        ctx.beginPath();
+        const cx = w / 2, cy = bh / 2, r = 13;
+        ctx.moveTo(cx - r * 0.55, cy - r); ctx.lineTo(cx + r * 0.9, cy); ctx.lineTo(cx - r * 0.55, cy + r);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+    // Pied de carte
+    ctx.fillStyle = t.footer;
+    ctx.fillRect(0, bh, w, FOOTER_H);
+    ctx.fillStyle = t.footerRule;
+    ctx.fillRect(0, bh, w, 1);
+    ctx.font = "10.5px 'DM Sans', Inter, sans-serif";
+    ctx.textAlign = "left";
+    const running = this.status === "running" || this.status === "error";
+    ctx.fillStyle = running ? STATUS_COLOR[this.status] : t.footerText;
+    ctx.fillText(shorten(ctx, running ? this.statusMsg : s.meta(this), w - 24), 12, bh + 15);
+    // Barre de progression alimentée par le WebSocket ComfyUI (Engine.registerJob,
+    // js/engine.js) — `node.progress` (0-100) pendant qu'un job tourne, `null` sinon.
+    if (this.status === "running" && typeof this.progress === "number") {
+      ctx.fillStyle = STATUS_COLOR.running;
+      ctx.fillRect(12, bh + 19, (w - 24) * Math.max(0, Math.min(100, this.progress)) / 100, 3);
+    }
+  }
+  // ── Bouton « + » sur les entrées LIBRES qui acceptent un média externe ─────
+  // Les widgets litegraph ne sont ni peints ni cliquables (drawNodeWidgets neutralisé
+  // plus haut) : le bouton est donc DESSINÉ dans onDrawForeground (repère local du nœud,
+  // origine = coin haut-gauche du corps) et détecté dans LGraphNode.onMouseDown, que
+  // litegraph 0.7.18 appelle avec `local = [canvasX - pos[0], canvasY - pos[1]]` — et
+  // seulement quand le clic n'est PAS tombé dans la boîte de slot (30×20 centrée sur
+  // getConnectionPos, soit x ∈ [-5, 25] pour un connecteur d'entrée à x=10 ; vérifié dans
+  // la source minifiée : le test des slots précède l'appel à node.onMouseDown, qui bloque
+  // le drag du nœud quand il renvoie true). D'où PLUS_X = 34 : hors de la boîte de slot,
+  // et DANS le corps de la carte (litegraph ne cherche le nœud que sur sa boîte englobante).
+  // Le bouton reste dans la bande libre laissée par overlayTopMargin() : jamais recouvert
+  // par l'overlay média DOM.
+  const PLUS_X = 34, PLUS_R = 9;
+  const ADV = window.__advancedNodes;
+  // type de carte → { nom du slot d'entrée : type de carte Import à créer derrière }
+  const PLUS_INPUTS = {
+    "simple/video": { image: "image" },
+    "simple/qwen_edit": { image: "image" },
+    // Slots DYNAMIQUES (autogrow) : le « + » se pose naturellement sur le slot libre du
+    // groupe, puisqu'il n'y en a qu'un à la fois (growSlots de js/nodes-advanced.js).
+    "adv/r2v": { [ADV.SLOT_IMG_REF]: "image", [ADV.SLOT_VID_REF]: "video" }
+  };
+  function plusSlots(node) {
+    const map = PLUS_INPUTS[node.type];
+    if (!map || node.flags.collapsed) return [];
+    return (node.inputs || [])
+      .map((s, i) => ({ i, kind: map[s.name] }))
+      .filter(s => s.kind && node.inputs[s.i].link == null);
+  }
+  // Centre du bouton, en coordonnées locales : même rang que le connecteur d'entrée.
+  function plusPos(node, i) {
+    return [PLUS_X, node.getConnectionPos(true, i)[1] - node.pos[1]];
+  }
+  function drawPlusButtons(node, ctx) {
+    const slots = plusSlots(node);
+    if (!slots.length) return;
+    ctx.save();   // même hygiène que onDrawForeground : le ctx est partagé par tous les nœuds
+    for (const s of slots) {
+      const [x, y] = plusPos(node, s.i);
+      ctx.beginPath(); ctx.arc(x, y, PLUS_R, 0, Math.PI * 2);
+      ctx.fillStyle = TC().selBorder; ctx.fill();
+      ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(x - 4, y); ctx.lineTo(x + 4, y);
+      ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 4);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function onMouseDownPlus(e, local) {
+    for (const s of plusSlots(this)) {
+      const [x, y] = plusPos(this, s.i);
+      if (Math.hypot(local[0] - x, local[1] - y) <= PLUS_R) {
+        addImportCard(s.kind, this, s.i);   // MÊME fonction que la pose depuis la palette
+        return true;                        // true ⇒ litegraph ne démarre pas le drag du nœud
+      }
+    }
+    return false;
+  }
+
+  // Sélection : bordure 2 px brand + halo + 4 poignées rondes aux coins.
+  function onDrawForeground(ctx) {
+    drawPlusButtons(this, ctx);
+    if (!this.is_selected || this.flags.collapsed) return;
+    const w = this.size[0], h = this.size[1], t = LiteGraph.NODE_TITLE_HEIGHT, c = TC();
+    ctx.save();
+    ctx.beginPath(); ctx.roundRect(-2, -t - 2, w + 4, h + t + 4, [16]);
+    ctx.lineWidth = 4; ctx.strokeStyle = c.selHalo; ctx.stroke();
+    ctx.beginPath(); ctx.roundRect(0, -t, w, h + t, [14]);
+    ctx.lineWidth = 2; ctx.strokeStyle = c.selBorder; ctx.stroke();
+    for (const [x, y] of [[0, -t], [w, -t], [0, h], [w, h]]) {
+      ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = c.selBorder; ctx.fill();
+      // Liseré des poignées : la couleur du FOND de scène, pour qu'elles se détachent
+      // du canvas dans les deux thèmes (blanc sur fond clair, presque noir sur sombre).
+      ctx.lineWidth = 2; ctx.strokeStyle = c.selHandleStroke; ctx.stroke();
+    }
+    ctx.restore();
+  }
+  // Appelée par litegraph à CHAQUE frame de rendu : `tr()` y est donc évaluée au moment
+  // du dessin, et un changement de LANG se voit à la frame suivante sans redraw dédié.
+  function getTitle() {
+    const s = skin(this);
+    const subj = s.subject ? String(this.properties[s.subject] || "").trim() : "";
+    return tr(s.label) + (subj ? " — " + shortWords(subj) : "");
+  }
+  function shortWords(t) { return t.length <= 22 ? t : t.slice(0, 22).trim() + "…"; }
+
+  // Applique l'habillage au prototype de chaque type enregistré. Purement additif :
+  // aucun `generate`, `upstreamFile` ou hook réseau n'est remplacé.
+  for (const type of Object.keys(CARDS)) {
+    const Ctor = LiteGraph.registered_node_types[type];
+    if (!Ctor) continue;
+    Ctor.prototype.onDrawTitleBar = onDrawTitleBar;
+    Ctor.prototype.onDrawTitleBox = onDrawTitleBox;
+    Ctor.prototype.onDrawTitle = onDrawTitle;
+    Ctor.prototype.onDrawBackground = onDrawBackground;   // remplace le corps noir + statut du Lot 2/3
+    Ctor.prototype.onDrawForeground = onDrawForeground;
+    Ctor.prototype.getTitle = getTitle;
+    if (PLUS_INPUTS[type]) Ctor.prototype.onMouseDown = onMouseDownPlus;
+  }
+  // Les libellés de slots ("image", "charsheet"…) ne sont pas dans la maquette :
+  // `slot.label = ""` suffit à les masquer (litegraph n'affiche rien si le texte est vide),
+  // les connexions continuent de fonctionner sur `slot.name`.
+  function hideSlotLabels(node) {
+    for (const s of (node.inputs || [])) s.label = "";
+    for (const s of (node.outputs || [])) s.label = "";
+  }
+
+  // ── Graphe + canvas ──────────────────────────────────────────────────────
+  const graph = new LGraph();
+  const lgcanvas = new LGraphCanvas(canvasEl, graph);
+
+  // Tout ce qui dépend du thème (fond + grille de points, couleurs de nœuds, liens,
+  // connecteurs) est posé par applyCanvasTheme() — rappelée telle quelle à chaque
+  // bascule par applyTheme(). Ce qui suit est indépendant du thème (géométrie, polices).
+  applyCanvasTheme();
+  lgcanvas.render_canvas_border = false;
+  lgcanvas.show_info = false;   // masque le compteur FPS/nœuds du coin bas-gauche
+  lgcanvas.round_radius = 14;
+  lgcanvas.title_text_font = "700 12px 'DM Sans', Inter, sans-serif";
+  lgcanvas.inner_text_font = "11px 'DM Sans', Inter, sans-serif";
+  // Connexions : courbes bleu brand, 2 px, flèches + pastille d'ancrage — options natives
+  // de litegraph.js@0.7.18 (LGraphCanvas: links_render_mode / default_link_color /
+  // connections_width / render_connection_arrows / render_curved_connections /
+  // render_connections_border).
+  lgcanvas.links_render_mode = LiteGraph.SPLINE_LINK;
+  lgcanvas.connections_width = 2;
+  lgcanvas.render_connection_arrows = true;
+  lgcanvas.render_curved_connections = true;   // oriente les flèches le long de la spline
+  lgcanvas.render_connections_border = false;  // supprime le liseré noir (thème sombre d'origine)
+
+  function resize() {
+    const r = canvasEl.parentElement.getBoundingClientRect();
+    canvasEl.width = r.width; canvasEl.height = r.height;
+    lgcanvas.resize();
+  }
+  window.addEventListener("resize", resize);
+  resize();
+  graph.start();
+
+  // ── Synchronisation des overlays DOM avec la vue litegraph ───────────────
+  // Coordonnées écran = (position graphe + ds.offset) * ds.scale — la même
+  // transformation que litegraph applique au ctx. `scale()` sur l'overlay fait
+  // grandir/rétrécir la vidéo ET ses contrôles exactement comme le nœud dessiné.
+  // La hauteur est réduite de FOOTER_H pour laisser apparaître le pied de carte
+  // (métadonnées) peint sur le canvas, et l'overlay est décalé de OVERLAY_TOP_MARGIN vers
+  // le bas (hauteur réduite d'autant) pour laisser une bande libre sous le titre où les
+  // connecteurs d'entrée/sortie dessinés par litegraph restent visibles et cliquables —
+  // sans quoi l'overlay (pointer-events:auto) les recouvre dès qu'un résultat est généré.
+  function syncOverlays() {
+    const ds = lgcanvas.ds, s = ds.scale, ox = ds.offset[0], oy = ds.offset[1];
+    for (const node of graph._nodes) {
+      const box = node.overlay;
+      if (!box) continue;
+      // Tant qu'aucun résultat n'est généré (`src` vide) l'overlay est masqué : c'est la
+      // vignette dégradée peinte sur le canvas qui occupe la zone. Dès que generate()
+      // pose `src` et rappelle buildOverlay(), l'overlay reprend exactement sa place.
+      if (node.flags.collapsed || !(node.properties && node.properties.src)) {
+        box.style.display = "none"; continue;
+      }
+      box.style.display = "";
+      const top = overlayTopMargin(node);
+      box.style.width = node.size[0] + "px";
+      box.style.height = Math.max(0, node.size[1] - FOOTER_H - top) + "px";
+      box.style.transform =
+        "translate(" + ((node.pos[0] + ox) * s) + "px," + ((node.pos[1] + top + oy) * s) + "px) scale(" + s + ")";
+    }
+    if (selected) updateLiveProps();
+    requestAnimationFrame(syncOverlays);
+  }
+  requestAnimationFrame(syncOverlays);
+
+  // ── Persistance localStorage ─────────────────────────────────────────────
+  function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(graph.serialize())); }
+  graph.onNodeAdded = function (n) { hideSlotLabels(n); save(); };
+  graph.onNodeRemoved = save;
+  graph.onConnectionChange = save;
+  lgcanvas.onNodeMoved = save;
+  // Déplacement/redimensionnement/édition de widget : un relâchement de souris suffit.
+  canvasEl.addEventListener("mouseup", save);
+
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) graph.configure(JSON.parse(saved));
+  graph._nodes.forEach(hideSlotLabels);
+
+  // ── Palette ──────────────────────────────────────────────────────────────
+  // Placement automatique des nouvelles cartes (bouton "+ Nouvelle carte", pos absent) :
+  // grille simple à AUTO_GRID_COLS colonnes, pas basé sur la taille RÉELLE de chaque carte
+  // (n.size, 320-360px selon le type — cf. js/nodes-simple.js / js/nodes-advanced.js), pour
+  // éviter le recouvrement quasi total qu'un décalage fixe (40×30px) produisait auparavant.
+  // Départ à x=300 (graphe = écran à l'ouverture, offset/scale par défaut) : au-delà du bord
+  // droit du panneau flottant gauche #palette (left:18px, width:230px → bord droit ~248px
+  // écran), pour que la 1ʳᵉ carte ne soit pas posée sous ce panneau (position:fixed, par-dessus
+  // le canvas) avec ses connecteurs masqués/inaccessibles au clic.
+  const AUTO_GRID_COLS = 2;
+  const AUTO_GRID_START_X = 300;
+  const AUTO_GRID_START_Y = 60;
+  const AUTO_GRID_GAP = 30;
+  let autoPlacedCount = 0;
+  const autoRowMaxH = [];   // hauteur max déjà vue par ligne de grille, pour ne pas chevaucher une ligne de cartes plus hautes
+
+  function nextAutoPos(n) {
+    const idx = autoPlacedCount++;
+    const col = idx % AUTO_GRID_COLS;
+    const row = Math.floor(idx / AUTO_GRID_COLS);
+    let y = AUTO_GRID_START_Y;
+    for (let r = 0; r < row; r++) y += (autoRowMaxH[r] || 0) + AUTO_GRID_GAP;
+    autoRowMaxH[row] = Math.max(autoRowMaxH[row] || 0, n.size[1]);
+    return [AUTO_GRID_START_X + col * (n.size[0] + AUTO_GRID_GAP), y];
+  }
+
+  function addNode(type, pos, props) {
+    const n = LiteGraph.createNode(type);
+    n.pos = pos || nextAutoPos(n);
+    if (props) Object.assign(n.properties, props);
+    graph.add(n);
+    if (props && n.buildOverlay) n.buildOverlay();
+    save();
+    return n;
+  }
+
+  // LE point unique de création d'une carte « Import média », câblage compris : appelé
+  // par la palette (« + Nouvelle carte », sans cible) ET par le bouton « + » des entrées
+  // libres (avec cible + slot). C'est le SEUL endroit du projet qui fasse « créer le nœud
+  // puis le connecter » — il n'existe pas de second chemin.
+  function addImportCard(kind, target, slot) {
+    const n = addNode("simple/import", target ? [target.pos[0] - 380, target.pos[1] + 40 * slot] : null, { kind });
+    if (target) n.connect(0, target, slot);
+    // Sélection de la nouvelle carte, pour que le panneau de droite ouvre aussitôt son
+    // sélecteur de fichier. Reportée d'un tick quand elle vient du bouton « + » :
+    // litegraph sélectionne le nœud CLIQUÉ juste APRÈS le hook onMouseDown
+    // (`v ? q.is_selected || processNodeSelected(q, e) : …`, litegraph.min.js), ce qui
+    // écraserait une sélection posée maintenant.
+    const select = () => { lgcanvas.selectNode(n); lgcanvas.onSelectionChange(lgcanvas.selected_nodes); };
+    target ? setTimeout(select, 0) : select();
+    save();
+    return n;
+  }
+
+  // Écrit une propriété du nœud ET synchronise le widget homonyme (les widgets ne sont
+  // plus dessinés mais restent la source des `widgets_values` sérialisés).
+  function setProp(node, key, widgetName, value) {
+    node.properties[key] = value;
+    if (widgetName && node.widgets) {
+      const w = node.widgets.find(x => x.name === widgetName);
+      if (w) w.value = value;
+    }
+    node.setDirtyCanvas(true, true);
+    save();
+  }
+
+  const pipelineSelect = document.getElementById("pipelineSelect");
+  const modelSelect = document.getElementById("modelSelect");
+  const advCatImage = document.getElementById("advCatImage");
+  const advCatVideo = document.getElementById("advCatVideo");
+  // Le sélecteur « Modèle » n'est actif que pour les types offrant réellement un choix
+  // (seul `simple/video` en a un : widget "moteur" → LTX 2.5 / Minimax H3). Pour les
+  // autres il affiche le modèle imposé par le pipeline, désactivé.
+  function refreshModelSelect() {
+    const s = CARDS[pipelineSelect.value];
+    modelSelect.innerHTML = "";
+    if (s.modelValues) {
+      modelSelect.disabled = false;
+      for (const [v, lab] of s.modelValues) {
+        const o = document.createElement("option"); o.value = v; o.textContent = lab;
+        modelSelect.appendChild(o);
+      }
+    } else {
+      modelSelect.disabled = true;
+      const o = document.createElement("option"); o.textContent = s.model;
+      modelSelect.appendChild(o);
+    }
+  }
+  pipelineSelect.onchange = refreshModelSelect;
+  // Repeuple #pipelineSelect avec les seuls types de `cat` (ordre PIPELINE_ORDER préservé),
+  // le premier de la liste se retrouve sélectionné (comportement natif d'un <select> qu'on
+  // vient de repeupler sans marquer explicitement d'option "selected"), et cascade vers
+  // #modelSelect — même chaîne que le changement manuel de pipeline. `translateTree` (déjà
+  // utilisée ailleurs sur `document.body`, ici bornée à `pipelineSelect`) traduit les
+  // libellés fraîchement injectés si la langue courante n'est pas le français : les options
+  // sont créées en français, comme le fait CARDS[type].label partout ailleurs, jamais avec
+  // un `tr()` posé à la création (qui casserait le mécanisme `node.__orig` pour un futur
+  // changement de langue — cf. commentaire de translateTree()).
+  function applyPipelineCategory(cat) {
+    pipelineSelect.innerHTML = "";
+    for (const type of PIPELINE_ORDER) {
+      if (!PIPELINE_CATEGORIES[cat].includes(type)) continue;
+      const o = document.createElement("option");
+      o.value = type; o.textContent = CARDS[type].label;
+      pipelineSelect.appendChild(o);
+    }
+    translateTree(pipelineSelect);
+    advCatImage.classList.toggle("open", cat === "image");
+    advCatVideo.classList.toggle("open", cat === "video");
+    refreshModelSelect();
+  }
+  advCatImage.onclick = () => applyPipelineCategory("image");
+  advCatVideo.onclick = () => applyPipelineCategory("video");
+  applyPipelineCategory("image");
+
+  document.getElementById("addCard").onclick = () => {
+    const type = pipelineSelect.value, s = CARDS[type];
+    // Carte Import média : MÊME fonction que le bouton « + » des entrées libres,
+    // simplement appelée sans cible (donc sans câblage).
+    if (type === "simple/import") { addImportCard("image"); return; }
+    const n = addNode(type);
+    if (s.modelValues) setProp(n, s.modelProp, s.modelWidget, modelSelect.value);
+    lgcanvas.selectNode(n);
+    lgcanvas.onSelectionChange(lgcanvas.selected_nodes);
+  };
+
+  // ── Cas d'usage (haut du panneau) ────────────────────────────────────────
+  // Point d'entrée « qu'est-ce que tu veux produire ? » : façade sur addNode(type) — la
+  // MÊME fonction que « + Nouvelle carte ». Aucun placement n'est réimplémenté : les
+  // cartes passent par nextAutoPos() (grille 2 colonnes partagée), donc plusieurs cartes
+  // posées d'un coup tombent côte à côte sans se recouvrir. Les pipelines à plusieurs
+  // cartes (Sheets, Trailer, et Image via addImportCard) les câblent en plus avec de
+  // vraies connexions litegraph (`origine.connect(slotOrigine, cible, slotCible)`, même
+  // pattern que addImportCard) pour que le graphe posé soit déjà prêt à lancer.
+  const advToggle = document.getElementById("advToggle");
+  const advBlock = document.getElementById("advBlock");
+  const advChevron = document.getElementById("advChevron");
+  const ucTeaser = document.getElementById("ucTeaser");
+  const ucTeaserOptions = document.getElementById("ucTeaserOptions");
+
+  function setTeaserOpen(open) {
+    ucTeaserOptions.hidden = !open;
+    ucTeaser.classList.toggle("open", open);
+    ucTeaser.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  // Pose 1..n cartes SANS les câbler, puis sélectionne la dernière, exactement comme
+  // « + Nouvelle carte » (le panneau de propriétés s'ouvre pour la remplir). Ne sert plus
+  // qu'à ucPoster (carte seule, rien à câbler) — les autres cas posent+câblent en propre
+  // ci-dessous, chaque pipeline ayant une topologie différente.
+  function placeCards() {
+    let last = null;
+    for (const type of arguments) last = addNode(type);
+    if (last) { lgcanvas.selectNode(last); lgcanvas.onSelectionChange(lgcanvas.selected_nodes); }
+  }
+
+  document.getElementById("ucPoster").onclick = () => { setTeaserOpen(false); placeCards("simple/krea2"); };
+  ucTeaser.onclick = () => setTeaserOpen(ucTeaserOptions.hidden);
+  // « J'ai déjà une image à animer » : carte Vidéo + carte Import déjà connectée sur son
+  // entrée "image" (slot 0) — addImportCard EST le point unique de pose+câblage d'un
+  // Import, réutilisée telle quelle. On sélectionne la carte Vidéo (à configurer/lancer),
+  // pas la carte Import : addImportCard diffère sa propre sélection d'un tick
+  // (setTimeout 0 — cf. son commentaire, prévu pour survivre au clic litegraph quand elle
+  // vient du bouton « + » d'une entrée) ; ici on n'est pas dans ce contexte mais le délai
+  // s'applique quand même, donc notre sélection de la carte Vidéo doit être enregistrée
+  // APRÈS (même mécanisme, exécuté dans l'ordre d'enregistrement) pour l'emporter.
+  document.getElementById("ucTeaserImage").onclick = () => {
+    const video = addNode("simple/video");
+    addImportCard("image", video, 0);
+    setTimeout(() => { lgcanvas.selectNode(video); lgcanvas.onSelectionChange(lgcanvas.selected_nodes); }, 0);
+  };
+  // « Je pars de fiches Personnage/Décor » : Charsheet + Locsheet → Ref2Video.
+  document.getElementById("ucTeaserSheets").onclick = () => {
+    const charsheet = addNode("adv/charsheet");
+    const locsheet = addNode("adv/locsheet");
+    const r2v = addNode("adv/r2v");
+    charsheet.connect(0, r2v, 0);
+    locsheet.connect(0, r2v, 1);
+    lgcanvas.selectNode(r2v); lgcanvas.onSelectionChange(lgcanvas.selected_nodes);
+  };
+  // Trailer complet : Charsheet + Locsheet → Storyboard → CutVideo → FinalVideo.
+  document.getElementById("ucTrailer").onclick = () => {
+    setTeaserOpen(false);
+    const charsheet = addNode("adv/charsheet");
+    const locsheet = addNode("adv/locsheet");
+    const storyboard = addNode("adv/storyboard");
+    const cutvideo = addNode("adv/cutvideo");
+    const finalVideo = addNode("adv/final_video");
+    charsheet.connect(0, storyboard, 0);
+    locsheet.connect(0, storyboard, 1);
+    storyboard.connect(0, cutvideo, 0);
+    cutvideo.connect(0, finalVideo, 0);
+    lgcanvas.selectNode(finalVideo); lgcanvas.onSelectionChange(lgcanvas.selected_nodes);
+  };
+
+  advToggle.onclick = () => {
+    const open = advBlock.hidden;
+    advBlock.hidden = !open;
+    advChevron.textContent = open ? "▴" : "▾";
+    advToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  };
+
+  document.getElementById("btnFit").onclick = () => {
+    lgcanvas.ds.offset[0] = 0; lgcanvas.ds.offset[1] = 0; lgcanvas.ds.scale = 1;
+    lgcanvas.setDirty(true, true);
+  };
+  document.getElementById("btnClear").onclick = () => {
+    // Confirmation AVANT toute suppression (même pattern que l'app de prod :
+    // `confirm(tr(...))`, texte source en français). Annuler ⇒ rien n'est touché.
+    if (!confirm(tr("Supprimer toutes les cartes du canvas ? Cette action est irréversible."))) return;
+    graph.clear(); mediaLayer.innerHTML = ""; localStorage.removeItem(STORAGE_KEY);
+    showProps(null);
+  };
+
+  // ── Panneau de propriétés (droite) ───────────────────────────────────────
+  // Hook de sélection réel de litegraph.js@0.7.18 : LGraphCanvas.onSelectionChange(sel),
+  // appelé par selectNodes() ET par deselectAllNodes() (clic dans le vide) — voir
+  // build/litegraph.js. onNodeSelected/onNodeDeselected existent aussi mais ne couvrent
+  // pas la désélection multiple d'un seul appel.
+  const propsEl = document.getElementById("props");
+  const fieldsEl = document.getElementById("propsFields");
+  const titleEl = document.getElementById("propsCardTitle");
+  const typeEl = document.getElementById("propsCardType");
+  const previewEl = document.getElementById("propsPreview");
+  const statusEl = document.getElementById("propsStatus");
+  let selected = null;
+
+  // Bouton « ✨ Enrichir (LLM) » sous un champ textarea — mécanisme UNIQUE partagé par
+  // toutes les cartes, jamais réimplémenté carte par carte. Une entrée de `fields[]` devient
+  // enrichissable en portant une clé `enhance` : soit le system prompt (chaîne, cf. ENHANCE
+  // plus haut), soit `node => chaîne|null` quand la disponibilité dépend de l'état du nœud
+  // (simple/video : masqué sous LTX 2.5). Sans `enhance`, aucun bouton — les champs
+  // existants sont donc strictement inchangés.
+  // L'appel LLM passe par `Engine.gemmaJSON` (gemma4:e4b, déjà mutualisé pour les fiches
+  // personnage/décor) ; le JSON de retour utilise TOUJOURS `f.k` comme clé. L'écriture
+  // emprunte le MÊME chemin que la saisie manuelle : setProp(node, f.k, f.w, …).
+  // Enrichissement PONCTUEL, à la demande : rien ne s'exécute avant une génération.
+  function addEnhanceButton(row, node, f, inp) {
+    const system = typeof f.enhance === "function" ? f.enhance(node) : f.enhance;
+    if (!system) return;
+    const btn = document.createElement("button");
+    btn.className = "btn-outline"; btn.type = "button";
+    btn.dataset.enhance = f.k;          // repère stable pour les tests headless
+    btn.style.marginTop = "6px";
+    btn.textContent = tr("✨ Enrichir (LLM)");
+    // Ollama peut être indisponible (conteneur arrêté, modèle absent) et gemma peut
+    // renvoyer un JSON sans la clé attendue : l'erreur s'affiche ici, sous le bouton.
+    // Aucun nœud n'expose de méthode `setStatus` (c'est une fonction locale à
+    // js/nodes-simple.js et js/nodes-advanced.js) — d'où le message inline.
+    const err = document.createElement("div");
+    err.style.cssText = "font-size:10.5px;color:#a33;margin-top:4px";
+    btn.onclick = async () => {
+      const label = btn.textContent;
+      btn.disabled = true; btn.textContent = tr("Enrichissement…"); err.textContent = "";
+      try {
+        const out = await window.Engine.gemmaJSON(system, inp.value);
+        const txt = typeof out?.[f.k] === "string" ? out[f.k].trim() : "";
+        if (!txt) throw new Error(tr("réponse sans champ ") + `"${f.k}"`);
+        // Le champ n'est écrasé QU'en cas de succès : sur erreur, le texte saisi survit.
+        inp.value = txt;
+        setProp(node, f.k, f.w, txt);
+      } catch (e) {
+        err.textContent = tr("Enrichissement impossible : ") + e.message;
+      } finally {
+        btn.disabled = false; btn.textContent = label;
+      }
+    };
+    row.appendChild(btn); row.appendChild(err);
+  }
+
+  function showProps(node) {
+    selected = node;
+    if (!node) { propsEl.hidden = true; fieldsEl.innerHTML = ""; return; }
+    const s = skin(node);
+    propsEl.hidden = false;
+    titleEl.textContent = node.getTitle();
+    typeEl.textContent = s.tech + " · " + (s.modelValues
+      ? (s.modelValues.find(m => m[0] === node.properties[s.modelProp]) || ["", s.model])[1]
+      : s.model);
+    previewEl.textContent = s.preview ? (node.properties[s.preview] || "—") : (s.meta(node) || "—");
+    fieldsEl.innerHTML = "";
+    for (const f of s.fields) {
+      // Visibilité conditionnelle minimale (ex. turbo/steps/style-LoRA masqués hors
+      // Minimax H3) : `when` est un prédicat optionnel sur le nœud, pas un mini-moteur de
+      // règles — un champ sans `when` reste toujours affiché.
+      if (f.when && !f.when(node)) continue;
+      const row = document.createElement("div"); row.className = "row";
+      // Les champs sont créés à la volée à la sélection d'une carte : translateTree()
+      // (qui n'a traduit que le DOM initial) ne les rattraperait pas. On traduit donc
+      // ICI, à la construction — et applyLang() re-rend le panneau au changement de langue.
+      const lab = document.createElement("label"); lab.textContent = tr(f.label); row.appendChild(lab);
+      let inp;
+      if (f.type === "textarea") {
+        inp = document.createElement("textarea");
+        inp.value = node.properties[f.k] || "";
+        inp.oninput = () => setProp(node, f.k, f.w, inp.value);
+      } else if (f.type === "select") {
+        inp = document.createElement("select");
+        for (const v of f.values()) {
+          const [val, lb] = Array.isArray(v) ? v : [v, v];
+          // `tr()` couvre les libellés traduisibles (STYLE_PACKS/KREA2_LORAS, « 8 (défaut) »)
+          // et laisse intacts les noms de moteurs/modèles (« LTX 2.5 »…), absents de I18N.
+          const o = document.createElement("option"); o.value = val; o.textContent = tr(lb);
+          inp.appendChild(o);
+        }
+        inp.value = node.properties[f.k];
+        inp.onchange = () => {
+          setProp(node, f.k, f.w, inp.value);
+          // Le champ moteur (`s.modelProp`, ex. "engine") conditionne la visibilité d'autres
+          // champs via `when` : le reconstruire au changement, pas seulement à la resélection
+          // de la carte. Les autres selects n'ont besoin d'aucun re-rendu (pas de perte de
+          // focus, contrairement à un textarea reconstruit en cours de frappe).
+          if (f.k === s.modelProp) showProps(node);
+        };
+      } else if (f.type === "audiofiles") {
+        // Upload de fichier LOCAL vers l'input ComfyUI (node.addRefAudio → E.uploadBlob).
+        // Les widgets litegraph n'étant ni peints ni cliquables (drawNodeWidgets neutralisé
+        // plus haut), le « bouton + audio de référence » vit ici, dans le panneau.
+        inp = document.createElement("div");
+        const list = document.createElement("div");
+        list.style.cssText = "font-size:11px;color:var(--text-2);margin-top:4px;word-break:break-all";
+        const paint = () => {
+          const names = node.properties[f.k] || [];
+          list.textContent = names.length ? names.join(" · ") : tr("aucun");
+        };
+        const picker = document.createElement("input");
+        picker.type = "file"; picker.accept = "audio/*";
+        picker.onchange = async () => {
+          const file = picker.files && picker.files[0];
+          picker.value = "";
+          if (file && node.addRefAudio) { await node.addRefAudio(file); paint(); }
+        };
+        const clr = document.createElement("button");
+        clr.className = "btn-outline"; clr.type = "button"; clr.textContent = tr("Vider");
+        clr.onclick = () => { if (node.clearRefAudios) { node.clearRefAudios(); paint(); } };
+        inp.appendChild(picker); inp.appendChild(clr); inp.appendChild(list);
+        paint();
+      } else if (f.type === "file") {
+        // Import d'un fichier LOCAL vers l'input ComfyUI (node.importFile → E.uploadBlob) :
+        // même emplacement et même raison que le champ « audiofiles » ci-dessus. `accept`
+        // est posé à l'ouverture du sélecteur pour suivre le champ « Type de média » sans
+        // avoir à reconstruire le panneau à chaque changement.
+        inp = document.createElement("input");
+        inp.type = "file";
+        inp.onclick = () => { inp.accept = node.properties.kind === "video" ? "video/*" : "image/*"; };
+        inp.onchange = async () => {
+          const file = inp.files && inp.files[0];
+          inp.value = "";
+          if (file) { await node.importFile(file); showProps(node); }
+        };
+      } else if (f.type === "toggle") {
+        inp = document.createElement("select");
+        for (const [val, lb] of [["1", "Oui"], ["0", "Non"]]) {
+          const o = document.createElement("option"); o.value = val; o.textContent = tr(lb);
+          inp.appendChild(o);
+        }
+        inp.value = node.properties[f.k] ? "1" : "0";
+        inp.onchange = () => setProp(node, f.k, f.w, inp.value === "1");
+      } else {
+        inp = document.createElement("input");
+        inp.type = "number";
+        if (f.min != null) inp.min = f.min;
+        if (f.max != null) inp.max = f.max;
+        inp.value = node.properties[f.k];
+        inp.onchange = () => {
+          let v = Math.round(Number(inp.value) || 0);
+          if (f.min != null) v = Math.max(f.min, v);
+          if (f.max != null) v = Math.min(f.max, v);
+          inp.value = v; setProp(node, f.k, f.w, v);
+        };
+      }
+      row.appendChild(inp);
+      // Unique point d'accrochage du bouton « Enrichir » : il ne s'ajoute que sous un
+      // textarea porteur d'une clé `enhance` (addEnhanceButton sort immédiatement sinon).
+      if (f.type === "textarea") addEnhanceButton(row, node, f, inp);
+      fieldsEl.appendChild(row);
+    }
+    updateLiveProps();
+  }
+  // Rafraîchit ce qui bouge pendant une génération sans reconstruire les champs
+  // (reconstruire écraserait la saisie en cours).
+  function updateLiveProps() {
+    if (!selected) return;
+    statusEl.style.color = STATUS_COLOR[selected.status] || "#94a3b8";
+    statusEl.textContent = selected.statusMsg || (selected.status ? selected.status : "");
+  }
+
+  lgcanvas.onSelectionChange = function (sel) {
+    // `highlighted_links` force les liens en blanc (invisible sur fond clair) : on le vide.
+    lgcanvas.highlighted_links = {};
+    const ids = Object.keys(sel || {});
+    showProps(ids.length === 1 ? sel[ids[0]] : null);
+  };
+
+  document.getElementById("btnRegen").onclick = () => {
+    if (selected && typeof selected.generate === "function") selected.generate();
+  };
+  document.getElementById("btnDup").onclick = () => {
+    if (!selected) return;
+    const clone = LiteGraph.createNode(selected.type);
+    clone.pos = [selected.pos[0] + 40, selected.pos[1] + 40];
+    clone.size = selected.size.slice();
+    Object.assign(clone.properties, JSON.parse(JSON.stringify(selected.properties)));
+    graph.add(clone);
+    if (clone.widgets) for (const w of clone.widgets) {
+      const src = selected.widgets && selected.widgets.find(x => x.name === w.name);
+      if (src) w.value = src.value;
+    }
+    if (clone.buildOverlay) clone.buildOverlay();
+    save();
+    lgcanvas.selectNode(clone);
+    lgcanvas.onSelectionChange(lgcanvas.selected_nodes);
+  };
+
+  // ── Thème ────────────────────────────────────────────────────────────────
+  // Décalque exact d'applyLang() : on écrit la globale, on persiste, on met à jour
+  // l'UI, puis on force le repeint du canvas. `setDirty(true, true)` est OBLIGATOIRE
+  // (les deux flags : le fond en grille vit sur le bgcanvas, les cartes sur le canvas
+  // de premier plan) — sans lui, `LGraphCanvas.draw()` sort sans peindre et le canvas
+  // garderait les couleurs de l'ancien thème.
+  function applyTheme(theme) {
+    THEME = theme;
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem(THEME_KEY, theme);
+    themeBtn.textContent = theme === "dark" ? "☀️" : "🌙";
+    applyCanvasTheme();
+    lgcanvas.setDirty(true, true);
+  }
+  const themeBtn = document.getElementById("themeBtn");
+  themeBtn.addEventListener("click", () => applyTheme(THEME === "dark" ? "light" : "dark"));
+  applyTheme(THEME);
+
+  // ── Langue ───────────────────────────────────────────────────────────────
+  // Appliquée EN DERNIER : le DOM (options de `#pipelineSelect` comprises) est construit
+  // avec le texte source français, translateTree() le traduit ensuite d'un seul passage.
+  const langSelect = document.getElementById("langSelect");
+  langSelect.value = LANG;
+  langSelect.addEventListener("change", () => applyLang(langSelect.value));
+  applyLang(LANG);
+
+  // Accès pour les tests automatisés.
+  window.__canvas = { graph, lgcanvas, save, addNode, STORAGE_KEY, LANG_KEY, THEME_KEY,
+                      showProps, CARDS, PIPELINE_ORDER, FOOTER_H,
+                      I18N, tr, applyLang, get LANG() { return LANG; },
+                      THEME_COLORS, applyTheme, get THEME() { return THEME; },
+                      get selected() { return selected; } };
+})();
+</script>
+</body>
+</html>

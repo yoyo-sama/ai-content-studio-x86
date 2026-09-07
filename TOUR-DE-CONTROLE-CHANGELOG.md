@@ -1,5 +1,45 @@
 # Tour de contrôle — changelog
 
+## 2026-09-07 — Promotion du canvas créatif (Piste 3) comme mode additionnel, sans toucher à index.html
+
+Développé et qualifié dans le projet sœur `../ai-content-studio-canvas` (voir son propre
+`TOUR-DE-CONTROLE-CHANGELOG.md` pour tout l'historique des lots : import média local,
+cartes use-case câblées, LoRA/résolution vidéo, enrichissement de prompt LLM, filtre
+Image/Vidéo, barre de progression). Décision explicite de l'utilisateur : le canvas
+devient un **mode additionnel** accessible en plus du formulaire existant — pas un
+remplacement. `index.html` et l'expérience formulaire ne sont **pas touchés**.
+
+### Fichiers ajoutés (copie strictement identique à `ai-content-studio-canvas`, diff vide)
+- `canvas.html` (nouveau, racine).
+- `js/engine.js`, `js/nodes-simple.js`, `js/nodes-advanced.js` (nouveau dossier `js/`).
+
+### Pourquoi aucun changement de nginx/docker-compose n'était nécessaire
+`nginx.conf` de ce repo a déjà un `location / { try_files $uri $uri/ =404; }` qui sert
+n'importe quel fichier statique du dossier monté — `canvas.html` et `js/*.js` sont donc
+immédiatement accessibles sur `http://<host>:8090/canvas.html` sans redémarrage ni
+modification de configuration (bind-mount `./:/usr/share/nginx/html:ro`, déjà en place).
+Les 9 templates `workflows/api/*.json` déjà présents ici sont byte-identiques à ceux du
+canvas (vérifié) — aucun template à copier.
+
+### Lien retour
+`canvas.html` a déjà un lien "⌂ App formulaire" vers `index.html` (construit dès l'origine
+pour coexister à la même origine) — fonctionne immédiatement une fois les fichiers en
+place, sans modification. Aucun lien ajouté dans l'autre sens (`index.html` → canvas) :
+non demandé, `index.html` reste intact à l'octet près.
+
+### Vérification
+Testé en direct sur le port 8090 (pas seulement 8092) : chargement de `canvas.html` sans
+erreur console, un vrai job Krea 2 soumis et abouti (fichier généré, `outFile` posé), et
+`index.html` rechargé après coup pour confirmer l'absence de régression sur l'app
+formulaire existante. `git status` du dépôt canvas vérifié propre avant la copie ; diff
+byte-à-byte des 4 fichiers copiés confirmé vide.
+
+### Reste ouvert
+Aucun lien visible depuis l'interface `index.html` vers le canvas — accès uniquement par
+URL directe (`/canvas.html`) pour l'instant, décision explicite de ne pas toucher au
+formulaire existant. À reconsidérer si l'utilisateur souhaite un jour un point d'entrée
+visible.
+
 ## 2026-09-02 — Promotion du rapprochement visuel avec la maquette (suite du Cockpit affiné)
 
 Développé et qualifié dans le projet cockpit (`../ai-content-studio-cockpit`, voir son propre
