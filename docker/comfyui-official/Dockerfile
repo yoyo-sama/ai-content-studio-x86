@@ -24,7 +24,7 @@ RUN git clone --depth 1 --branch ${COMFYUI_REF} https://github.com/comfyanonymou
 
 RUN pip3 install --break-system-packages --no-cache-dir \
       --extra-index-url https://download.pytorch.org/whl/cu124 \
-      torch torchvision torchaudio \
+      torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 \
     && pip3 install --break-system-packages --no-cache-dir -r requirements.txt
 
 # comfy_kitchen : roue manylinux officielle publiée sur PyPI, noyaux CUDA liés
