@@ -7,8 +7,9 @@ Dell Pro Max GB10 / DGX Spark (ARM64, mémoire SoC unifiée). **Ce fork adapte l
 un poste x86_64 standard équipé d'un GPU NVIDIA dédié (carte discrète classique)** — en
 particulier, il remplace l'image `mmartial/comfyui-nvidia-docker` spécifique au GB10 par
 **ComfyUI officiel** (buildé localement depuis
-[`comfyanonymous/ComfyUI`](https://github.com/comfyanonymous/ComfyUI)), et propose deux
-chemins d'installation : **Ubuntu 24.04** et **Omarchy** (Arch-based, Hyprland).
+[`comfyanonymous/ComfyUI`](https://github.com/comfyanonymous/ComfyUI)), et propose trois
+chemins d'installation : **Ubuntu 24.04** et **Omarchy** (Arch-based, Hyprland), tous deux en
+Docker, et **Windows 10/11** (natif, sans Docker, GPU NVIDIA dédié).
 
 **Version actuelle : 1.0.3** — voir `TOUR-DE-CONTROLE-CHANGELOG.md` pour l'historique des changements.
 
@@ -22,6 +23,8 @@ Studio créatif IA **100 % local** : génération d'images (Krea 2, Qwen-Edit) e
   [`nvidia-container-toolkit`](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) configuré pour Docker.
 - **Docker** + **Docker Compose** (plugin `docker compose`).
 - Voir `docs/INSTALL-X86.md` pour les commandes exactes par distribution.
+- **Windows 10/11** : prérequis différents (plus légers) — pas de Docker, pas de WSL2, juste un
+  driver NVIDIA à jour. Voir la commande Windows plus bas et `docs/INSTALL-X86.md`.
 
 ### Installation automatique (recommandée)
 
@@ -75,6 +78,64 @@ HF_TOKEN=<votre_jeton> ./install-ubuntu.sh   # ou ./install-omarchy.sh
 Sans `HF_TOKEN`, les autres modèles (Krea 2, Qwen-Edit, Minimax H3) se téléchargent
 normalement — seuls les 4 fichiers LTX 2.5 échouent proprement et remontent dans le
 récapitulatif final, sans bloquer le reste de l'installation.
+
+#### Windows 10/11 (natif, sans Docker)
+
+Pour un poste Windows 10/11 x86_64 avec GPU NVIDIA dédié, utilisez `install-windows.ps1` à la
+place — un script autonome (ne partage pas `scripts/lib-install-common.sh` avec les scripts
+Linux), 100 % natif : pas de Docker, pas de WSL2.
+
+```powershell
+git clone <url-du-repo> ai-content-studio
+cd ai-content-studio
+powershell -ExecutionPolicy Bypass -File .\install-windows.ps1
+```
+
+`-ExecutionPolicy Bypass` est nécessaire : sans lui, PowerShell refuse par défaut d'exécuter un
+script tout juste cloné. Seul prérequis : le driver NVIDIA propriétaire à jour — pas de Docker,
+pas de WSL2, pas de Python pré-installé, pas de 7-Zip pré-installé (le script télécharge
+lui-même l'extracteur minimal `7zr.exe`), pas de Visual Studio Build Tools (`comfy_kitchen`
+s'installe via une roue PyPI précompilée, aucune compilation requise). PowerShell 5.1 et
+`curl.exe` sont nativement présents sur Windows 10 (1803+) et Windows 11.
+
+`install-windows.ps1` fait tout en une seule commande, en 7 étapes, de façon **idempotente**
+(relançable sans risque — rien de déjà présent et valide n'est retéléchargé ni recréé) :
+
+1. Vérifie la présence d'un GPU NVIDIA (`nvidia-smi`) — avertit sans bloquer si absent.
+2. Télécharge/extrait le build ComfyUI portable officiel (build Nvidia, ~2 Go, depuis la
+   dernière release GitHub) s'il n'est pas déjà présent.
+3. Installe `comfy_kitchen` en best-effort (accélération optionnelle, ne bloque jamais).
+4. Télécharge les modèles listés dans `scripts/models.txt` (idempotent, skip si déjà présent à
+   la bonne taille).
+5. Détecte Ollama intelligemment : déjà en service → rien à faire ; installé mais éteint →
+   démarré automatiquement ; vraiment absent → guide vers l'installeur officiel, sans rien
+   installer à la place de l'utilisateur.
+6. Démarre ComfyUI et le serveur web.
+7. Affiche un récapitulatif final avec health-checks.
+
+`scripts/serve-windows.ps1` remplace nginx par un serveur web PowerShell natif
+(`System.Net.HttpListener`) qui sert les fichiers statiques ET relaie `/comfy/*` vers ComfyUI
+et `/ollama/*` vers Ollama — indispensable car le frontend appelle ces API en chemins relatifs.
+Il est démarré automatiquement par `install-windows.ps1` ; pas besoin de le lancer à la main.
+
+`HF_TOKEN` (voir ci-dessus) s'utilise de la même façon sous Windows :
+
+```powershell
+$env:HF_TOKEN = "<votre_jeton>"; powershell -ExecutionPolicy Bypass -File .\install-windows.ps1
+```
+
+**Limites connues** :
+
+1. Pas de mise à jour automatique depuis l'UI sur Windows — le service `updater` Docker n'est
+   pas porté sur cette variante. Mise à jour manuelle par `git pull` dans le dossier du dépôt.
+2. Le serveur web (`:8090`) n'écoute que sur `localhost` par défaut — accessible depuis cette
+   machine uniquement, pas depuis le réseau local (contrairement à la variante Linux/Docker,
+   qui écoute sur toutes les interfaces). `scripts/serve-windows.ps1` contient en commentaire
+   la commande exacte pour ouvrir l'accès LAN (`netsh http add urlacl` + une règle de
+   pare-feu, à exécuter en administrateur) si besoin.
+3. La barre de progression des jobs ComfyUI n'est pas animée en temps réel (le WebSocket n'est
+   pas proxifié — purement cosmétique, la génération et la détection de fin fonctionnent
+   normalement).
 
 ### Installation manuelle / dépannage
 
@@ -259,7 +320,9 @@ canvas.html                 ← mode éditeur de nœuds (façon ComfyUI)
 js/                         ← moteur du mode canvas (engine.js, nodes-simple.js, nodes-advanced.js)
 install-ubuntu.sh            ← installation/mise à jour idempotente, Ubuntu 24.04 (recommandé)
 install-omarchy.sh           ← idem, pour Omarchy (Arch-based)
-scripts/lib-install-common.sh ← logique applicative partagée par les deux scripts d'install
+install-windows.ps1          ← installation/mise à jour idempotente, Windows 10/11 natif (sans Docker, GPU NVIDIA dédié)
+scripts/lib-install-common.sh ← logique applicative partagée par les deux scripts d'install Linux
+scripts/serve-windows.ps1    ← serveur web PowerShell natif + reverse-proxy, équivalent Windows de nginx.conf
 docker-compose.yml          ← 3 services : nginx (8090), comfyui (8188, buildé localement), ollama (11434)
 docker/comfyui-official/    ← Dockerfile qui build ComfyUI officiel (comfyanonymous/ComfyUI)
 scripts/models.txt          ← 19 modèles requis : dossier|fichier|taille|URL (source de vérité pour les scripts d'install et le README)
@@ -270,7 +333,7 @@ workflows/
   README.md                 ← détail des workflows
 tools/convert.py            ← convertisseur UI→API (voir docs/TESTING.md)
 docs/
-  INSTALL-X86.md            ← guide d'installation détaillé : prérequis & commandes Ubuntu 24.04 / Omarchy
+  INSTALL-X86.md            ← guide d'installation détaillé : prérequis & commandes Ubuntu 24.04 / Omarchy / Windows
   ARCHITECTURE.md           ← anatomie de l'app et des formats
   LESSONS.md                ← pièges & patterns validés (LIRE AVANT DE MODIFIER)
   TESTING.md                ← méthode de validation (rendus réels, extraction frames/audio)

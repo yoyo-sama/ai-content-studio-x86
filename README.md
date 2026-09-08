@@ -7,7 +7,8 @@ targets the Dell Pro Max GB10 / DGX Spark (ARM64, unified SoC memory). **This fo
 same stack for a standard x86_64 workstation with a dedicated discrete NVIDIA GPU** — most
 notably, it replaces the GB10-specific `mmartial/comfyui-nvidia-docker` image with **official
 ComfyUI** (built locally from [`comfyanonymous/ComfyUI`](https://github.com/comfyanonymous/ComfyUI)),
-and ships two installation paths: **Ubuntu 24.04** and **Omarchy** (Arch-based, Hyprland).
+and ships three installation paths: **Ubuntu 24.04** and **Omarchy** (Arch-based, Hyprland),
+both Docker-based, and **Windows 10/11** (native, no Docker, dedicated NVIDIA GPU).
 
 **Current version: 1.0.3** — see `TOUR-DE-CONTROLE-CHANGELOG.md` for the change history.
 
@@ -21,6 +22,8 @@ and ships two installation paths: **Ubuntu 24.04** and **Omarchy** (Arch-based, 
   and [`nvidia-container-toolkit`](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) configured for Docker.
 - **Docker** + **Docker Compose** (the `docker compose` plugin).
 - See `docs/INSTALL-X86.md` for exact per-distro prerequisite commands.
+- **Windows 10/11**: different (lighter) prerequisites — no Docker, no WSL2, just an
+  up-to-date NVIDIA driver. See the Windows command below and `docs/INSTALL-X86.md`.
 
 ### Automatic installation (recommended)
 
@@ -72,6 +75,63 @@ HF_TOKEN=<votre_jeton> ./install-ubuntu.sh   # or ./install-omarchy.sh
 Without `HF_TOKEN`, the other models (Krea 2, Qwen-Edit, Minimax H3) download normally — only
 the 4 LTX 2.5 files fail cleanly and are reported in the final summary, without blocking the
 rest of the installation.
+
+#### Windows 10/11 (native, no Docker)
+
+For a Windows 10/11 x86_64 workstation with a dedicated NVIDIA GPU, use `install-windows.ps1`
+instead — a standalone script (doesn't share `scripts/lib-install-common.sh` with the Linux
+scripts), 100% native: no Docker, no WSL2.
+
+```powershell
+git clone <url-du-repo> ai-content-studio
+cd ai-content-studio
+powershell -ExecutionPolicy Bypass -File .\install-windows.ps1
+```
+
+`-ExecutionPolicy Bypass` is required: without it, PowerShell refuses by default to run a
+freshly cloned script. The only prerequisite is an up-to-date proprietary NVIDIA driver — no
+Docker, no WSL2, no pre-installed Python, no pre-installed 7-Zip (the script downloads its own
+minimal extractor, `7zr.exe`), no Visual Studio Build Tools (`comfy_kitchen` installs from a
+precompiled PyPI wheel, no compilation needed). PowerShell 5.1 and `curl.exe` both ship
+natively with Windows 10 (1803+) and Windows 11.
+
+`install-windows.ps1` does everything in a single command, in 7 steps, **idempotently** (safe
+to re-run — nothing already present and valid is re-downloaded or recreated):
+
+1. Checks for an NVIDIA GPU (`nvidia-smi`) — warns without blocking if it's absent.
+2. Downloads/extracts the official ComfyUI portable build (NVIDIA build, ~2 GB, from the
+   latest GitHub release) if not already present.
+3. Installs `comfy_kitchen` best-effort (optional acceleration, never blocks).
+4. Downloads the models listed in `scripts/models.txt` (idempotent, skipped if already
+   present at the correct size).
+5. Detects Ollama intelligently: already running → left untouched; installed but stopped →
+   started automatically; not installed at all → guided to the official installer, nothing
+   installed in its place.
+6. Starts ComfyUI and the web server.
+7. Displays a final summary with health checks.
+
+`scripts/serve-windows.ps1` replaces nginx with a native PowerShell web server
+(`System.Net.HttpListener`) that serves the static files and reverse-proxies `/comfy/*` to
+ComfyUI and `/ollama/*` to Ollama — required because the frontend calls these APIs through
+relative paths. It's started automatically by `install-windows.ps1`; no need to launch it by
+hand.
+
+`HF_TOKEN` (see above) works the same way on Windows:
+
+```powershell
+$env:HF_TOKEN = "<votre_jeton>"; powershell -ExecutionPolicy Bypass -File .\install-windows.ps1
+```
+
+**Known limitations**:
+
+1. No automatic in-app update on Windows — the Docker `updater` service isn't ported to this
+   variant. Update manually with `git pull` in the repo folder.
+2. The web server (`:8090`) listens on `localhost` only by default — accessible from this
+   machine alone, not from the local network (unlike the Linux/Docker variant, which listens
+   on all interfaces). `scripts/serve-windows.ps1` has the exact command to open LAN access
+   (`netsh http add urlacl` + a firewall rule, run as administrator) in a comment, if needed.
+3. The ComfyUI job progress bar isn't animated in real time (the WebSocket isn't proxied —
+   purely cosmetic, generation and completion detection work normally).
 
 ### Manual installation / troubleshooting
 
@@ -250,7 +310,9 @@ canvas.html                 ← node-editor mode (ComfyUI-style)
 js/                         ← canvas mode engine (engine.js, nodes-simple.js, nodes-advanced.js)
 install-ubuntu.sh            ← one-command idempotent install/update, Ubuntu 24.04 (recommended)
 install-omarchy.sh           ← same, for Omarchy (Arch-based)
-scripts/lib-install-common.sh ← application logic shared by both install scripts
+install-windows.ps1          ← one-command idempotent install/update, Windows 10/11 native (no Docker, dedicated NVIDIA GPU)
+scripts/lib-install-common.sh ← application logic shared by both Linux install scripts
+scripts/serve-windows.ps1    ← native PowerShell web server + reverse proxy, Windows equivalent of nginx.conf
 docker-compose.yml          ← 3 services: nginx (8090), comfyui (8188, built locally), ollama (11434)
 docker/comfyui-official/    ← Dockerfile building official ComfyUI (comfyanonymous/ComfyUI)
 scripts/models.txt          ← 19 required models: folder|file|size|URL (source of truth for the install scripts and the README)
@@ -261,7 +323,7 @@ workflows/
   README.md                 ← workflow details
 tools/convert.py            ← UI→API converter (see docs/TESTING.md)
 docs/
-  INSTALL-X86.md            ← detailed install guide: Ubuntu 24.04 / Omarchy prerequisites & commands
+  INSTALL-X86.md            ← detailed install guide: Ubuntu 24.04 / Omarchy / Windows prerequisites & commands
   ARCHITECTURE.md           ← anatomy of the app and its formats
   LESSONS.md                ← pitfalls & validated patterns (READ BEFORE MODIFYING)
   TESTING.md                ← validation method (real renders, frame/audio extraction)

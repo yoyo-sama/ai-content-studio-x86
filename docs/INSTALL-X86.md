@@ -1,11 +1,13 @@
 # Guide d'installation — x86_64 / GPU NVIDIA dédié
 
 Ce fork cible un poste **x86_64** équipé d'un **GPU NVIDIA dédié** (carte discrète classique,
-pas le SoC unifié GB10/DGX Spark du repo source `dellaicontent`). Deux chemins d'installation
-sont proposés, avec la même logique applicative (`scripts/lib-install-common.sh`) : seule la
-vérification des prérequis système diffère.
+pas le SoC unifié GB10/DGX Spark du repo source `dellaicontent`). Trois chemins d'installation
+sont proposés : **Ubuntu 24.04** et **Omarchy**, qui tournent en Docker et partagent la même
+logique applicative (`scripts/lib-install-common.sh` — seule la vérification des prérequis
+système diffère), et **Windows 10/11** (`install-windows.ps1`), un installateur 100 % natif,
+sans Docker, avec sa propre logique.
 
-## Prérequis communs
+## Prérequis communs (Ubuntu / Omarchy — variante Docker)
 
 - Machine **x86_64** avec un **GPU NVIDIA dédié**.
 - **Driver NVIDIA propriétaire** installé et chargé (`nvidia-smi` doit fonctionner).
@@ -17,6 +19,9 @@ vérification des prérequis système diffère.
 Les deux scripts d'installation (`install-ubuntu.sh`, `install-omarchy.sh`) **vérifient** ces
 prérequis et affichent les commandes exactes s'il en manque — ils ne les installent pas
 automatiquement (décision volontaire : pas d'action root implicite sur le système).
+
+La variante Windows n'a besoin d'aucun de ces prérequis (pas de Docker, pas de toolkit) — voir
+la section Windows plus bas.
 
 ## Ubuntu 24.04
 
@@ -103,7 +108,81 @@ cd ai-content-studio
 ./install-omarchy.sh
 ```
 
-## Ce que font les scripts d'installation
+## Windows 11 / 10 (x86_64 + GPU NVIDIA dédié)
+
+Contrairement aux variantes Ubuntu/Omarchy, cette installation est **100 % native, sans
+Docker** — pas de conteneur, pas de `nvidia-container-toolkit`, pas de WSL2.
+
+### 1. Driver NVIDIA
+
+Seul prérequis : le **driver NVIDIA propriétaire à jour** (`nvidia-smi` doit fonctionner dans
+une invite PowerShell ou CMD). C'est tout — pas de Docker, pas de WSL2, pas de Python
+pré-installé, pas de 7-Zip pré-installé (le script télécharge lui-même `7zr.exe`, l'extracteur
+minimal), pas de Visual Studio Build Tools (`comfy_kitchen` s'installe via une roue PyPI
+précompilée, aucune compilation requise). PowerShell 5.1 et `curl.exe` sont nativement présents
+sur Windows 10 (1803+) et Windows 11.
+
+Installez le driver GeForce/Studio depuis [nvidia.com](https://www.nvidia.com/download/index.aspx)
+si besoin, puis redémarrez.
+
+### 2. Installation de l'app
+
+```powershell
+git clone <url-du-repo> ai-content-studio
+cd ai-content-studio
+powershell -ExecutionPolicy Bypass -File .\install-windows.ps1
+```
+
+`-ExecutionPolicy Bypass` est nécessaire : sans lui, PowerShell refuse par défaut d'exécuter un
+script tout juste cloné (politique d'exécution par défaut de Windows).
+
+Pour LTX 2.5 (dépôt Hugging Face "gated"), voir la section `HF_TOKEN` du `README.md` — la
+variable s'utilise de la même façon sous Windows :
+
+```powershell
+$env:HF_TOKEN = "<votre_jeton>"; powershell -ExecutionPolicy Bypass -File .\install-windows.ps1
+```
+
+## Ce que fait install-windows.ps1
+
+Script autonome (n'appelle pas `scripts/lib-install-common.sh`, propre à la variante Windows),
+en 7 étapes :
+
+1. **1/7** Vérifie la présence d'un GPU NVIDIA (`nvidia-smi`) — avertit sans bloquer si absent.
+2. **2/7** Télécharge et extrait le build ComfyUI portable officiel (build Nvidia, ~2 Go, depuis
+   la dernière release GitHub) s'il n'est pas déjà présent.
+3. **3/7** Installe `comfy_kitchen` en best-effort (accélération optionnelle, ne bloque jamais).
+4. **4/7** Télécharge les modèles listés dans `scripts/models.txt` (idempotent, skip si déjà
+   présent à la bonne taille).
+5. **5/7** Détecte Ollama intelligemment : déjà en service → rien à faire ; installé mais
+   éteint → démarré automatiquement ; vraiment absent → guide vers l'installeur officiel, sans
+   rien installer à la place de l'utilisateur.
+6. **6/7** Démarre ComfyUI et le serveur web.
+7. **7/7** Affiche un récapitulatif final avec health-checks.
+
+Relançable à volonté, comme les scripts Ubuntu/Omarchy : rien n'est retéléchargé ni recréé si
+c'est déjà présent et valide.
+
+`scripts/serve-windows.ps1` remplace nginx par un serveur PowerShell natif
+(`System.Net.HttpListener`) qui sert les fichiers statiques du dépôt ET relaie `/comfy/*` vers
+ComfyUI et `/ollama/*` vers Ollama — un reverse-proxy indispensable puisque le frontend appelle
+ces API en chemins relatifs. Il est démarré automatiquement par `install-windows.ps1` ; pas
+besoin de le lancer à la main.
+
+### Limites connues (Windows)
+
+1. **Pas de mise à jour automatique depuis l'UI** — le service `updater` Docker n'est pas porté
+   sur cette variante. Mise à jour manuelle : `git pull` dans le dossier du dépôt.
+2. **Le serveur web (`:8090`) n'écoute que sur `localhost` par défaut** — accessible depuis
+   cette machine uniquement, pas depuis le réseau local (contrairement à la variante
+   Linux/Docker, qui écoute sur toutes les interfaces). `scripts/serve-windows.ps1` contient en
+   commentaire la commande exacte pour ouvrir l'accès LAN (`netsh http add urlacl` + une règle
+   de pare-feu, à exécuter en administrateur) si besoin.
+3. **La barre de progression des jobs ComfyUI n'est pas animée en temps réel** (le WebSocket
+   n'est pas proxifié — purement cosmétique, la génération et la détection de fin fonctionnent
+   normalement).
+
+## Ce que font les scripts d'installation (Ubuntu / Omarchy)
 
 `install-ubuntu.sh` et `install-omarchy.sh` sont deux enrobages fins, chacun spécifique à sa
 distro pour la section 1/5 (vérification des prérequis système), qui appellent ensuite la même
