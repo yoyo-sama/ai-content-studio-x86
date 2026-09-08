@@ -3,6 +3,11 @@ tools/object_info.json
 tools/__pycache__/
 docker/updater/__pycache__/
 
+# Installation Windows native (install-windows.ps1) — artefacts locaux, 2 Go+
+ComfyUI_windows_portable/
+ComfyUI_windows_portable_nvidia.7z
+7zr.exe
+
 # Volumes ComfyUI / Ollama (montés localement, pas versionnés)
 comfyui/basedir/
 comfyui/run/
