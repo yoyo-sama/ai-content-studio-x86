@@ -1,45 +1,58 @@
 🇫🇷 [Lire en français](README.fr.md)
 
-# Dell AI Content Studio — Media & Entertainment demo on GB10
+# AI Content Studio — x86_64 / dedicated NVIDIA GPU fork
+
+This repository is a fork of [`dellaicontent`](https://github.com/dell/dellaicontent), which
+targets the Dell Pro Max GB10 / DGX Spark (ARM64, unified SoC memory). **This fork adapts the
+same stack for a standard x86_64 workstation with a dedicated discrete NVIDIA GPU** — most
+notably, it replaces the GB10-specific `mmartial/comfyui-nvidia-docker` image with **official
+ComfyUI** (built locally from [`comfyanonymous/ComfyUI`](https://github.com/comfyanonymous/ComfyUI)),
+and ships two installation paths: **Ubuntu 24.04** and **Omarchy** (Arch-based, Hyprland).
 
 **Current version: 1.0.3** — see `TOUR-DE-CONTROLE-CHANGELOG.md` for the change history.
 
-**Fully local** AI creative studio: image generation (Krea 2, Qwen-Edit) and video generation with audio (LTX 2.5, Minimax H3) via ComfyUI on a Dell Pro Max GB10, with prompt enrichment by a local LLM (Ollama). The application is served by nginx, with no build step and no framework (aside from a small `updater` backend service that handles in-app updates — see below) — two static modes to choose from: the `index.html` form (guided scenarios, see below) and the `canvas.html` node editor (see dedicated section below).
+**Fully local** AI creative studio: image generation (Krea 2, Qwen-Edit) and video generation with audio (LTX 2.5, Minimax H3) via ComfyUI on a dedicated NVIDIA GPU, with prompt enrichment by a local LLM (Ollama). The application is served by nginx, with no build step and no framework (aside from a small `updater` backend service that handles in-app updates — see below) — two static modes to choose from: the `index.html` form (guided scenarios, see below) and the `canvas.html` node editor (see dedicated section below).
 
 ## Deployment (clone & run)
 
 ### Prerequisites
 
-- Linux machine with an **NVIDIA GPU**, driver installed, and
-  [`nvidia-container-toolkit`](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) configured for Docker.
+- **x86_64** Linux machine with a **dedicated NVIDIA GPU**, the proprietary driver installed,
+  and [`nvidia-container-toolkit`](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) configured for Docker.
 - **Docker** + **Docker Compose** (the `docker compose` plugin).
+- See `docs/INSTALL-X86.md` for exact per-distro prerequisite commands.
 
 ### Automatic installation (recommended)
+
+Pick the script matching your distro:
 
 ```bash
 git clone <url-du-repo> ai-content-studio
 cd ai-content-studio
-./install.sh
+./install-ubuntu.sh      # Ubuntu 24.04
+# or
+./install-omarchy.sh     # Omarchy (Arch-based)
 ```
 
-`install.sh` does everything in a single command, **idempotently** (safe to re-run, tested
-across two consecutive runs):
+Both scripts share the same application logic (`scripts/lib-install-common.sh`) and only
+differ in how they check/report distro-specific system prerequisites (`apt`/`pacman`). They do
+everything in a single command, **idempotently** (safe to re-run):
 
-1. Checks the environment (architecture, `docker`/`docker compose`, NVIDIA runtime).
+1. Checks the environment (architecture, `docker`/`docker compose`, NVIDIA driver/toolkit —
+   distro-specific package names/commands are printed if something is missing, not installed
+   automatically).
 2. Detects the 3 services (web app `:8090`, ComfyUI `:8188`, Ollama `:11434`) **by actual
    role** (HTTP health check), not by container name — reuses anything already running
    (including a service started outside this `docker-compose.yml`) and never
    recreates/destroys a container it doesn't own (checked via docker-compose labels). If an
-   existing ComfyUI is indeed managed by THIS `docker-compose.yml`, it gets updated via
-   `pull` + `recreate`; otherwise, no automatic update happens (an explicit message tells you
-   to do it manually).
-3. Copies `docker/userscripts/*.sh` (including the `comfy_kitchen` install script, see
-   below) into the actual `userscripts_dir` folder of the ComfyUI container in use.
-4. Downloads the models listed in `scripts/models.txt` that are missing, into
-   `comfyui/basedir/models/<folder>/` (automatically skipped if the file is already present
+   existing ComfyUI is indeed managed by THIS `docker-compose.yml`, it gets rebuilt +
+   recreated; otherwise, no automatic update happens (an explicit message tells you to do it
+   manually).
+3. Downloads the models listed in `scripts/models.txt` that are missing, into
+   `comfyui/models/<folder>/` (automatically skipped if the file is already present
    with the correct size — no unnecessary re-downloading).
-5. Pulls the `gemma4:e4b` Ollama model if it's missing.
-6. Displays a final summary (status of the 3 services, models downloaded/already
+4. Pulls the `gemma4:e4b` Ollama model if it's missing.
+5. Displays a final summary (status of the 3 services, models downloaded/already
    present/failed, health checks).
 
 **`HF_TOKEN` (Hugging Face token, optional but required for LTX 2.5)**: the 4 LTX 2.5 model
@@ -53,7 +66,7 @@ download fails with a 401 until you've accepted the model's terms. To get them:
 4. Re-run the installation with the token as an environment variable:
 
 ```bash
-HF_TOKEN=<votre_jeton> ./install.sh
+HF_TOKEN=<votre_jeton> ./install-ubuntu.sh   # or ./install-omarchy.sh
 ```
 
 Without `HF_TOKEN`, the other models (Krea 2, Qwen-Edit, Minimax H3) download normally — only
@@ -63,7 +76,7 @@ rest of the installation.
 ### Manual installation / troubleshooting
 
 For anyone who prefers to understand each step, doesn't have a full internet connection to
-download everything at once, or wants to audit what `install.sh` automates:
+download everything at once, or wants to audit what the install scripts automate:
 
 ```bash
 git clone <url-du-repo> ai-content-studio
@@ -76,11 +89,12 @@ docker compose up -d
 | Service | Image | Port | Role |
 |---|---|---|---|
 | `ai-content-studio` | `nginx:alpine` | 8090 | Serves `index.html`/`canvas.html` + reverse-proxies to ComfyUI/Ollama |
-| `comfyui` | `mmartial/comfyui-nvidia-docker:ubuntu24_cuda13.1-dgx-latest` | 8188 | Image/video generation engine |
+| `comfyui` | built locally from `docker/comfyui-official/Dockerfile` (official [`comfyanonymous/ComfyUI`](https://github.com/comfyanonymous/ComfyUI)) | 8188 | Image/video generation engine |
 | `ollama` | `ollama/ollama:latest` | 11434 | Local LLM for prompt enrichment |
 
 The ComfyUI volumes are mounted by default under `./comfyui/` at the repo root
-(`comfyui/basedir`, `comfyui/run`, `comfyui/userscripts_dir`) — adjustable in
+(`comfyui/models`, `comfyui/user`, `comfyui/output` — the standard ComfyUI directory layout,
+no `basedir`/`userscripts_dir` as on the GB10-specific image) — adjustable in
 `docker-compose.yml` if your models already live elsewhere on the machine. The `ollama`
 service automatically pulls the `gemma4:e4b` model on startup (`ollama pull` is idempotent,
 it won't re-download a model that's already present); if needed, run it manually:
@@ -90,11 +104,9 @@ docker compose exec ollama ollama pull gemma4:e4b
 ```
 
 **Important: model weights are NOT in the Git repository** (several dozen GB in total) —
-download them manually into `comfyui/basedir/models/<folder>/` according to the table below
-(same URLs as `scripts/models.txt`, used by `install.sh`), before running a generation. For
-LTX 2.5, see the `HF_TOKEN` section above (gated repository). The `docker/userscripts/*.sh`
-userscripts (including `comfy_kitchen`) must be copied manually into the ComfyUI container's
-`userscripts_dir` folder if you don't go through `install.sh`.
+download them manually into `comfyui/models/<folder>/` according to the table below
+(same URLs as `scripts/models.txt`, used by the install scripts), before running a generation.
+For LTX 2.5, see the `HF_TOKEN` section above (gated repository).
 
 ### Post-startup health checks
 
@@ -106,10 +118,10 @@ curl http://localhost:11434/api/version          # Ollama alive
 
 ### Models to download
 
-Each file goes into `comfyui/basedir/models/<folder>/` (default host path; adjust if you
-changed the volume mapping). `install.sh` automatically downloads the 19 files below from
-`scripts/models.txt` (source of truth — same URLs, same order); the manual list that follows
-is equivalent for anyone who prefers `curl`/a browser.
+Each file goes into `comfyui/models/<folder>/` (default host path; adjust if you
+changed the volume mapping). `install-ubuntu.sh`/`install-omarchy.sh` automatically download
+the 19 files below from `scripts/models.txt` (source of truth — same URLs, same order); the
+manual list that follows is equivalent for anyone who prefers `curl`/a browser.
 
 #### Current pipelines (Krea 2, Qwen-Edit, LTX 2.5, Minimax H3)
 
@@ -142,7 +154,7 @@ exact sizes in bytes in `scripts/models.txt`).
 > [`Lightricks/LTX-2.5`](https://huggingface.co/Lightricks/LTX-2.5) repository is
 > access-restricted on Hugging Face — an anonymous download fails with a 401 until you've
 > accepted the model's terms with an HF account **and** supplied an access token
-> (`HF_TOKEN=<token> ./install.sh`, see the Deployment section above). This isn't a URL
+> (`HF_TOKEN=<token> ./install-ubuntu.sh`, see the Deployment section above). This isn't a URL
 > problem: the links are correct, access is simply gated by HF.
 >
 > **Caveat 2 — Minimax H3 "community reupload"** (3 files marked ⚠️ above): the 2 quantized
@@ -179,17 +191,15 @@ coexist and share the same origin (no extra nginx/Docker configuration is needed
 docked at the bottom of the screen gives access to the generation history (Images/Videos
 tabs), and a thumbnail can be dragged onto a "Media import" card to reuse it directly.
 
-### `comfy_kitchen` acceleration (DGX Spark / ARM64)
+### `comfy_kitchen` acceleration — not used in this fork
 
-The `ModelAttentionBackend` attention-acceleration node (value `comfy kitchen attention`) is
-wired in right after the model loader in the `workflows/api/*.json` templates for the 4
-model families (Krea 2, LTX 2.5, Minimax H3, Qwen-Edit). The `comfy_kitchen` package itself
-is installed and kept up to date **automatically** by `install.sh`, via the
-`docker/userscripts/15-comfy_kitchen-DGX_Spark.sh` userscript deployed in the ComfyUI
-container — nothing to install manually. This acceleration is specific to ARM64/DGX Spark
-hardware (compiled from source when the container starts, idempotently); on any other
-architecture the userscript cleanly disables itself (immediate `exit 0`) without blocking
-startup.
+The upstream `dellaicontent` repo wires a `comfy_kitchen`-specific attention-acceleration
+node (`ModelAttentionBackend`, value `comfy kitchen attention`) into its `workflows/api/*.json`
+templates, installed via a userscript specific to the `mmartial/comfyui-nvidia-docker` image
+and to ARM64/DGX Spark hardware. **This mechanism does not exist for official ComfyUI** and
+has been removed along with `docker/userscripts/` in this fork — official ComfyUI's own
+attention backends (e.g. `--use-pytorch-cross-attention` / SDPA, on by default on recent
+PyTorch) are used instead, with no extra install step.
 
 ## Update
 
@@ -234,10 +244,12 @@ optional native audio, Minimax H3 turbo can be toggled on).
 index.html                  ← form mode (CSS + HTML + JS)
 canvas.html                 ← node-editor mode (ComfyUI-style)
 js/                         ← canvas mode engine (engine.js, nodes-simple.js, nodes-advanced.js)
-install.sh                  ← one-command idempotent install/update (recommended)
-docker-compose.yml          ← 3 services: nginx (8090), comfyui (8188), ollama (11434)
-docker/userscripts/         ← scripts deployed into the ComfyUI container by install.sh (including comfy_kitchen)
-scripts/models.txt          ← 19 required models: folder|file|size|URL (source of truth for install.sh and the README)
+install-ubuntu.sh            ← one-command idempotent install/update, Ubuntu 24.04 (recommended)
+install-omarchy.sh           ← same, for Omarchy (Arch-based)
+scripts/lib-install-common.sh ← application logic shared by both install scripts
+docker-compose.yml          ← 3 services: nginx (8090), comfyui (8188, built locally), ollama (11434)
+docker/comfyui-official/    ← Dockerfile building official ComfyUI (comfyanonymous/ComfyUI)
+scripts/models.txt          ← 19 required models: folder|file|size|URL (source of truth for the install scripts and the README)
 workflows/
   manifest.json             ← feeds the app's Pipeline/Model menus
   api/*.json                ← single-branch API templates with {{PROMPT}}… placeholders
@@ -245,6 +257,7 @@ workflows/
   README.md                 ← workflow details
 tools/convert.py            ← UI→API converter (see docs/TESTING.md)
 docs/
+  INSTALL-X86.md            ← detailed install guide: Ubuntu 24.04 / Omarchy prerequisites & commands
   ARCHITECTURE.md           ← anatomy of the app and its formats
   LESSONS.md                ← pitfalls & validated patterns (READ BEFORE MODIFYING)
   TESTING.md                ← validation method (real renders, frame/audio extraction)

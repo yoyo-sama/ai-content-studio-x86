@@ -1,6 +1,6 @@
 # AGENTS.md — guide agent pour AI Content Studio
 
-Démo Dell GB10 : page statique unique (`index.html`) qui pilote ComfyUI (`:8188`) et Ollama (`:11434`). Pas de build, pas de dépendances côté frontend. Publique via nginx sur `:8090` (`docker compose up -d`). Seule exception backend : le service `updater` (`docker/updater/`, Python stdlib, `127.0.0.1:8093`) qui expose `/update/status` et `/update/apply` (proxifiés par nginx) pour la mise à jour git déclenchée depuis l'UI — voir le changelog du 2026-09-07 (suite 3).
+Fork ciblant un poste **x86_64 avec GPU Nvidia dédié** (pas le GB10/DGX Spark du repo source `dellaicontent`) : page statique unique (`index.html`) qui pilote ComfyUI officiel (`comfyanonymous/ComfyUI`, buildé localement — `:8188`) et Ollama (`:11434`). Pas de build, pas de dépendances côté frontend. Publique via nginx sur `:8090` (`docker compose up -d`). Seule exception backend : le service `updater` (`docker/updater/`, Python stdlib, `127.0.0.1:8093`) qui expose `/update/status` et `/update/apply` (proxifiés par nginx) pour la mise à jour git déclenchée depuis l'UI — voir le changelog du 2026-09-07 (suite 3).
 
 ## Commandes essentielles
 
@@ -14,7 +14,7 @@ python3 tools/onboard.py <ui.json> --id X --label "…" --pipeline text2video --
 python3 tools/validate.py workflows/api/ltx25_t2v.json --reduce --frames 0,12 --audio      # rendu réel réduit + inspection
 ```
 
-Modèles installés : `ls /home/sparks/comfyui-spark/basedir/models/<dossier>/` (diffusion_models, checkpoints, text_encoders, vae, loras, latent_upscale_models). Ne jamais référencer un `.safetensors` sans vérifier sa présence.
+Modèles installés : `ls ./comfyui/models/<dossier>/` (diffusion_models, checkpoints, text_encoders, vae, loras, latent_upscale_models — chemin relatif à la racine du repo, monté dans le conteneur ComfyUI sur `/comfyui/models`). Ne jamais référencer un `.safetensors` sans vérifier sa présence.
 
 ## Règles du projet (imposées par l'utilisateur)
 
