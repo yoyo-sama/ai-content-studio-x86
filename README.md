@@ -191,15 +191,17 @@ coexist and share the same origin (no extra nginx/Docker configuration is needed
 docked at the bottom of the screen gives access to the generation history (Images/Videos
 tabs), and a thumbnail can be dragged onto a "Media import" card to reuse it directly.
 
-### `comfy_kitchen` acceleration — not used in this fork
+### `comfy_kitchen` acceleration
 
-The upstream `dellaicontent` repo wires a `comfy_kitchen`-specific attention-acceleration
-node (`ModelAttentionBackend`, value `comfy kitchen attention`) into its `workflows/api/*.json`
-templates, installed via a userscript specific to the `mmartial/comfyui-nvidia-docker` image
-and to ARM64/DGX Spark hardware. **This mechanism does not exist for official ComfyUI** and
-has been removed along with `docker/userscripts/` in this fork — official ComfyUI's own
-attention backends (e.g. `--use-pytorch-cross-attention` / SDPA, on by default on recent
-PyTorch) are used instead, with no extra install step.
+Every `workflows/api/*.json` template wires a `ModelAttentionBackend` node
+(`comfy kitchen attention`), provided by [`comfy_kitchen`](https://github.com/Comfy-Org/comfy-kitchen)
+— an official Comfy-Org package, not a third-party custom node and not specific to the
+`mmartial/comfyui-nvidia-docker` image. The upstream `dellaicontent` repo builds it via an
+ARM64-only userscript tied to that image's layout (`docker/userscripts/`, removed in this
+fork, along with the image itself). This fork instead builds `comfy_kitchen` from source for
+x86_64/CUDA directly in `docker/comfyui-official/Dockerfile` (needs `nvcc`, hence the
+`-devel` base image rather than `-runtime`) — no extra manual step, it's part of the image
+build.
 
 ## Update
 
