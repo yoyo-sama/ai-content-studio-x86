@@ -198,10 +198,12 @@ Every `workflows/api/*.json` template wires a `ModelAttentionBackend` node
 — an official Comfy-Org package, not a third-party custom node and not specific to the
 `mmartial/comfyui-nvidia-docker` image. The upstream `dellaicontent` repo builds it via an
 ARM64-only userscript tied to that image's layout (`docker/userscripts/`, removed in this
-fork, along with the image itself). This fork instead builds `comfy_kitchen` from source for
-x86_64/CUDA directly in `docker/comfyui-official/Dockerfile` (needs `nvcc`, hence the
-`-devel` base image rather than `-runtime`) — no extra manual step, it's part of the image
-build.
+fork, along with the image itself). This fork instead installs `comfy_kitchen` from its
+official prebuilt PyPI wheel (`pip3 install comfy_kitchen`) directly in
+`docker/comfyui-official/Dockerfile` — no build step. The wheel statically links its own CUDA
+kernels and has no ABI dependency on the installed torch version, so there's no
+version-matching risk. No compiler is needed either, so the image uses a `-runtime` base
+rather than `-devel` — no extra manual step, it's part of the image build.
 
 ## Update
 
