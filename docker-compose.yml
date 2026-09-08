@@ -11,16 +11,17 @@ services:
     restart: unless-stopped
 
   comfyui:
-    image: mmartial/comfyui-nvidia-docker:ubuntu24_cuda13.1-dgx-latest
+    build: ./docker/comfyui-official
+    image: ai-content-studio-comfyui:local
     container_name: comfyui-nvidia
     ports:
       - "8188:8188"
     volumes:
       # Chemins hôte par défaut sous ./comfyui/ à la racine du repo (portable).
       # Adaptez-les si vos modèles vivent déjà ailleurs sur la machine.
-      - ./comfyui/userscripts_dir:/userscripts_dir:rw
-      - ./comfyui/run:/comfy/mnt:rw
-      - ./comfyui/basedir:/basedir:rw
+      - ./comfyui/models:/comfyui/models:rw
+      - ./comfyui/user:/comfyui/user:rw
+      - ./comfyui/output:/comfyui/output:rw
       - /etc/localtime:/etc/localtime:ro
     deploy:
       resources:
