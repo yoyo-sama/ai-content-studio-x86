@@ -44,8 +44,8 @@ OBJECT_INFO_PATH = os.path.join(TOOLS_DIR, "object_info.json")
 VALIDATE_PY = os.path.join(TOOLS_DIR, "validate.py")
 MANIFEST_PATH = os.path.join(ROOT_DIR, "workflows", "manifest.json")
 API_DIR = os.path.join(ROOT_DIR, "workflows", "api")
-MODELS_DIR = "/home/sparks/comfyui-spark/basedir/models"
-INPUT_DIR = "/home/sparks/comfyui-spark/basedir/input"
+MODELS_DIR = os.path.join(ROOT_DIR, "comfyui", "models")
+INPUT_DIR = os.path.join(ROOT_DIR, "comfyui", "input")
 COMFY_URL = "http://localhost:8188"
 
 TEXT_FIELDS = ("text", "prompt")

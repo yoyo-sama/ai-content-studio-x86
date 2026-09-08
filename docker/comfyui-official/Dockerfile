@@ -38,7 +38,7 @@ RUN pip3 install --break-system-packages --no-cache-dir setuptools ninja nanobin
 
 # Modèles, réglages utilisateur et sorties montés en volumes externes (voir
 # docker-compose.yml) — structure standard ComfyUI, pas de basedir/userscripts_dir.
-VOLUME ["/comfyui/models", "/comfyui/user", "/comfyui/output"]
+VOLUME ["/comfyui/models", "/comfyui/user", "/comfyui/output", "/comfyui/input"]
 
 EXPOSE 8188
 CMD ["python3", "main.py", "--listen", "0.0.0.0", "--port", "8188"]
