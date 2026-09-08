@@ -419,3 +419,54 @@ Motif : perte de cohérence des sujets entre cases, animatic FLF2V décevant, UI
 
 ### Retour arrière
 Tout est en non-commité par-dessus le refactor layout préexistant (lui aussi non commité). `git diff` pour l'ensemble ; pas de commit effectué par les agents.
+
+## 2026-09-08 — Installation Windows native (`install-windows.ps1`), reverse-proxy PowerShell (`scripts/serve-windows.ps1`)
+
+Cadré via `/architect` (choix explicite de l'utilisateur : pas de Docker sur Windows, ComfyUI
+portable officiel plutôt qu'un packaging maison — dérogation documentée à la règle Docker par
+défaut du projet, motivée par la simplicité de déploiement sur poste client) puis exécuté par
+tour-de-controle (planification Opus après repli explicite de Fable 5 — limite de dépense
+mensuelle atteinte, cf. LESSONS.md du skill).
+
+### Découverte de cadrage qui a changé le lot 2
+`nginx.conf` (variantes Linux) n'est pas un simple serveur de fichiers statiques mais un
+reverse-proxy : `index.html`/`canvas.html`/`js/engine.js` appellent ComfyUI et Ollama en
+chemins relatifs (`/comfy/*`, `/ollama/*`), jamais en `localhost:8188`. Le serveur Windows
+devait donc relayer ces routes, pas seulement servir des fichiers — trouvé par le planificateur
+avant l'écriture du code, pas découvert en vérification.
+
+### Changements
+1. **`install-windows.ps1`** (racine, lot opus) : installateur PowerShell 5.1 natif, sans Docker.
+   Télécharge/extrait ComfyUI portable officiel (`ComfyUI_windows_portable_nvidia.7z`, URL GitHub
+   "latest release" stable) via `7zr.exe` (extracteur minimal, aucune install 7-Zip requise côté
+   utilisateur — chaîne d'extraction prouvée par exécution réelle sous Wine dans ce chantier, pas
+   supposée) ; installe `comfy_kitchen` en best-effort non bloquant (wheel PyPI précompilée,
+   aucune compilation) ; télécharge les modèles (`scripts/models.txt`, réutilisé tel quel,
+   idempotent à 1% de tolérance) ; **détecte Ollama en 3 temps** (service déjà up → déjà installé
+   mais éteint, tente de le démarrer → vraiment absent, guide sans installer à sa place) — geste
+   explicitement demandé par l'utilisateur pour ne jamais supposer son absence ; démarre ComfyUI
+   + le serveur web ; récapitulatif final avec health-checks. Idempotence vérifiée par rejeu réel
+   de la logique modèles sous `pwsh` contre le vrai `scripts/models.txt` (18 SKIP + 1 correctif
+   sur un cas volontairement corrompu).
+2. **`scripts/serve-windows.ps1`** (lot opus, en parallèle) : reverse-proxy `System.Net.HttpListener`
+   natif — `/comfy/*`→:8188 et `/ollama/*`→:11434 en `byte[]` de bout en bout (upload multipart
+   50 Mo et binaire `/comfy/view` sinon corrompus par un aller-retour texte), fichiers statiques
+   avec garde anti-traversée de répertoire, `/comfy/ws` en 501 assumé (barre de progression
+   cosmétique uniquement, cf. `engine.js`), écoute sur `http://localhost:8090/` (pas de `netsh
+   http add urlacl` requis, accès machine locale uniquement — documenté en commentaire pour qui
+   veut l'accès LAN). `-SelfTest` couvrant l'anti-traversée et la réécriture d'URL du relais.
+
+### Vérification (Phase 3)
+Aucune machine Windows/GPU Nvidia disponible dans cet environnement — vérification limitée à :
+relecture ligne par ligne des deux scripts, parsing AST réel (0 erreur) via un conteneur
+`mcr.microsoft.com/powershell` émulé, transliteration Python de la logique anti-traversée/relais
+testée sur 21 cas (7 hostiles, 5 légitimes, 9 URLs réelles du frontend), et vérification
+indépendante après coup du chemin d'installation Ollama (`ollama app.exe` sous
+`%LOCALAPPDATA%\Programs\Ollama\`) via le script Inno Setup source du dépôt `ollama/ollama`
+(`app/ollama.iss`) — confirme exactement ce que le script utilise. **Aucun test end-to-end réel
+sur Windows n'a eu lieu.**
+
+### Suivi
+Une simplification a été repérée en cours de route sur la variante Linux (`docker/comfyui-official/Dockerfile`
+compile `comfy_kitchen` depuis les sources alors qu'une wheel PyPI précompilée existe) — flaguée en
+tâche de suivi séparée, hors périmètre de ce chantier Windows.
