@@ -52,9 +52,13 @@ risque) :
    jamais un service qu'il ne possède pas (vérification par les labels docker-compose). Ce qui
    manque est créé dans sa propre stack à la racine du home (`~/comfyui`, `~/ollama`) depuis
    les gabarits `docker/stacks/*.yml`, dossiers créés côté utilisateur AVANT les conteneurs.
-   Si un port est occupé par un service qui ne répond pas — un Ollama natif installé mais
-   arrêté, par exemple — rien n'est créé et le script indique quoi démarrer ou libérer, au lieu
-   de laisser Docker échouer sur « port is already allocated ».
+   Un service **installé mais arrêté** est redémarré plutôt que doublé : un conteneur à
+   l'arrêt est relancé (`docker start`), un Ollama natif (systemd) est démarré via
+   `sudo -n systemctl start ollama` — sans jamais bloquer sur une invite de mot de passe : si
+   sudo n'est pas autorisé sans mot de passe, le script affiche la commande à lancer et ne crée
+   rien. Si un port est occupé par un service qui ne répond pas et qu'on ne sait pas relancer,
+   rien n'est créé non plus, au lieu de laisser Docker échouer sur « port is already
+   allocated ».
 3. Télécharge les modèles manquants listés dans `scripts/models.txt` dans
    `~/comfyui/models/<dossier>/` (skip automatique si le fichier est déjà présent avec
    la bonne taille — aucun retéléchargement inutile).

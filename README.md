@@ -50,9 +50,12 @@ everything in a single command, **idempotently** (safe to re-run):
    recreates/destroys a service it doesn't own (checked via docker-compose labels). Whatever
    is missing is created in its own stack at the root of the home directory (`~/comfyui`,
    `~/ollama`) from the `docker/stacks/*.yml` templates, with their folders created as the
-   user BEFORE the containers. If a port is held by a service that does not answer — a native
-   Ollama that is installed but stopped, for instance — nothing is created and the script says
-   what to start or free, instead of letting Docker fail on "port is already allocated".
+   user BEFORE the containers. A service that is **installed but stopped** is restarted rather
+   than duplicated: a stopped container is started again (`docker start`), a native Ollama
+   (systemd) is started via `sudo -n systemctl start ollama` — never blocking on a password
+   prompt: if passwordless sudo is not available, the script prints the command to run and
+   creates nothing. If a port is held by a service that cannot be restarted, nothing is created
+   either, instead of letting Docker fail on "port is already allocated".
 3. Downloads the models listed in `scripts/models.txt` that are missing, into
    `~/comfyui/models/<folder>/` (automatically skipped if the file is already present
    with the correct size — no unnecessary re-downloading).

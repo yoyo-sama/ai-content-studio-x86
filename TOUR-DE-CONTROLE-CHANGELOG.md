@@ -1,5 +1,22 @@
 # Tour de contrôle — changelog
 
+## 2026-09-09 (suite) — v1.0.5 — Service installé mais arrêté : redémarré, pas doublé
+
+Même correctif que sur le repo source GB10 (v1.0.8), motivé par la même remarque : « il est possible qu'Ollama ne soit pas démarré ». Répondre non à un health-check ne veut pas dire absent. Le conteneur peut exister à l'arrêt (créer une stack échouerait sur un conflit de nom, les noms de conteneurs étant uniques), ou Ollama être installé nativement avec son service systemd stoppé (créer un conteneur ferait cohabiter deux instances sur le port 11434 au prochain boot).
+
+Ordre de traitement quand un service ne répond pas, pour ComfyUI comme pour Ollama :
+
+1. **Conteneur arrêté** portant l'image du rôle → `docker start` + attente de la santé HTTP. S'il démarre sans répondre, c'est signalé et rien d'autre n'est créé.
+2. **Ollama natif arrêté** → `systemctl start ollama` en root, sinon `sudo -n systemctl start ollama` (le `-n` échoue immédiatement plutôt que d'attendre un mot de passe dans un script non interactif). En cas d'échec : commande affichée, aucun conteneur créé.
+3. **Port occupé** par autre chose → rien créé, message explicite.
+4. **Rien de tout ça** → création de la stack.
+
+`resolve_comfy_paths` est appelée aussi sur le chemin « conteneur redémarré » : les bind-mounts du conteneur font autorité sur le chemin par défaut, sans quoi les modèles pourraient être téléchargés à côté du dossier réellement lu par ce ComfyUI-là.
+
+### Vérification
+
+Détection des conteneurs arrêtés validée sur le vrai Docker de la machine de développement. Trois branches testées bout en bout en simulation (`docker`/`curl`/`sudo`/`systemctl` stubés) : conteneur Ollama arrêté → `restarted (ollama-old)` + modèle tiré ; natif arrêté sans sudo autorisé → `skipped`, marche à suivre affichée, `Ollama unavailable` au récapitulatif ; natif arrêté avec démarrage réussi → `started (native service)` + modèle tiré.
+
 ## 2026-09-09 — v1.0.4 — Une stack Docker par service, Ollama natif reconnu, sortie en anglais
 
 Report du chantier mené sur le repo source GB10 (`dellaicontent` v1.0.7), plus le correctif du bug remonté sur un poste Ubuntu où **Ollama était déjà installé nativement** : le script partait en erreur alors qu'il était censé vérifier sa présence avant.

@@ -66,6 +66,82 @@ port_taken_by_other() {   # $1=port  $2=nom lisible du service
   return 0
 }
 
+# Attend qu'une URL réponde. $1=url $2=nombre d'essais $3=délai entre essais (s).
+wait_for_http() {
+  local i
+  for i in $(seq 1 "$2"); do
+    curl -sf "$1" >/dev/null 2>&1 && return 0
+    sleep "$3"
+  done
+  curl -sf "$1" >/dev/null 2>&1
+}
+
+# Un service peut être installé mais ARRÊTÉ : son conteneur existe, son port est libre.
+# En créer un second échouerait sur un conflit de nom (les noms de conteneurs sont
+# uniques) et, pour Ollama, ferait cohabiter deux instances sur le même port. On
+# redémarre donc l'existant. Retour : 0 = démarré et sain, 2 = démarré mais muet,
+# 1 = aucun conteneur arrêté correspondant.
+RESTARTED_CONTAINER=""
+restart_stopped_service() {   # $1=motif d'image  $2=nom lisible  $3=url santé  $4=essais  $5=délai
+  local c
+  c="$(docker ps -a --filter status=exited --filter status=created --filter status=paused \
+        --format '{{.Names}}\t{{.Image}}' 2>/dev/null | awk -F'\t' -v p="$1" 'index($2,p){print $1; exit}')"
+  [ -n "$c" ] || return 1
+  RESTARTED_CONTAINER="$c"
+  echo "$2 found in a stopped container ('$c') — starting it instead of creating a second one."
+  docker start "$c" >/dev/null 2>&1 || { warn "could not start container '$c'."; return 2; }
+  if wait_for_http "$3" "$4" "$5"; then
+    echo "OK: $2 answers."
+    return 0
+  fi
+  warn "container '$c' was started but $2 still does not answer — see 'docker logs $c'."
+  return 2
+}
+
+# Ollama installé nativement (script officiel + systemd) : ce n'est pas un conteneur, et
+# en créer un pendant qu'il est simplement arrêté ferait cohabiter deux instances sur le
+# port 11434. On tente donc de démarrer le service existant.
+NATIVE_OLLAMA_PRESENT=0
+native_ollama_present() {
+  command -v ollama >/dev/null 2>&1 && return 0
+  command -v systemctl >/dev/null 2>&1 && systemctl cat ollama.service >/dev/null 2>&1
+}
+start_native_ollama() {
+  native_ollama_present || return 1
+  NATIVE_OLLAMA_PRESENT=1
+  echo "Ollama is installed natively on this host but not answering — trying to start it."
+  if [ "$(id -u)" = 0 ]; then
+    systemctl start ollama >/dev/null 2>&1
+  else
+    # 'sudo -n' ne demande JAMAIS de mot de passe : soit sudo est déjà autorisé sans mot
+    # de passe, soit on échoue immédiatement — un script d'installation ne doit pas rester
+    # bloqué sur une invite.
+    sudo -n systemctl start ollama >/dev/null 2>&1
+  fi
+  if wait_for_http "http://localhost:11434/api/version" 15 2; then
+    echo "OK: native Ollama service started."
+    return 0
+  fi
+  warn "could not start the native Ollama service automatically (no passwordless sudo?)."
+  echo "  Start it yourself, then run this script again:"
+  echo "    sudo systemctl enable --now ollama     # or, without systemd: ollama serve &"
+  echo "  No Ollama container was created, to avoid two instances fighting over port 11434."
+  return 1
+}
+
+# Chemin réel des modèles d'un conteneur ComfyUI d'après son bind-mount (il fait autorité
+# sur le chemin par défaut : c'est là que ce ComfyUI-là lit vraiment ses modèles).
+resolve_comfy_paths() {   # $1=conteneur
+  local m
+  m="$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/comfyui/models" }}{{ .Source }}{{ end }}{{ end }}' "$1" 2>/dev/null || true)"
+  if [ -n "$m" ]; then
+    COMFY_MODELS_DIR="$m"
+    echo "Actual path detected: models=$COMFY_MODELS_DIR"
+  else
+    warn "/comfyui/models mount not found on this container — deploy models manually for it."
+  fi
+}
+
 # Partie de la vérification d'environnement commune aux deux distros (docker, plugin
 # compose, runtime nvidia). L'appelant fait le reste (paquets système de sa distro).
 check_docker_common() {
@@ -165,17 +241,21 @@ run_install() {
 
       # Chemin réel d'après le bind-mount effectif du conteneur (utile même si le
       # conteneur appartient à un autre projet compose).
-      REAL_MODELS="$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/comfyui/models" }}{{ .Source }}{{ end }}{{ end }}' "$COMFY_CONTAINER" 2>/dev/null || true)"
-      if [ -n "$REAL_MODELS" ]; then
-        COMFY_MODELS_DIR="$REAL_MODELS"
-        echo "Actual path detected: models=$COMFY_MODELS_DIR"
-      else
-        warn "/comfyui/models mount not found on this container — deploy models manually for it."
-      fi
+      resolve_comfy_paths "$COMFY_CONTAINER"
     fi
   else
     echo "No ComfyUI answering on :8188."
-    if port_taken_by_other 8188 "ComfyUI"; then
+    restart_stopped_service "ai-content-studio-comfyui" "ComfyUI" "http://localhost:8188/system_stats" 60 10
+    rc=$?
+    if [ "$rc" -eq 0 ]; then
+      COMFY_CONTAINER="$RESTARTED_CONTAINER"
+      COMFY_STATUS="restarted ($COMFY_CONTAINER)"
+      resolve_comfy_paths "$COMFY_CONTAINER"
+    elif [ "$rc" -eq 2 ]; then
+      COMFY_CONTAINER="$RESTARTED_CONTAINER"
+      COMFY_STATUS="restarted but not answering ($COMFY_CONTAINER)"
+      resolve_comfy_paths "$COMFY_CONTAINER"
+    elif port_taken_by_other 8188 "ComfyUI"; then
       COMFY_STATUS="skipped (port 8188 busy)"
     else
       create_comfy_stack
@@ -217,14 +297,19 @@ run_install() {
     fi
   else
     echo "No Ollama answering on :11434."
-    if command -v ollama >/dev/null 2>&1; then
-      # Ollama est installé nativement mais ne répond pas : créer un conteneur ici
-      # provoquerait une bagarre sur le port 11434 au prochain démarrage du service.
-      warn "the 'ollama' command exists on this host but the service does not answer."
-      echo "  Start it, then run this script again:"
-      echo "    sudo systemctl enable --now ollama   # or: ollama serve"
-      echo "  No Ollama container was created, to avoid two Ollama instances fighting over port 11434."
-      OLLAMA_STATUS="skipped (native Ollama installed but not running)"
+    restart_stopped_service "ollama/ollama" "Ollama" "http://localhost:11434/api/version" 15 2
+    rc=$?
+    if [ "$rc" -eq 0 ]; then
+      OLLAMA_CONTAINER="$RESTARTED_CONTAINER"
+      OLLAMA_STATUS="restarted ($OLLAMA_CONTAINER)"
+    elif [ "$rc" -eq 2 ]; then
+      OLLAMA_CONTAINER="$RESTARTED_CONTAINER"
+      OLLAMA_STATUS="restarted but not answering ($OLLAMA_CONTAINER)"
+    elif start_native_ollama; then
+      OLLAMA_CONTAINER="native or unidentified service"
+      OLLAMA_STATUS="started (native service)"
+    elif [ "$NATIVE_OLLAMA_PRESENT" -eq 1 ]; then
+      OLLAMA_STATUS="skipped (native Ollama installed but not started)"
     elif port_taken_by_other 11434 "Ollama"; then
       OLLAMA_STATUS="skipped (port 11434 busy)"
     else
