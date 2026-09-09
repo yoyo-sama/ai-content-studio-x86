@@ -8,10 +8,9 @@ ComfyUI_windows_portable/
 ComfyUI_windows_portable_nvidia.7z
 7zr.exe
 
-# Volumes ComfyUI / Ollama (montés localement, pas versionnés)
-comfyui/basedir/
-comfyui/run/
-comfyui/userscripts_dir/
+# Volumes ComfyUI hérités de l'ancienne mise en page (stacks désormais dans ~/comfyui
+# et ~/ollama, hors du repo) — ignorés si un ancien dossier traîne encore ici.
+comfyui/
 
 # Poids de modèles (jamais dans le dépôt Git — trop volumineux)
 *.safetensors

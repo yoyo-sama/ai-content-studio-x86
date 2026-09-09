@@ -1,61 +1,14 @@
+# Application stack only (web + updater). ComfyUI and Ollama live in their own stacks
+# at the root of the home directory: ~/comfyui and ~/ollama, deployed by the installers
+# from docker/stacks/. nginx runs in host network mode, so it reaches both on 127.0.0.1.
 services:
   ai-content-studio:
     image: nginx:alpine
     container_name: ai-content-studio-web
-    # network_mode: host — nginx écoute sur :8090 (interface publique de l'hôte)
-    # et atteint ComfyUI (127.0.0.1:8188) + Ollama (127.0.0.1:11434) en local.
     network_mode: host
     volumes:
       - ./:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    restart: unless-stopped
-
-  comfyui:
-    build: ./docker/comfyui-official
-    image: ai-content-studio-comfyui:local
-    container_name: comfyui-nvidia
-    ports:
-      - "8188:8188"
-    volumes:
-      # Chemins hôte par défaut sous ./comfyui/ à la racine du repo (portable).
-      # Adaptez-les si vos modèles vivent déjà ailleurs sur la machine.
-      - ./comfyui/models:/comfyui/models:rw
-      - ./comfyui/user:/comfyui/user:rw
-      - ./comfyui/output:/comfyui/output:rw
-      - ./comfyui/input:/comfyui/input:rw
-      - /etc/localtime:/etc/localtime:ro
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu, compute, utility]
-    restart: unless-stopped
-
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama-api
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama-data:/root/.ollama
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    # Démarre le serveur puis s'assure que gemma4:e4b est présent (idempotent :
-    # `ollama pull` ne retélécharge pas un modèle déjà local).
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        ollama serve &
-        sleep 3
-        ollama pull gemma4:e4b
-        wait
     restart: unless-stopped
 
   updater:
@@ -67,6 +20,3 @@ services:
     volumes:
       - ./:/repo:rw
     restart: unless-stopped
-
-volumes:
-  ollama-data:

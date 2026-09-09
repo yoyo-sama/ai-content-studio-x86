@@ -191,13 +191,22 @@ logique commune (`scripts/lib-install-common.sh`) :
 1. **1/5** Vérifications d'environnement (architecture x86_64, docker/docker compose,
    driver/toolkit NVIDIA).
 2. **2/5** Détection des 3 services (web `:8090`, ComfyUI `:8188`, Ollama `:11434`) **par
-   santé HTTP réelle**, pas par nom de conteneur — réutilise tout ce qui tourne déjà et ne
-   recrée/ne détruit jamais un conteneur qu'il ne possède pas (vérifié via les labels
-   docker-compose).
+   santé HTTP réelle**, pas par nom de conteneur — réutilise tout ce qui tourne déjà, **y
+   compris un Ollama installé nativement (systemd), qui n'est pas un conteneur**, et ne
+   recrée/ne détruit jamais un service qu'il ne possède pas (vérifié via les labels
+   docker-compose). Les services manquants sont créés dans leur propre stack à la racine du
+   home (`~/comfyui`, `~/ollama`) depuis les gabarits `docker/stacks/*.yml`, dossiers créés
+   côté utilisateur AVANT les conteneurs (un bind-mount dont la source n'existe pas est créé
+   par Docker en `root` : dossier cadenassé et téléchargements en échec ensuite). Si un port
+   est occupé par un service qui ne répond pas — Ollama natif arrêté, par exemple — rien n'est
+   créé et le script explique quoi faire, au lieu de laisser Docker échouer sur
+   « port is already allocated ».
 3. **3/5** Téléchargement des modèles manquants (`scripts/models.txt`) dans
-   `comfyui/models/<dossier>/`, avec vérification de taille pour éviter les re-téléchargements
-   inutiles.
-4. **4/5** Pull du modèle Ollama `gemma4:e4b` s'il est absent.
+   `~/comfyui/models/<dossier>/`, avec vérification de taille pour éviter les re-téléchargements
+   inutiles. Refus explicite si le dossier n'est pas inscriptible.
+4. **4/5** Pull du modèle Ollama `gemma4:e4b` s'il est absent, **par l'API HTTP**
+   (`POST /api/pull`) et non par `docker exec` : identique que Ollama tourne dans notre
+   conteneur, dans celui d'un autre projet, ou nativement.
 5. **5/5** Récapitulatif final (statut des services, modèles, health-checks).
 
 Ce script est idempotent : le relancer après une première installation réussie ne recrée rien
@@ -209,7 +218,9 @@ L'image ComfyUI n'est plus tirée (`docker pull`) d'un registre — elle est **b
 localement** depuis `docker/comfyui-official/Dockerfile`, qui clone
 [`comfyanonymous/ComfyUI`](https://github.com/comfyanonymous/ComfyUI) (dépôt officiel, pas de
 fork ni de custom nodes — cf. `AGENTS.md`) et installe PyTorch avec les roues CUDA 12.4.
-Le premier `docker compose up -d comfyui` (ou `docker compose build comfyui`) prend donc
+Le build est lancé par les scripts d'installation (`docker build -t ai-content-studio-comfyui:local
+docker/comfyui-official`) ; la stack `~/comfyui/compose.yaml` ne référence que le tag, elle ne
+contient aucun chemin vers le repo. Le premier build prend donc
 plusieurs minutes (clone + `pip install`) ; les exécutions suivantes réutilisent le cache
 Docker tant que le Dockerfile ne change pas.
 

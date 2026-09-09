@@ -1,0 +1,23 @@
+# ComfyUI stack — deployed by install-ubuntu.sh / install-omarchy.sh into ~/comfyui.
+# The image is built from docker/comfyui-official/ by the installer and referenced by
+# tag here, so this file holds no path back to the repository.
+services:
+  comfyui:
+    image: ai-content-studio-comfyui:local
+    container_name: comfyui-nvidia
+    ports:
+      - "8188:8188"
+    volumes:
+      - ./models:/comfyui/models:rw
+      - ./user:/comfyui/user:rw
+      - ./output:/comfyui/output:rw
+      - ./input:/comfyui/input:rw
+      - /etc/localtime:/etc/localtime:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, compute, utility]
+    restart: unless-stopped

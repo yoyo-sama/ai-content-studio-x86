@@ -1,5 +1,41 @@
 # Tour de contrôle — changelog
 
+## 2026-09-09 — v1.0.4 — Une stack Docker par service, Ollama natif reconnu, sortie en anglais
+
+Report du chantier mené sur le repo source GB10 (`dellaicontent` v1.0.7), plus le correctif du bug remonté sur un poste Ubuntu où **Ollama était déjà installé nativement** : le script partait en erreur alors qu'il était censé vérifier sa présence avant.
+
+### Ollama natif : la cause du bug
+
+`find_container_by_port 11434` ne trouvait rien (un service systemd n'est pas un conteneur) → `OLLAMA_CONTAINER="(inconnu)"` → l'étape 4/5 abandonnait le pull du modèle, et si le service natif était arrêté au moment du passage du script, `docker compose up -d ollama` se cassait sur « port is already allocated ». Trois corrections :
+
+1. **Détection au niveau service, pas conteneur.** Un Ollama qui répond sur `:11434` est réutilisé tel quel, conteneur ou pas, et annoncé comme tel (`reused (native service)`).
+2. **Pull par l'API HTTP** (`POST /api/pull`) au lieu de `docker exec` : identique que Ollama tourne dans notre conteneur, dans celui d'un autre projet, ou nativement. `/api/pull` répondant 200 même quand le tirage échoue en cours de flux, le résultat est revérifié via `/api/tags`.
+3. **Garde de port.** Si `:11434` (ou `:8188`) est occupé par un service qui ne répond pas au health-check, rien n'est créé : le script explique quoi libérer/démarrer. Cas particulier détecté à part : commande `ollama` présente sur l'hôte mais service muet → message `sudo systemctl enable --now ollama`, aucun conteneur créé, pour ne pas se retrouver avec deux Ollama qui se disputent le port.
+
+### Structure : une stack par service à la racine du home
+
+`~/ai-content-studio` (app + updater), `~/comfyui` (ComfyUI), `~/ollama` (Ollama, seulement si pas de natif). Le `docker-compose.yml` du repo ne déclare plus que l'app ; les stacks voisines sont créées depuis les nouveaux gabarits `docker/stacks/{comfyui,ollama}.yml`. Le gabarit ComfyUI ne référence que le tag `ai-content-studio-comfyui:local` — l'image est buildée par l'installeur depuis `docker/comfyui-official/`, donc **aucun chemin vers le repo n'est écrit dans la stack**.
+
+Dossiers créés côté utilisateur AVANT les conteneurs : un bind-mount dont la source n'existe pas encore est créé par dockerd en `root:root`, ce qui cadenassait le dossier et faisait échouer en « permission denied » tous les téléchargements de modèles (bug identique diagnostiqué sur GB10). Garde d'écriture ajoutée sur le dossier de modèles, attente de ComfyUI sur `:8188` après création, migration automatique d'une installation faite avec l'ancienne mise en page (conteneurs portant le label de `docker-compose.yml` du repo), reprise des poids du volume nommé `ollama-data`.
+
+### Sortie terminal en anglais
+
+Tous les messages de `install-ubuntu.sh`, `install-omarchy.sh` et `scripts/lib-install-common.sh` sont en anglais (commentaires du code laissés en français, comme le reste du dépôt). Aucun chemin ni uid en dur : `$HOME`, `$REPO_ROOT` déduit de `BASH_SOURCE`, et `tools/{validate,onboard}.py` dérivent de `COMFY_DIR` (repli `~/comfyui`) au lieu de `$REPO_ROOT/comfyui`.
+
+### Fichiers touchés
+
+`docker/stacks/comfyui.yml` + `docker/stacks/ollama.yml` (nouveaux), `docker-compose.yml`, `scripts/lib-install-common.sh` (réécrit), `install-ubuntu.sh`, `install-omarchy.sh`, `tools/validate.py`, `tools/onboard.py`, `README.md`, `README.fr.md`, `AGENTS.md`, `docs/INSTALL-X86.md`, `.gitignore`, `VERSION`. `install-windows.ps1` n'est PAS touché (hors périmètre demandé).
+
+### Vérification
+
+`bash -n` sur les trois scripts, `docker compose config -q` sur les trois fichiers compose, et simulation d'installation complète avec `docker`/`curl`/`ss` remplacés par des stubs et un `$HOME` temporaire, sur les trois scénarios Ollama :
+
+- **poste vierge** → stack `~/ollama` créée, modèle tiré, arborescence `~/comfyui/{models,user,output,input}` créée et appartenant à l'utilisateur ;
+- **Ollama natif en service** → `reused (native service)`, aucun conteneur créé, modèle tiré par l'API ;
+- **Ollama natif installé mais arrêté** → `skipped (native Ollama installed but not running)`, aucun conteneur créé, marche à suivre affichée, et le récapitulatif signale `Ollama unavailable`.
+
+Non prouvé ici (aucun poste Ubuntu/Omarchy sous la main) : le build réel de l'image ComfyUI et le premier démarrage des conteneurs.
+
 ## 2026-09-07 (suite 5) — v1.0.3 — Correctif : install.sh ne démarrait jamais le service updater
 
 Bug trouvé lors d'une relecture d'`install.sh` : sur une installation fraîche, le script

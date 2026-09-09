@@ -43,9 +43,11 @@ COMFY_URL = "http://localhost:8188"
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(TOOLS_DIR)
 OBJECT_INFO_PATH = os.path.join(TOOLS_DIR, "object_info.json")
-MODELS_DIR = os.path.join(ROOT_DIR, "comfyui", "models")
-OUTPUT_DIR = os.path.join(ROOT_DIR, "comfyui", "output")
-INPUT_DIR = os.path.join(ROOT_DIR, "comfyui", "input")
+# Stack ComfyUI voisine (~/comfyui), pas un sous-dossier du repo — surchargeable.
+COMFY_DIR = os.environ.get("COMFY_DIR", os.path.expanduser("~/comfyui"))
+MODELS_DIR = os.path.join(COMFY_DIR, "models")
+OUTPUT_DIR = os.path.join(COMFY_DIR, "output")
+INPUT_DIR = os.path.join(COMFY_DIR, "input")
 
 DEFAULT_PROMPT = "cinematic wide shot, golden hour lighting, subtle camera movement, film grain"
 DEFAULT_NEGATIVE = "blurry, low quality"

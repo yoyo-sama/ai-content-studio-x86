@@ -47,18 +47,24 @@ risque) :
    les noms de paquets/commandes spécifiques à la distro sont affichés si quelque chose
    manque, sans installation automatique).
 2. Détecte les 3 services (app web `:8090`, ComfyUI `:8188`, Ollama `:11434`) **par rôle réel**
-   (santé HTTP), pas par nom de conteneur — réutilise tout ce qui tourne déjà (y compris un
-   service lancé en dehors de ce `docker-compose.yml`) et ne recrée/ne détruit jamais un
-   conteneur qu'il ne possède pas (vérification par les labels docker-compose). Si un
-   ComfyUI existant est bien géré par CE `docker-compose.yml`, il est reconstruit +
-   recréé ; sinon, aucune mise à jour automatique (message explicite pour le faire
-   manuellement).
+   (santé HTTP), pas par nom de conteneur — réutilise tout ce qui tourne déjà, **y compris un
+   Ollama installé nativement (systemd), qui n'est pas un conteneur**, et ne recrée/ne détruit
+   jamais un service qu'il ne possède pas (vérification par les labels docker-compose). Ce qui
+   manque est créé dans sa propre stack à la racine du home (`~/comfyui`, `~/ollama`) depuis
+   les gabarits `docker/stacks/*.yml`, dossiers créés côté utilisateur AVANT les conteneurs.
+   Si un port est occupé par un service qui ne répond pas — un Ollama natif installé mais
+   arrêté, par exemple — rien n'est créé et le script indique quoi démarrer ou libérer, au lieu
+   de laisser Docker échouer sur « port is already allocated ».
 3. Télécharge les modèles manquants listés dans `scripts/models.txt` dans
-   `comfyui/models/<dossier>/` (skip automatique si le fichier est déjà présent avec
+   `~/comfyui/models/<dossier>/` (skip automatique si le fichier est déjà présent avec
    la bonne taille — aucun retéléchargement inutile).
-4. Tire le modèle Ollama `gemma4:e4b` s'il est absent.
-5. Affiche un récapitulatif final (statut des 3 services, modèles téléchargés/déjà présents/
-   en échec, health-checks).
+4. Tire le modèle Ollama `gemma4:e4b` s'il est absent, **par l'API HTTP** (`POST /api/pull`)
+   et non par `docker exec` : identique que Ollama tourne dans notre conteneur, dans celui d'un
+   autre projet, ou nativement.
+5. Attend que ComfyUI réponde sur `:8188` quand il vient d'être créé, puis affiche un
+   récapitulatif final (statut des services, emplacements réels, modèles, health-checks).
+
+La sortie des scripts est en anglais ; leurs commentaires restent en français.
 
 **`HF_TOKEN` (jeton Hugging Face, optionnel mais nécessaire pour LTX 2.5)** : les 4 fichiers
 de modèle LTX 2.5 proviennent d'un dépôt Hugging Face **"gated"** (accès restreint) — un
@@ -143,32 +149,38 @@ Pour qui préfère comprendre chaque étape, n'a pas de connexion internet compl
 télécharger d'un coup, ou veut auditer ce que les scripts d'installation automatisent :
 
 ```bash
-git clone <url-du-repo> ai-content-studio
-cd ai-content-studio
-docker compose up -d
+git clone <url-du-repo> ~/ai-content-studio
+cd ~/ai-content-studio
+docker compose up -d                              # app seule (nginx :8090 + updater)
+docker compose -f ~/comfyui/compose.yaml up -d    # ComfyUI (:8188)
+docker compose -f ~/ollama/compose.yaml up -d     # Ollama (:11434), inutile si Ollama est natif
 ```
 
-`docker-compose.yml` définit 3 services :
+Trois stacks distinctes, une par service, chacune à la racine du home :
 
-| Service | Image | Port | Rôle |
-|---|---|---|---|
-| `ai-content-studio` | `nginx:alpine` | 8090 | Sert `index.html`/`canvas.html` + reverse-proxy vers ComfyUI/Ollama |
-| `comfyui` | buildée localement depuis `docker/comfyui-official/Dockerfile` (ComfyUI officiel [`comfyanonymous/ComfyUI`](https://github.com/comfyanonymous/ComfyUI)) | 8188 | Moteur de génération d'images/vidéos |
-| `ollama` | `ollama/ollama:latest` | 11434 | LLM local pour l'enrichissement de prompt |
+| Dossier | Conteneur | Image | Port | Rôle |
+|---|---|---|---|---|
+| `~/ai-content-studio` | `ai-content-studio-web` + `ai-content-studio-updater` | `nginx:alpine` | 8090 | Sert `index.html`/`canvas.html` + reverse-proxy vers ComfyUI/Ollama |
+| `~/comfyui` | `comfyui-nvidia` | buildée localement depuis `docker/comfyui-official/Dockerfile` (ComfyUI officiel [`comfyanonymous/ComfyUI`](https://github.com/comfyanonymous/ComfyUI)), taguée `ai-content-studio-comfyui:local` | 8188 | Moteur de génération d'images/vidéos |
+| `~/ollama` | `ollama-api` | `ollama/ollama:latest` | 11434 | LLM local pour l'enrichissement de prompt |
 
-Les volumes ComfyUI sont montés par défaut sous `./comfyui/` à la racine du repo
-(`comfyui/models`, `comfyui/user`, `comfyui/output` — arborescence standard ComfyUI, pas de
-`basedir`/`userscripts_dir` comme sur l'image spécifique GB10) — modifiables dans
-`docker-compose.yml` si vos modèles vivent déjà ailleurs sur la machine. Le service `ollama`
-tire automatiquement le modèle `gemma4:e4b` au démarrage (`ollama pull` est idempotent, il ne
-retélécharge pas un modèle déjà présent) ; si besoin, relancez-le manuellement :
+Les scripts d'installation créent les deux stacks voisines à partir des gabarits
+`docker/stacks/*.yml`, en créant leurs dossiers **avant** les conteneurs : un bind-mount dont
+la source n'existe pas encore est créé par Docker en `root`, ce qui cadenasse le dossier et
+fait échouer tous les téléchargements de modèles. Modèles ComfyUI dans `~/comfyui/models/`,
+poids Ollama dans `~/ollama/data/`.
+
+**Ollama installé nativement** (cas courant sur Ubuntu, `curl -fsSL https://ollama.com/install.sh | sh`)
+est détecté et réutilisé tel quel — aucun conteneur créé, et le modèle requis est tiré par
+l'API HTTP d'Ollama. Si le service natif est installé mais arrêté, le script le dit et ne crée
+rien, plutôt que de lancer un second Ollama qui se battrait pour le port 11434.
 
 ```bash
-docker compose exec ollama ollama pull gemma4:e4b
+curl -X POST http://localhost:11434/api/pull -d '{"model":"gemma4:e4b"}'   # pull manuel, conteneur ou natif
 ```
 
 **Important : les poids de modèles ne sont PAS dans le dépôt Git** (plusieurs dizaines de Go
-au total) — à télécharger manuellement dans `comfyui/models/<dossier>/` selon le
+au total) — à télécharger manuellement dans `~/comfyui/models/<dossier>/` selon le
 tableau ci-dessous (mêmes URLs que `scripts/models.txt`, utilisé par les scripts
 d'installation), avant de lancer une génération. Pour LTX 2.5, voir la section `HF_TOKEN`
 ci-dessus (dépôt gated).
@@ -183,7 +195,7 @@ curl http://localhost:11434/api/version          # Ollama vivant
 
 ### Modèles à télécharger
 
-Chaque fichier va dans `comfyui/models/<dossier>/` (chemin hôte par défaut ; adaptez
+Chaque fichier va dans `~/comfyui/models/<dossier>/` (chemin de la stack ComfyUI ; adaptez
 si vous avez changé le mapping de volume). `install-ubuntu.sh`/`install-omarchy.sh`
 téléchargent automatiquement les 19 fichiers ci-dessous depuis `scripts/models.txt` (source de
 vérité — mêmes URLs, même ordre) ; la liste manuelle qui suit est équivalente pour qui préfère
@@ -245,7 +257,7 @@ tailles exactes en octets dans `scripts/models.txt`).
 manuellement :
 
 ```bash
-docker compose exec ollama ollama pull gemma4:e4b
+curl -X POST http://localhost:11434/api/pull -d '{"model":"gemma4:e4b"}'
 ```
 
 ### Mode Canvas (éditeur de nœuds)
@@ -324,7 +336,8 @@ install-omarchy.sh           ← idem, pour Omarchy (Arch-based)
 install-windows.ps1          ← installation/mise à jour idempotente, Windows 10/11 natif (sans Docker, GPU NVIDIA dédié)
 scripts/lib-install-common.sh ← logique applicative partagée par les deux scripts d'install Linux
 scripts/serve-windows.ps1    ← serveur web PowerShell natif + reverse-proxy, équivalent Windows de nginx.conf
-docker-compose.yml          ← 3 services : nginx (8090), comfyui (8188, buildé localement), ollama (11434)
+docker-compose.yml          ← app seule : nginx (8090) + updater (8093)
+docker/stacks/*.yml         ← gabarits des stacks voisines : ~/comfyui et ~/ollama
 docker/comfyui-official/    ← Dockerfile qui build ComfyUI officiel (comfyanonymous/ComfyUI)
 scripts/models.txt          ← 19 modèles requis : dossier|fichier|taille|URL (source de vérité pour les scripts d'install et le README)
 workflows/

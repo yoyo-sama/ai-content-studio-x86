@@ -1,0 +1,29 @@
+# Ollama stack — deployed by install-ubuntu.sh / install-omarchy.sh into ~/ollama.
+# Weights live in ./data (bind mount) rather than an anonymous Docker volume, so the
+# folder stays inspectable and easy to back up. The container runs as root (official
+# image): the files it writes inside data/ belong to root.
+# Not deployed at all when Ollama is already installed natively on the host — the
+# installer reuses whatever answers on :11434, container or not.
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-api
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        ollama serve &
+        sleep 3
+        ollama pull gemma4:e4b
+        wait
+    restart: unless-stopped

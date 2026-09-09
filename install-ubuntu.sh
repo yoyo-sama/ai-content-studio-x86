@@ -13,33 +13,33 @@ COMPOSE="docker compose"
 source "$REPO_ROOT/scripts/lib-install-common.sh"
 
 # ---------------------------------------------------------------------------
-section "1/5 Vérifications d'environnement (Ubuntu 24.04 x86_64)"
+section "1/5 Environment checks (Ubuntu 24.04 x86_64)"
 # ---------------------------------------------------------------------------
 ARCH="$(uname -m)"
 if [ "$ARCH" != "x86_64" ]; then
-  warn "architecture détectée '$ARCH' (ce script cible un poste x86_64 avec GPU Nvidia dédié)."
-  echo "  Le script continue quand même (dégradation propre)."
+  warn "detected architecture '$ARCH' (this script targets an x86_64 machine with a dedicated Nvidia GPU)."
+  echo "  Continuing anyway (graceful degradation)."
 else
-  echo "OK: architecture x86_64."
+  echo "OK: x86_64 architecture."
 fi
 
 if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
-  warn "Docker (+ plugin 'docker compose') introuvable ou incomplet."
-  echo "  Installation officielle Docker pour Ubuntu (dépôt apt Docker) :"
+  warn "Docker (+ the 'docker compose' plugin) is missing or incomplete."
+  echo "  Official Docker install for Ubuntu (Docker apt repository):"
   echo "    curl -fsSL https://get.docker.com | sudo sh"
-  echo "  (ou suivez https://docs.docker.com/engine/install/ubuntu/ pour une install manuelle par paquets)"
-  echo "  Ce script n'installe pas Docker automatiquement — relancez-le une fois Docker installé."
+  echo "  (or follow https://docs.docker.com/engine/install/ubuntu/ for a manual package install)"
+  echo "  This script does not install Docker for you — run it again once Docker is installed."
   exit 1
 fi
 
 if ! command -v nvidia-smi >/dev/null 2>&1; then
-  warn "'nvidia-smi' introuvable — driver Nvidia propriétaire probablement absent ou non chargé."
-  echo "  Installez-le via : sudo ubuntu-drivers autoinstall   (puis redémarrez)"
+  warn "'nvidia-smi' not found — the proprietary Nvidia driver is probably missing or not loaded."
+  echo "  Install it with: sudo ubuntu-drivers autoinstall   (then reboot)"
 fi
 
 if ! dpkg -l nvidia-container-toolkit >/dev/null 2>&1; then
-  warn "paquet 'nvidia-container-toolkit' non détecté via dpkg."
-  echo "  Installation (dépôt officiel Nvidia) :"
+  warn "package 'nvidia-container-toolkit' not detected via dpkg."
+  echo "  Install it (official Nvidia repository):"
   echo "    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg"
   echo "    curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \\"
   echo "      sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \\"

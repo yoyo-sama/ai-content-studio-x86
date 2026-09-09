@@ -1,11 +1,13 @@
 # AGENTS.md — guide agent pour AI Content Studio
 
-Fork ciblant un poste **x86_64 avec GPU Nvidia dédié** (pas le GB10/DGX Spark du repo source `dellaicontent`) : page statique unique (`index.html`) qui pilote ComfyUI officiel (`comfyanonymous/ComfyUI`, buildé localement — `:8188`) et Ollama (`:11434`). Pas de build, pas de dépendances côté frontend. Publique via nginx sur `:8090` (`docker compose up -d`). Seule exception backend : le service `updater` (`docker/updater/`, Python stdlib, `127.0.0.1:8093`) qui expose `/update/status` et `/update/apply` (proxifiés par nginx) pour la mise à jour git déclenchée depuis l'UI — voir le changelog du 2026-09-07 (suite 3).
+Fork ciblant un poste **x86_64 avec GPU Nvidia dédié** (pas le GB10/DGX Spark du repo source `dellaicontent`) : page statique unique (`index.html`) qui pilote ComfyUI officiel (`comfyanonymous/ComfyUI`, buildé localement — `:8188`) et Ollama (`:11434`). Pas de build, pas de dépendances côté frontend. Publique via nginx sur `:8090` (`docker compose up -d`). Trois stacks Docker distinctes, une par service, à la racine du home : `~/ai-content-studio` (app + updater), `~/comfyui` (ComfyUI, gabarit `docker/stacks/comfyui.yml`), `~/ollama` (Ollama, gabarit `docker/stacks/ollama.yml` — non déployée si Ollama est installé nativement, cas courant sur Ubuntu : il est alors réutilisé tel quel et le modèle tiré par l'API HTTP). Seule exception backend : le service `updater` (`docker/updater/`, Python stdlib, `127.0.0.1:8093`) qui expose `/update/status` et `/update/apply` (proxifiés par nginx) pour la mise à jour git déclenchée depuis l'UI — voir le changelog du 2026-09-07 (suite 3).
 
 ## Commandes essentielles
 
 ```bash
-docker compose up -d                                  # servir l'app (nginx :8090)
+docker compose up -d                                  # servir l'app (nginx :8090 + updater)
+docker compose -f ~/comfyui/compose.yaml up -d        # stack ComfyUI (:8188)
+docker compose -f ~/ollama/compose.yaml up -d         # stack Ollama (:11434), si non natif
 curl -s http://localhost:8188/system_stats | head -c 200   # ComfyUI vivant ?
 curl -s http://localhost:11434/api/version                 # Ollama vivant ?
 node --check <(python3 -c "import re;print(re.search(r'<script>(.*?)</script>', open('index.html').read(), re.S).group(1))")   # valider le JS
@@ -14,7 +16,7 @@ python3 tools/onboard.py <ui.json> --id X --label "…" --pipeline text2video --
 python3 tools/validate.py workflows/api/ltx25_t2v.json --reduce --frames 0,12 --audio      # rendu réel réduit + inspection
 ```
 
-Modèles installés : `ls ./comfyui/models/<dossier>/` (diffusion_models, checkpoints, text_encoders, vae, loras, latent_upscale_models — chemin relatif à la racine du repo, monté dans le conteneur ComfyUI sur `/comfyui/models`). Ne jamais référencer un `.safetensors` sans vérifier sa présence.
+Modèles installés : `ls ~/comfyui/models/<dossier>/` (diffusion_models, checkpoints, text_encoders, vae, loras, latent_upscale_models — stack ComfyUI voisine, montée dans le conteneur sur `/comfyui/models` ; surchargeable par `COMFY_DIR` pour les outils `tools/`). Ne jamais référencer un `.safetensors` sans vérifier sa présence.
 
 ## Règles du projet (imposées par l'utilisateur)
 
