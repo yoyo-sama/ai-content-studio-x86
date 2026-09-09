@@ -10,7 +10,7 @@ ComfyUI** (built locally from [`comfyanonymous/ComfyUI`](https://github.com/comf
 and ships three installation paths: **Ubuntu 24.04** and **Omarchy** (Arch-based, Hyprland),
 both Docker-based, and **Windows 10/11** (native, no Docker, dedicated NVIDIA GPU).
 
-**Current version: 1.0.3** — see `TOUR-DE-CONTROLE-CHANGELOG.md` for the change history.
+**Current version: 1.0.5** — see `TOUR-DE-CONTROLE-CHANGELOG.md` for the change history.
 
 **Fully local** AI creative studio: image generation (Krea 2, Qwen-Edit) and video generation with audio (LTX 2.5, Minimax H3) via ComfyUI on a dedicated NVIDIA GPU, with prompt enrichment by a local LLM (Ollama). The application is served by nginx, with no build step and no framework (aside from a small `updater` backend service that handles in-app updates — see below) — two static modes to choose from: the `index.html` form (guided scenarios, see below) and the `canvas.html` node editor (see dedicated section below).
 

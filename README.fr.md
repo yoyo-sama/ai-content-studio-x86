@@ -11,7 +11,7 @@ particulier, il remplace l'image `mmartial/comfyui-nvidia-docker` spécifique au
 chemins d'installation : **Ubuntu 24.04** et **Omarchy** (Arch-based, Hyprland), tous deux en
 Docker, et **Windows 10/11** (natif, sans Docker, GPU NVIDIA dédié).
 
-**Version actuelle : 1.0.3** — voir `TOUR-DE-CONTROLE-CHANGELOG.md` pour l'historique des changements.
+**Version actuelle : 1.0.5** — voir `TOUR-DE-CONTROLE-CHANGELOG.md` pour l'historique des changements.
 
 Studio créatif IA **100 % local** : génération d'images (Krea 2, Qwen-Edit) et de vidéos avec audio (LTX 2.5, Minimax H3) via ComfyUI sur un GPU NVIDIA dédié, enrichissement de prompt par LLM local (Ollama). L'application est servie par nginx, sans build, sans framework (à l'exception d'un petit service `updater` dédié aux mises à jour, voir plus bas) — deux modes statiques au choix : le formulaire `index.html` (scénarios guidés, voir plus bas) et l'éditeur de nœuds `canvas.html` (voir section dédiée ci-dessous).
 
