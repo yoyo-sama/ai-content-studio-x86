@@ -39,7 +39,7 @@ cd ~/ai-content-studio
 ```
 
 > **Quelque chose ne marche pas, ou poste sur lequel une installation a déjà été tentée ?**
-> → **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** — table symptôme → cause, diagnostic
+> → **[docs/TROUBLESHOOTING.fr.md](docs/TROUBLESHOOTING.fr.md)** — table symptôme → cause, diagnostic
 > en trois commandes, procédure de réinstallation pas à pas, et remise à zéro.
 
 Les deux scripts partagent la même logique applicative (`scripts/lib-install-common.sh`) et ne
@@ -356,7 +356,8 @@ workflows/
 tools/convert.py            ← convertisseur UI→API (voir docs/TESTING.md)
 docs/
   INSTALL-X86.md            ← guide d'installation détaillé : prérequis & commandes Ubuntu 24.04 / Omarchy / Windows
-  TROUBLESHOOTING.md        ← dépannage installation/déploiement : symptômes, diagnostic, réparation, réinstallation propre
+  TROUBLESHOOTING.md        ← dépannage installation/déploiement (EN) : symptômes, diagnostic, réparation, réinstallation propre
+  TROUBLESHOOTING.fr.md     ← même guide en français
   ARCHITECTURE.md           ← anatomie de l'app et des formats
   LESSONS.md                ← pièges & patterns validés (LIRE AVANT DE MODIFIER)
   TESTING.md                ← méthode de validation (rendus réels, extraction frames/audio)
