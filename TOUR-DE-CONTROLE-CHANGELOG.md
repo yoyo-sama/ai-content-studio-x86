@@ -1,5 +1,13 @@
 # Tour de contrôle — changelog
 
+## 2026-09-10 (suite 3) — `docs/TROUBLESHOOTING.md` : procédure de réinstallation détaillée
+
+Même remaniement que sur le dépôt source GB10, adapté à ce fork : la section « réparer une installation existante » devient une procédure numérotée en 7 étapes (version du script ≥ 1.0.5, état des lieux incluant un test d'Ollama déjà en service, décision sur l'ancien dossier `~/ai-content-studio/comfyui/models`, lancement avec journal, tableau des durées attendues dont le **build de l'image ComfyUI**, lignes de sortie exactes prouvant la migration, relecture du journal, vérification, reprise après interruption).
+
+Deux spécificités du fork y sont traitées : la ligne attendue quand Ollama est installé nativement (`reusing it`, aucune stack créée — le cas courant sur Ubuntu) et le renvoi vers la section du build d'image en cas d'échec.
+
+Vérification : les 23 blocs passent `bash -n` et un contrôle d'ancres a révélé un renvoi cassé vers la section Ollama (le `:` du titre produit un double tiret dans l'ancre GitHub), corrigé.
+
 ## 2026-09-10 (suite 2) — Attente d'Ollama après création de sa stack
 
 Défaut trouvé en relisant le chemin Ollama : `docker compose up -d` rend la main dès que le conteneur est **démarré**, pas quand le serveur **écoute**. Sur une installation où tous les modèles ComfyUI sont déjà présents (relance, ou modèles pré-copiés), l'étape « modèle Ollama requis » pouvait donc s'exécuter deux ou trois secondes après la création du conteneur et conclure `Ollama unavailable` sur un service qui finissait simplement de démarrer — sans que rien ne soit cassé.
