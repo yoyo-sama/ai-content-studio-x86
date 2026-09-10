@@ -1,5 +1,13 @@
 # Tour de contrôle — changelog
 
+## 2026-09-10 (suite 2) — Attente d'Ollama après création de sa stack
+
+Défaut trouvé en relisant le chemin Ollama : `docker compose up -d` rend la main dès que le conteneur est **démarré**, pas quand le serveur **écoute**. Sur une installation où tous les modèles ComfyUI sont déjà présents (relance, ou modèles pré-copiés), l'étape « modèle Ollama requis » pouvait donc s'exécuter deux ou trois secondes après la création du conteneur et conclure `Ollama unavailable` sur un service qui finissait simplement de démarrer — sans que rien ne soit cassé.
+
+Correctif : `create_ollama_stack` attend désormais `/api/version` (15 essais, 2 s) avant de rendre la main, et avertit si le service reste muet au bout de 30 s. Une ligne, sur le même modèle que l'attente déjà en place pour ComfyUI.
+
+Même correctif dans `scripts/lib-install-common.sh`, partagé par les deux installeurs.
+
 ## 2026-09-10 (suite) — Commentaires des scripts de déploiement en anglais
 
 Même passage que sur le dépôt source GB10 : la sortie terminal était déjà en anglais (v1.0.4), les commentaires du code de déploiement le sont désormais aussi. Traduits : `scripts/lib-install-common.sh` (50 lignes de commentaire), `install-ubuntu.sh`, `install-omarchy.sh`, `nginx.conf` et `docker/comfyui-official/Dockerfile` (les gabarits `docker/stacks/*.yml` et le `docker-compose.yml` étaient déjà en anglais).
