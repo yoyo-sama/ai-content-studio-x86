@@ -1,33 +1,33 @@
 ﻿<#
-    serve-windows.ps1 — équivalent Windows natif de `nginx.conf` (variante 100 % native, sans Docker).
+    serve-windows.ps1 — native Windows equivalent of `nginx.conf` (100% native variant, no Docker).
 
-    Sert les fichiers statiques du dépôt sur le port 8090 ET relaie /comfy/* vers ComfyUI
-    (127.0.0.1:8188) et /ollama/* vers Ollama (127.0.0.1:11434). Ce reverse-proxy est
-    indispensable : le frontend (index.html, canvas.html, js/engine.js) appelle ces API en
-    chemins RELATIFS (`/comfy/prompt`, `/ollama/api/chat`), jamais en `localhost:8188` —
-    un simple serveur de fichiers statiques ne suffirait donc pas.
+    Serves the repository's static files on port 8090 AND relays /comfy/* to ComfyUI
+    (127.0.0.1:8188) and /ollama/* to Ollama (127.0.0.1:11434). This reverse proxy is
+    mandatory: the frontend (index.html, canvas.html, js/engine.js) calls these APIs through
+    RELATIVE paths (`/comfy/prompt`, `/ollama/api/chat`), never `localhost:8188` — a plain
+    static file server would therefore not be enough.
 
-    Cible : Windows PowerShell 5.1 (.NET Framework). Zéro dépendance, zéro module à installer.
+    Targets Windows PowerShell 5.1 (.NET Framework). Zero dependency, zero module to install.
 
-    Usage :
+    Usage:
         powershell -ExecutionPolicy Bypass -File .\scripts\serve-windows.ps1
         powershell -ExecutionPolicy Bypass -File .\scripts\serve-windows.ps1 -SelfTest
 
-    Correspondance avec nginx.conf :
-        location /comfy/ws   -> 501, NON implémenté (voir plus bas)
-        location /comfy/     -> proxy 127.0.0.1:$ComfyPort  (GET + POST, binaire)
-        location /ollama/    -> proxy 127.0.0.1:$OllamaPort (POST JSON, timeout long)
-        location /update/    -> NON implémenté : pas de route dédiée, tombe dans le 404
-                                statique. js/update-check.js avale déjà l'erreur
-                                (`.catch(() => {})`), l'updater git est propre au Docker Linux.
-        location /           -> fichiers statiques sous $Root
+    Mapping to nginx.conf:
+        location /comfy/ws   -> 501, NOT implemented (see below)
+        location /comfy/     -> proxy 127.0.0.1:$ComfyPort  (GET + POST, binary)
+        location /ollama/    -> proxy 127.0.0.1:$OllamaPort (POST JSON, long timeout)
+        location /update/    -> NOT implemented: no dedicated route, falls into the static
+                                404. js/update-check.js already swallows the error
+                                (`.catch(() => {})`), the git updater belongs to Docker Linux.
+        location /           -> static files under $Root
 #>
 
 param([string]$Root, [int]$Port = 8090, [int]$ComfyPort = 8188, [int]$OllamaPort = 11434, [switch]$SelfTest)
 
 $ErrorActionPreference = 'Stop'
 
-# Évite le round-trip « 100-continue » sur chaque POST (upload d'image, prompt ComfyUI).
+# Avoids the "100-continue" round-trip on every POST (image upload, ComfyUI prompt).
 [System.Net.ServicePointManager]::Expect100Continue = $false
 
 $MimeTypes = @{
@@ -50,27 +50,27 @@ $MimeTypes = @{
     '.md'   = 'text/plain; charset=utf-8'
 }
 
-# ── Résolution de chemin statique, anti-traversée de répertoire ─────────────────────────
-# Renvoie le chemin absolu du fichier demandé, ou $null si la demande sort de $RootDir.
-# Invariant vérifié par -SelfTest : le retour est TOUJOURS $null ou strictement sous $RootDir.
+# ── Static path resolution, directory-traversal guard ───────────────────────────────────
+# Returns the absolute path of the requested file, or $null if the request escapes $RootDir.
+# Invariant checked by -SelfTest: the result is ALWAYS $null or strictly under $RootDir.
 function Resolve-StaticPath {
     param([string]$RootDir, [string]$UrlPath)
 
-    # Tout segment de remontée est refusé avant même la normalisation.
+    # Any parent-directory segment is refused before normalisation even happens.
     if ($UrlPath -like '*..*') { return $null }
 
     $rel = $UrlPath.TrimStart('/')
-    # `try_files $uri $uri/ =404` + `index index.html` côté nginx : "/" sert index.html.
+    # nginx's `try_files $uri $uri/ =404` + `index index.html`: "/" serves index.html.
     if ($rel -eq '' -or $UrlPath.EndsWith('/')) { $rel = $rel + 'index.html' }
     $rel = $rel.Replace('/', [System.IO.Path]::DirectorySeparatorChar)
 
     $base = [System.IO.Path]::GetFullPath($RootDir).TrimEnd([System.IO.Path]::DirectorySeparatorChar) +
             [System.IO.Path]::DirectorySeparatorChar
     try {
-        # Deuxième barrière : on compare le chemin NORMALISÉ à la racine normalisée.
+        # Second barrier: compare the NORMALISED path against the normalised root.
         $full = [System.IO.Path]::GetFullPath((Join-Path $RootDir $rel))
     } catch {
-        # Chemin invalide (lettre de lecteur injectée, caractère interdit…) : refus.
+        # Invalid path (injected drive letter, forbidden character…): refuse.
         return $null
     }
     if (-not $full.StartsWith($base, [System.StringComparison]::OrdinalIgnoreCase)) { return $null }
@@ -78,8 +78,8 @@ function Resolve-StaticPath {
 }
 
 # ── Construction de l'URL cible d'un proxy ──────────────────────────────────────────────
-# Reproduit `proxy_pass http://127.0.0.1:PORT/;` : le préfixe (/comfy, /ollama) est retiré,
-# le reste du chemin ET la query string sont transmis tels quels, encodage compris.
+# Reproduces `proxy_pass http://127.0.0.1:PORT/;`: the prefix (/comfy, /ollama) is stripped,
+# the rest of the path AND the query string are forwarded as is, encoding included.
 function Get-ProxyTarget {
     param([string]$RawUrl, [string]$Prefix, [int]$TargetPort)
 
@@ -88,10 +88,10 @@ function Get-ProxyTarget {
     return "http://127.0.0.1:$TargetPort$tail"
 }
 
-# ── Relais générique (ComfyUI et Ollama partagent ce seul chemin de code) ────────────────
-# IMPORTANT : corps de requête ET de réponse manipulés en byte[] de bout en bout. Aucune
-# conversion en string ici — l'upload multipart de /comfy/upload/image (jusqu'à 50 Mo) et
-# les images/vidéos rendues par /comfy/view seraient corrompus par un aller-retour texte.
+# ── Generic relay (ComfyUI and Ollama share this single code path) ──────────────────────
+# IMPORTANT: request AND response bodies are handled as byte[] end to end. No string
+# conversion here — the multipart upload of /comfy/upload/image (up to 50 MB) and the
+# images/videos returned by /comfy/view would be corrupted by a text round-trip.
 function Invoke-Proxy {
     param($Context, [string]$Prefix, [int]$TargetPort, [int]$TimeoutMs)
 
@@ -99,7 +99,7 @@ function Invoke-Proxy {
     $res = $Context.Response
     $target = Get-ProxyTarget -RawUrl $req.RawUrl -Prefix $Prefix -TargetPort $TargetPort
 
-    # Corps entrant : lu en bytes depuis le listener (pas de limite artificielle, nginx
+    # Incoming body: read as bytes from the listener (no artificial limit, nginx
     # autorise `client_max_body_size 50m`).
     $body = $null
     if ($req.HasEntityBody) {
@@ -114,7 +114,7 @@ function Invoke-Proxy {
     $out.Timeout = $TimeoutMs
     $out.ReadWriteTimeout = $TimeoutMs
     $out.AllowAutoRedirect = $false
-    # Content-Type recopié à l'identique : porte le `boundary=...` du multipart d'upload.
+    # Content-Type copied verbatim: it carries the upload multipart's `boundary=...`.
     if ($req.ContentType) { $out.ContentType = $req.ContentType }
 
     if ($body -and $body.Length -gt 0) {
@@ -130,12 +130,12 @@ function Invoke-Proxy {
     try {
         $resp = $out.GetResponse()
     } catch [System.Net.WebException] {
-        # ComfyUI répond 400 + un JSON d'erreur que le frontend lit (`data.error` dans
-        # engine.js submitGraph) : il faut relayer ce corps, pas le masquer par un 502.
+        # ComfyUI answers 400 + an error JSON the frontend reads (`data.error` in
+        # engine.js submitGraph): that body must be relayed, not hidden behind a 502.
         $resp = $_.Exception.Response
         if ($null -eq $resp) {
             $msg = [System.Text.Encoding]::UTF8.GetBytes(
-                "Service injoignable sur 127.0.0.1:$TargetPort ($($_.Exception.Message))")
+                "Service unreachable on 127.0.0.1:$TargetPort ($($_.Exception.Message))")
             $res.StatusCode = 502
             $res.ContentType = 'text/plain; charset=utf-8'
             $res.ContentLength64 = $msg.Length
@@ -144,7 +144,7 @@ function Invoke-Proxy {
         }
     }
 
-    # Corps sortant : bytes bruts, aucune réinterprétation.
+    # Outgoing body: raw bytes, no reinterpretation.
     $ms = New-Object System.IO.MemoryStream
     $resp.GetResponseStream().CopyTo($ms)
     $bytes = $ms.ToArray()
@@ -169,17 +169,17 @@ function Write-Plain {
     return $Code
 }
 
-# ── Auto-test (non exécuté par défaut) ──────────────────────────────────────────────────
+# ── Self-test (not run by default) ──────────────────────────────────────────────────────
 if ($SelfTest) {
     $failures = 0
     # Write-Host et non Write-Error : $ErrorActionPreference='Stop' rendrait Write-Error
-    # terminant, on veut compter TOUS les echecs. Le code de sortie fait foi.
+    # exiting, we want to count EVERY failure. The exit code is what matters.
     function Fail { param([string]$Msg) Write-Host "ECHEC : $Msg" -ForegroundColor Red; $script:failures++ }
 
     $testRoot = [System.IO.Path]::GetFullPath((Join-Path ([System.IO.Path]::GetTempPath()) 'acs-selftest-root'))
     $base = $testRoot.TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
 
-    # 1. Anti-traversée : aucune de ces demandes ne doit résoudre hors de $testRoot.
+    # 1. Traversal guard: none of these requests may resolve outside $testRoot.
     $hostile = @(
         '/../../etc/passwd',
         '/../../../Windows/System32/drivers/etc/hosts',
@@ -192,22 +192,22 @@ if ($SelfTest) {
     foreach ($p in $hostile) {
         $r = Resolve-StaticPath -RootDir $testRoot -UrlPath $p
         if ($null -ne $r -and -not $r.StartsWith($base, [System.StringComparison]::OrdinalIgnoreCase)) {
-            Fail "TRAVERSEE : '$p' resout hors de la racine -> $r"
+            Fail "TRAVERSAL: '$p' resolves outside the root -> $r"
         }
     }
 
-    # 2. Chemins légitimes : doivent résoudre sous la racine.
+    # 2. Legitimate paths: must resolve under the root.
     $legit = @{ '/' = 'index.html'; '/index.html' = 'index.html'; '/js/engine.js' = 'engine.js';
                 '/workflows/api/ltx25_t2v.json' = 'ltx25_t2v.json' }
     foreach ($p in $legit.Keys) {
         $r = Resolve-StaticPath -RootDir $testRoot -UrlPath $p
         if ($null -eq $r -or -not $r.StartsWith($base, [System.StringComparison]::OrdinalIgnoreCase) -or
             -not $r.EndsWith($legit[$p])) {
-            Fail "CHEMIN LEGITIME : '$p' -> '$r' (attendu sous $base, finissant par $($legit[$p]))"
+            Fail "LEGITIMATE PATH: '$p' -> '$r' (expected under $base, ending with $($legit[$p]))"
         }
     }
 
-    # 3. Relais : préfixe retiré, chemin et query string (encodage compris) préservés.
+    # 3. Relay: prefix stripped, path and query string (encoding included) preserved.
     $targets = @{
         '/comfy/prompt'                              = 'http://127.0.0.1:8188/prompt'
         '/comfy/upload/image'                        = 'http://127.0.0.1:8188/upload/image'
@@ -225,31 +225,31 @@ if ($SelfTest) {
         Fail "RELAIS : '/ollama/api/chat' -> '$got'"
     }
 
-    if ($failures -gt 0) { Write-Host "SelfTest : $failures echec(s)." -ForegroundColor Red; exit 1 }
+    if ($failures -gt 0) { Write-Host "SelfTest: $failures failure(s)." -ForegroundColor Red; exit 1 }
     Write-Host 'SelfTest : OK.' -ForegroundColor Green
     exit 0
 }
 
-# ── Démarrage ───────────────────────────────────────────────────────────────────────────
+# ── Startup ─────────────────────────────────────────────────────────────────────────────
 if (-not $Root) {
-    # Le script vit dans scripts/ : la racine servie est le dépôt, un niveau au-dessus.
+    # The script lives in scripts/: the served root is the repo, one level above.
     if ($PSScriptRoot) { $Root = Split-Path -Parent $PSScriptRoot } else { $Root = (Get-Location).Path }
 }
 if (-not (Test-Path -LiteralPath $Root -PathType Container)) {
-    # Write-Host et non Write-Error : avec $ErrorActionPreference='Stop', Write-Error
-    # terminerait avant le `exit 1` et le code de sortie serait moins previsible.
-    Write-Host "Racine introuvable : $Root" -ForegroundColor Red
+    # Write-Host and not Write-Error: with $ErrorActionPreference='Stop', Write-Error
+    # would terminate before the `exit 1` and the exit code would be less predictable.
+    Write-Host "Root not found: $Root" -ForegroundColor Red
     exit 1
 }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 
 $listener = New-Object System.Net.HttpListener
-# `http://localhost:PORT/` est un cas spécial d'http.sys : PAS de urlacl ni de droits
-# administrateur requis. Conséquence assumée : accès limité à cette machine (pas de LAN).
-# Pour ouvrir l'accès réseau local, exécuter UNE FOIS en administrateur (non fait ici) :
+# `http://localhost:PORT/` is an http.sys special case: NO urlacl and no administrator
+# rights required. Accepted consequence: access limited to this machine (no LAN).
+# To open local network access, run ONCE as administrator (not done here):
 #     netsh http add urlacl url=http://+:8090/ user=DOMAINE\utilisateur
-# puis remplacer le préfixe ci-dessous par "http://+:$Port/". Une règle de pare-feu Windows
-# autorisant le port 8090 en entrée est également nécessaire.
+# then replace the prefix below with "http://+:$Port/". A Windows firewall rule allowing
+# inbound port 8090 is required as well.
 $listener.Prefixes.Add("http://localhost:$Port/")
 $listener.Start()
 
@@ -257,7 +257,7 @@ Write-Host "AI Content Studio — http://localhost:$Port/" -ForegroundColor Cyan
 Write-Host "  racine   : $Root"
 Write-Host "  /comfy/  -> http://127.0.0.1:$ComfyPort/"
 Write-Host "  /ollama/ -> http://127.0.0.1:$OllamaPort/"
-Write-Host '  Ctrl+C pour arreter.'
+Write-Host '  Ctrl+C to stop.'
 
 try {
     # Boucle mono-thread : un seul poste, un seul utilisateur. Pas de runspaces, pas d'async.
@@ -269,11 +269,11 @@ try {
             $path = $ctx.Request.Url.LocalPath
 
             if ($path -eq '/comfy/ws') {
-                # HORS SCOPE : le WebSocket ComfyUI n'alimente que la barre de progression
-                # (engine.js le dit lui-même : « best-effort, purement cosmétique »), et son
-                # `onclose` retente toutes les 4 s sans casser l'app. On répond proprement
-                # plutôt que de laisser une exception non gérée.
-                $code = Write-Plain $ctx.Response 501 'WebSocket non supporte par serve-windows.ps1 (progression cosmetique uniquement).'
+                # OUT OF SCOPE: the ComfyUI WebSocket only feeds the progress bar
+                # (engine.js says so itself: "best-effort, purely cosmetic"), and its
+                # `onclose` retries every 4 s without breaking the app. We answer cleanly
+                # rather than letting an unhandled exception escape.
+                $code = Write-Plain $ctx.Response 501 'WebSocket not supported by serve-windows.ps1 (cosmetic progress only).'
             }
             elseif ($path.StartsWith('/comfy/')) {
                 $code = Invoke-Proxy -Context $ctx -Prefix '/comfy' -TargetPort $ComfyPort -TimeoutMs 120000
@@ -299,9 +299,9 @@ try {
                 }
             }
         } catch {
-            # Cible injoignable, navigateur qui annule un chargement d'image… : on logue et
-            # on continue, la boucle ne doit pas mourir sur une requete.
-            Write-Host "  erreur: $($_.Exception.Message)" -ForegroundColor Red
+            # Unreachable target, browser cancelling an image load…: log it and carry on,
+            # the loop must not die on a single request.
+            Write-Host "  error: $($_.Exception.Message)" -ForegroundColor Red
             try { $ctx.Response.StatusCode = 500 } catch { }
             $code = 500
         } finally {
@@ -310,8 +310,8 @@ try {
         Write-Host "$line -> $code"
     }
 } finally {
-    # Ctrl+C : http.sys libere la reservation du port des la fermeture du listener (et de
-    # toute facon a la fin du processus), le port 8090 ne reste pas bloque.
+    # Ctrl+C: http.sys releases the port reservation as soon as the listener is closed (and
+    # anyway when the process ends), so port 8090 is not left blocked.
     $listener.Stop()
     $listener.Close()
     Write-Host 'Serveur arrete.'

@@ -1,5 +1,21 @@
 # Tour de contrôle — changelog
 
+## 2026-09-10 (suite 4) — Plus aucun français dans les scripts + dépannage mis en avant sur la page d'accueil
+
+Deux manques signalés par l'utilisateur, tous deux exacts.
+
+**1. Le guide de dépannage était invisible.** Il n'était référencé que dans l'arborescence en bas des README. Un encadré le pointe désormais juste sous la commande d'installation, dans les deux README.
+
+**2. Il restait du français dans les scripts.** Le passage précédent n'avait traité que les commentaires des fichiers de déploiement Linux. Restaient :
+
+- `scripts/lib-install-common.sh` : les variables de la boucle de téléchargement (`$dossier`, `$fichier`, `$taille`) — du français dans le code, pas dans un commentaire ;
+- `tools/validate.py` et `tools/onboard.py` : ~95 lignes de docstrings, d'aide argparse et de messages d'erreur ;
+- **`install-windows.ps1` (368 lignes) et `scripts/serve-windows.ps1` (318 lignes)**, intégralement commentés et instrumentés en français. Ils avaient été laissés hors périmètre au motif que seuls Ubuntu et Omarchy étaient demandés — mais ce sont des scripts de ce dépôt, ils passent en anglais comme les autres.
+
+Vérification : `bash -n` et `python3 -m py_compile` sur ce qui est exécutable ici, `--help` des deux outils relu en anglais, et rejeu de la simulation d'installation. **Les deux scripts PowerShell n'ont pas pu être exécutés** (ni Windows ni `pwsh` sur cette machine) : les remplacements ont été appliqués ligne à ligne sous invariant structurel (même indentation, même premier jeton, même caractère final), et le contrôle post-traduction confirme un nombre de lignes inchangé (368/318), des accolades équilibrées et un nombre pair de guillemets doubles. Seules des chaînes de message et des commentaires ont été touchés — aucune logique.
+
+Le balayage final sur tous les fichiers `*.sh`, `*.py`, `*.ps1`, `*.yml`, `*.conf` et `Dockerfile` suivis par git ne remonte plus que des faux positifs : l'opérateur `-le` (« inférieur ou égal »).
+
 ## 2026-09-10 (suite 3) — `docs/TROUBLESHOOTING.md` : procédure de réinstallation détaillée
 
 Même remaniement que sur le dépôt source GB10, adapté à ce fork : la section « réparer une installation existante » devient une procédure numérotée en 7 étapes (version du script ≥ 1.0.5, état des lieux incluant un test d'Ollama déjà en service, décision sur l'ancien dossier `~/ai-content-studio/comfyui/models`, lancement avec journal, tableau des durées attendues dont le **build de l'image ComfyUI**, lignes de sortie exactes prouvant la migration, relecture du journal, vérification, reprise après interruption).

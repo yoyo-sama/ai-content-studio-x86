@@ -30,12 +30,16 @@ both Docker-based, and **Windows 10/11** (native, no Docker, dedicated NVIDIA GP
 Pick the script matching your distro:
 
 ```bash
-git clone <url-du-repo> ai-content-studio
-cd ai-content-studio
+git clone <url-du-repo> ~/ai-content-studio
+cd ~/ai-content-studio
 ./install-ubuntu.sh      # Ubuntu 24.04
 # or
 ./install-omarchy.sh     # Omarchy (Arch-based)
 ```
+
+> **Something not working, or a machine where a previous install was attempted?**
+> → **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** — symptom → cause table, diagnosis
+> in three commands, step-by-step reinstall on an already-installed machine, and clean reset.
 
 Both scripts share the same application logic (`scripts/lib-install-common.sh`) and only
 differ in how they check/report distro-specific system prerequisites (`apt`/`pacman`). They do

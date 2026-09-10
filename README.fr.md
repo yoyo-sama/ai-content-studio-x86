@@ -31,12 +31,16 @@ Studio créatif IA **100 % local** : génération d'images (Krea 2, Qwen-Edit) e
 Choisissez le script correspondant à votre distribution :
 
 ```bash
-git clone <url-du-repo> ai-content-studio
-cd ai-content-studio
+git clone <url-du-repo> ~/ai-content-studio
+cd ~/ai-content-studio
 ./install-ubuntu.sh      # Ubuntu 24.04
 # ou
 ./install-omarchy.sh     # Omarchy (Arch-based)
 ```
+
+> **Quelque chose ne marche pas, ou poste sur lequel une installation a déjà été tentée ?**
+> → **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** — table symptôme → cause, diagnostic
+> en trois commandes, procédure de réinstallation pas à pas, et remise à zéro.
 
 Les deux scripts partagent la même logique applicative (`scripts/lib-install-common.sh`) et ne
 diffèrent que sur la vérification des prérequis système propres à chaque distro
