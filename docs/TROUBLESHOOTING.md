@@ -158,25 +158,35 @@ Cinq informations : ce que contient l'ancien dossier, ce que contient déjà le 
 volume Ollama hérité contient bien `gemma4`, si un Ollama (natif ou conteneur) répond déjà, et
 l'espace libre. Il faut **~150 Go** pour la totalité des modèles ComfyUI.
 
-### Étape 3 — Décider du sort de l'ancien dossier de modèles
+### Étape 3 — L'ancien dossier de modèles : rien à faire (sauf cadenas)
 
-- Ancien dossier vide ou quasi vide (cas le plus fréquent, les téléchargements ayant échoué en
-  « permission denied » dans un dossier créé par Docker en root) :
+**Le script s'en charge.** À l'étape 3/5, avant tout téléchargement, il déplace le contenu de
+`~/ai-content-studio/comfyui/models` vers le dossier réellement lu par le ComfyUI en service.
+Le déplacement est fichier par fichier (un sous-dossier présent des deux côtés ne bloque pas)
+et n'écrase jamais un fichier déjà à destination. Les modèles déplacés dont la taille
+correspond sont ensuite reconnus et **non retéléchargés** :
 
-  ```bash
-  sudo rm -rf ~/ai-content-studio/comfyui
-  ```
+```
+1 file(s) found in the legacy model folder (/home/<vous>/ai-content-studio/comfyui/models).
+Moving them to /home/<vous>/comfyui/models — same filesystem, instant, and avoids downloading them again.
+  moved: 1   left behind: 0
+SKIP (already present, size matches): /home/<vous>/comfyui/models/vae/qwen_image_vae.safetensors
+```
 
-- Ancien dossier contenant de vrais modèles : déplacez-les **avant** de lancer le script, ils
-  seront reconnus par leur taille et non retéléchargés :
+**Le seul cas où vous devez intervenir** : `left behind` non nul. L'ancien dossier a été créé
+par Docker en root (le cadenas), vous n'avez pas le droit d'y déplacer quoi que ce soit. Le
+script affiche la commande exacte ; reprenez la propriété puis relancez-le, il finira le
+déplacement :
 
-  ```bash
-  mkdir -p ~/comfyui/models && sudo mv ~/ai-content-studio/comfyui/models/* ~/comfyui/models/ && sudo chown -R "$(id -u):$(id -g)" ~/comfyui
-  ```
+```bash
+sudo chown -R "$(id -u):$(id -g)" ~/ai-content-studio/comfyui
+```
 
-  Puis contrôlez leur intégrité avec la commande de la
-  [section 2](#contrôler-lintégrité-des-modèles-téléchargés) : un téléchargement interrompu par
-  la panne initiale se reprendra tout seul à l'étape suivante.
+Une fois `left behind: 0`, l'ancien dossier ne contient plus que des répertoires vides :
+
+```bash
+rm -rf ~/ai-content-studio/comfyui
+```
 
 ### Étape 4 — Lancer l'installation
 
