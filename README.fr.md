@@ -352,6 +352,7 @@ workflows/
 tools/convert.py            ← convertisseur UI→API (voir docs/TESTING.md)
 docs/
   INSTALL-X86.md            ← guide d'installation détaillé : prérequis & commandes Ubuntu 24.04 / Omarchy / Windows
+  TROUBLESHOOTING.md        ← dépannage installation/déploiement : symptômes, diagnostic, réparation, réinstallation propre
   ARCHITECTURE.md           ← anatomie de l'app et des formats
   LESSONS.md                ← pièges & patterns validés (LIRE AVANT DE MODIFIER)
   TESTING.md                ← méthode de validation (rendus réels, extraction frames/audio)

@@ -1,5 +1,13 @@
 # Tour de contrôle — changelog
 
+## 2026-09-10 — documentation — `docs/TROUBLESHOOTING.md`
+
+Portage du guide de dépannage écrit sur le dépôt source GB10, adapté à ce fork : chemins de la stack voisine `~/comfyui` (arborescence ComfyUI standard, pas de `basedir`), scripts `install-ubuntu.sh` / `install-omarchy.sh`, image ComfyUI **buildée localement** (section dédiée : que faire quand le build échoue, comment le rejouer seul pour voir l'erreur), et une section Ollama plus développée puisque l'installation native systemd est le cas courant sur Ubuntu.
+
+Contenu : table symptôme → cause (erreurs `JSON.parse` / `NetworkError` côté navigateur et ce qu'elles signifient réellement, modèles invisibles, dossier cadenassé par dockerd, Ollama natif arrêté, port occupé), diagnostic en trois commandes à travers le proxy nginx, contrôle d'intégrité des modèles avec la même tolérance de 1 % que le script d'installation — et sa limite écrite noir sur blanc : un fichier tronqué à moins de 1 % reste indétectable par la taille, seul un rendu réel inspecté fait foi.
+
+La remise à zéro ciblée filtre sur le label compose du dépôt plutôt que sur une liste de noms de conteneurs en dur, pour ne pas détruire un service appartenant à une stack voisine. Les 19 blocs de commandes passent `bash -n` ; ceux qui sont communs au dépôt GB10 (diagnostic, inventaire, contrôle des modèles) ont été exécutés en conditions réelles là-bas. Guide référencé depuis les deux README et `AGENTS.md`.
+
 ## 2026-09-09 (suite) — v1.0.5 — Service installé mais arrêté : redémarré, pas doublé
 
 Même correctif que sur le repo source GB10 (v1.0.8), motivé par la même remarque : « il est possible qu'Ollama ne soit pas démarré ». Répondre non à un health-check ne veut pas dire absent. Le conteneur peut exister à l'arrêt (créer une stack échouerait sur un conflit de nom, les noms de conteneurs étant uniques), ou Ollama être installé nativement avec son service systemd stoppé (créer un conteneur ferait cohabiter deux instances sur le port 11434 au prochain boot).
