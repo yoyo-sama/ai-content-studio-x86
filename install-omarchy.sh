@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# install-omarchy.sh — installation/mise à jour idempotente de la stack AI Content
-# Studio (nginx web, ComfyUI officiel, Ollama) sur Omarchy (Arch Linux/Hyprland)
-# x86_64 + GPU Nvidia dédié. Pour Ubuntu 24.04, utilisez install-ubuntu.sh à la
-# place — la logique applicative est partagée via scripts/lib-install-common.sh.
-# Omarchy tourne sous Hyprland/Wayland mais tout ici est du docker headless :
-# aucun impact de l'environnement graphique sur cette installation.
+# install-omarchy.sh — idempotent install/update of the AI Content Studio stack (nginx web,
+# official ComfyUI, Ollama) on Omarchy (Arch Linux/Hyprland) x86_64 with a dedicated Nvidia
+# GPU. For Ubuntu 24.04, use install-ubuntu.sh instead — the application logic is shared
+# through scripts/lib-install-common.sh.
+# Omarchy runs on Hyprland/Wayland but everything here is headless docker: the graphical
+# environment has no bearing on this installation.
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

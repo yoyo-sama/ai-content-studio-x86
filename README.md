@@ -65,7 +65,7 @@ everything in a single command, **idempotently** (safe to re-run):
 5. Waits for ComfyUI to answer on `:8188` when it has just been created, then displays a final
    summary (service status, actual locations, models, health checks).
 
-The scripts' output is in English; their code comments stay in French.
+The scripts' output and code comments are in English.
 
 **`HF_TOKEN` (Hugging Face token, optional but required for LTX 2.5)**: the 4 LTX 2.5 model
 files come from a **"gated"** (access-restricted) Hugging Face repository — an anonymous

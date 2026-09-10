@@ -1,5 +1,15 @@
 # Tour de contrôle — changelog
 
+## 2026-09-10 (suite) — Commentaires des scripts de déploiement en anglais
+
+Même passage que sur le dépôt source GB10 : la sortie terminal était déjà en anglais (v1.0.4), les commentaires du code de déploiement le sont désormais aussi. Traduits : `scripts/lib-install-common.sh` (50 lignes de commentaire), `install-ubuntu.sh`, `install-omarchy.sh`, `nginx.conf` et `docker/comfyui-official/Dockerfile` (les gabarits `docker/stacks/*.yml` et le `docker-compose.yml` étaient déjà en anglais).
+
+Le fond est conservé mot pour mot : pourquoi un Ollama natif n'est pas un conteneur et se réutilise tel quel, pourquoi `sudo -n` et jamais `sudo` tout court, pourquoi les dossiers sont créés avant les conteneurs, pourquoi `comfy_kitchen` s'installe par roue PyPI et non par compilation. Aucune ligne de code touchée.
+
+Le reste du dépôt — `AGENTS.md`, `docs/`, README, changelog, commentaires de l'app — reste en français. Les mentions « commentaires en français » des README sont corrigées.
+
+Vérification : `bash -n` sur les trois scripts, `docker compose config -q`, et rejeu de la simulation d'installation « poste vierge » (stubs `docker`/`curl`/`ss`, `$HOME` temporaire) — stacks créées, arborescence correcte, modèle tiré.
+
 ## 2026-09-10 — documentation — `docs/TROUBLESHOOTING.md`
 
 Portage du guide de dépannage écrit sur le dépôt source GB10, adapté à ce fork : chemins de la stack voisine `~/comfyui` (arborescence ComfyUI standard, pas de `basedir`), scripts `install-ubuntu.sh` / `install-omarchy.sh`, image ComfyUI **buildée localement** (section dédiée : que faire quand le build échoue, comment le rejouer seul pour voir l'erreur), et une section Ollama plus développée puisque l'installation native systemd est le cas courant sur Ubuntu.

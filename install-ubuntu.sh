@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# install-ubuntu.sh — installation/mise à jour idempotente de la stack AI Content
-# Studio (nginx web, ComfyUI officiel, Ollama) sur Ubuntu 24.04 x86_64 + GPU Nvidia
-# dédié. Pour Omarchy (Arch-based), utilisez install-omarchy.sh à la place — la
-# logique applicative est partagée via scripts/lib-install-common.sh.
+# install-ubuntu.sh — idempotent install/update of the AI Content Studio stack (nginx web,
+# official ComfyUI, Ollama) on Ubuntu 24.04 x86_64 with a dedicated Nvidia GPU. For Omarchy
+# (Arch-based), use install-omarchy.sh instead — the application logic is shared through
+# scripts/lib-install-common.sh.
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

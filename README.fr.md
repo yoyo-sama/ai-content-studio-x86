@@ -68,7 +68,7 @@ risque) :
 5. Attend que ComfyUI réponde sur `:8188` quand il vient d'être créé, puis affiche un
    récapitulatif final (statut des services, emplacements réels, modèles, health-checks).
 
-La sortie des scripts est en anglais ; leurs commentaires restent en français.
+La sortie des scripts et leurs commentaires de code sont en anglais.
 
 **`HF_TOKEN` (jeton Hugging Face, optionnel mais nécessaire pour LTX 2.5)** : les 4 fichiers
 de modèle LTX 2.5 proviennent d'un dépôt Hugging Face **"gated"** (accès restreint) — un

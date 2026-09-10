@@ -1,20 +1,18 @@
 #!/usr/bin/env bash
-# lib-install-common.sh — logique partagée par install-ubuntu.sh et install-omarchy.sh.
-# Détecte les services par rôle réel (santé HTTP), pas par nom de conteneur ; réutilise
-# tout ce qui tourne déjà — y compris un Ollama installé nativement (systemd), qui n'est
-# pas un conteneur ; ne recrée/ne détruit jamais un service qu'on ne possède pas.
-# Seule la vérification des prérequis système (section 1/5) diffère entre distributions :
-# elle vit dans chaque script appelant, pas ici.
+# lib-install-common.sh — logic shared by install-ubuntu.sh and install-omarchy.sh.
+# Detects services by their actual role (HTTP health), not by container name; reuses
+# everything already running — including an Ollama installed natively (systemd), which is
+# not a container; never recreates or destroys a service it does not own.
+# Only the system prerequisite checks (section 1/5) differ between distributions: they live
+# in each calling script, not here.
 #
-# Structure déployée (une stack par service, à la racine du home) :
-#   ~/<repo>    app : nginx :8090 + updater
-#   ~/comfyui   ComfyUI :8188  (gabarit docker/stacks/comfyui.yml)
-#   ~/ollama    Ollama :11434  (gabarit docker/stacks/ollama.yml)
+# Deployed layout (one stack per service, at the root of the home directory):
+#   ~/<repo>    app: nginx :8090 + updater
+#   ~/comfyui   ComfyUI :8188  (template docker/stacks/comfyui.yml)
+#   ~/ollama    Ollama :11434  (template docker/stacks/ollama.yml)
 #
-# Contrat avec le script appelant : définir REPO_ROOT et COMPOSE, puis `source` ce
-# fichier et appeler check_docker_common() puis run_install().
-#
-# Commentaires en français (comme le reste du dépôt), sortie terminal en anglais.
+# Contract with the calling script: define REPO_ROOT and COMPOSE, then `source` this file
+# and call check_docker_common() followed by run_install().
 
 COMFY_DIR="$HOME/comfyui"
 OLLAMA_DIR="$HOME/ollama"
@@ -26,10 +24,10 @@ warn()    { printf 'WARNING: %s\n' "$*"; }
 
 is_uint() { case "$1" in ''|*[!0-9]*) return 1 ;; *) return 0 ;; esac; }
 
-# Retrouve le conteneur qui répond réellement sur un port donné :
-# 1) via le mapping de port publié (docker ps --filter publish=PORT)
-# 2) sinon, parmi les conteneurs en network_mode: host, celui qui sert ce repo à nginx
-#    (l'updater monte lui aussi la racine du repo — la destination les distingue).
+# Finds the container actually answering on a given port:
+# 1) through the published port mapping (docker ps --filter publish=PORT)
+# 2) otherwise, among network_mode: host containers, the one serving this repo through nginx
+#    (the updater also mounts the repo root — the mount destination tells them apart).
 find_container_by_port() {
   local port="$1" name c
   name=$(docker ps --filter "publish=${port}" --format '{{.Names}}' 2>/dev/null | head -n1)
@@ -47,7 +45,7 @@ find_container_by_port() {
   return 1
 }
 
-# Le port est-il tenu par un processus quelconque (docker ou non) ?
+# Is the port held by any process at all (docker or not)?
 port_busy() {
   if command -v ss >/dev/null 2>&1; then
     ss -ltnH "sport = :$1" 2>/dev/null | grep -q .
@@ -56,9 +54,9 @@ port_busy() {
   fi
 }
 
-# Refuse de créer une stack quand le port est déjà pris par autre chose que le service
-# attendu : sans ça, docker échoue sur « port is already allocated », message opaque.
-port_taken_by_other() {   # $1=port  $2=nom lisible du service
+# Refuses to create a stack when the port is already held by something other than the
+# expected service: without this, docker fails with the opaque "port is already allocated".
+port_taken_by_other() {   # $1=port  $2=readable service name
   port_busy "$1" || return 1
   warn "port $1 is in use but $2 does not answer its health check."
   echo "  Another process holds it — a native install that is stopped or broken, or another service."
@@ -66,7 +64,7 @@ port_taken_by_other() {   # $1=port  $2=nom lisible du service
   return 0
 }
 
-# Attend qu'une URL réponde. $1=url $2=nombre d'essais $3=délai entre essais (s).
+# Waits for a URL to answer. $1=url $2=number of attempts $3=delay between attempts (s).
 wait_for_http() {
   local i
   for i in $(seq 1 "$2"); do
@@ -76,13 +74,12 @@ wait_for_http() {
   curl -sf "$1" >/dev/null 2>&1
 }
 
-# Un service peut être installé mais ARRÊTÉ : son conteneur existe, son port est libre.
-# En créer un second échouerait sur un conflit de nom (les noms de conteneurs sont
-# uniques) et, pour Ollama, ferait cohabiter deux instances sur le même port. On
-# redémarre donc l'existant. Retour : 0 = démarré et sain, 2 = démarré mais muet,
-# 1 = aucun conteneur arrêté correspondant.
+# A service may be installed but STOPPED: its container exists, its port is free. Creating a
+# second one would fail on a name clash (container names are unique) and, for Ollama, would
+# leave two instances fighting over the same port. So we restart the existing one instead.
+# Returns: 0 = started and healthy, 2 = started but silent, 1 = no matching stopped container.
 RESTARTED_CONTAINER=""
-restart_stopped_service() {   # $1=motif d'image  $2=nom lisible  $3=url santé  $4=essais  $5=délai
+restart_stopped_service() {   # $1=image pattern  $2=readable name  $3=health url  $4=attempts  $5=delay
   local c
   c="$(docker ps -a --filter status=exited --filter status=created --filter status=paused \
         --format '{{.Names}}\t{{.Image}}' 2>/dev/null | awk -F'\t' -v p="$1" 'index($2,p){print $1; exit}')"
@@ -98,9 +95,9 @@ restart_stopped_service() {   # $1=motif d'image  $2=nom lisible  $3=url santé 
   return 2
 }
 
-# Ollama installé nativement (script officiel + systemd) : ce n'est pas un conteneur, et
-# en créer un pendant qu'il est simplement arrêté ferait cohabiter deux instances sur le
-# port 11434. On tente donc de démarrer le service existant.
+# Ollama installed natively (official installer + systemd) is not a container, and creating
+# one while it is merely stopped would leave two instances fighting over port 11434. So we
+# try to start the existing service instead.
 NATIVE_OLLAMA_PRESENT=0
 native_ollama_present() {
   command -v ollama >/dev/null 2>&1 && return 0
@@ -113,9 +110,8 @@ start_native_ollama() {
   if [ "$(id -u)" = 0 ]; then
     systemctl start ollama >/dev/null 2>&1
   else
-    # 'sudo -n' ne demande JAMAIS de mot de passe : soit sudo est déjà autorisé sans mot
-    # de passe, soit on échoue immédiatement — un script d'installation ne doit pas rester
-    # bloqué sur une invite.
+    # 'sudo -n' NEVER asks for a password: either passwordless sudo is already allowed, or
+    # it fails immediately — an install script must never hang on a prompt.
     sudo -n systemctl start ollama >/dev/null 2>&1
   fi
   if wait_for_http "http://localhost:11434/api/version" 15 2; then
@@ -129,9 +125,9 @@ start_native_ollama() {
   return 1
 }
 
-# Chemin réel des modèles d'un conteneur ComfyUI d'après son bind-mount (il fait autorité
-# sur le chemin par défaut : c'est là que ce ComfyUI-là lit vraiment ses modèles).
-resolve_comfy_paths() {   # $1=conteneur
+# Actual model path of a ComfyUI container, read from its bind-mount (it overrides the
+# default path: that is where this particular ComfyUI really reads its models).
+resolve_comfy_paths() {   # $1=container
   local m
   m="$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/comfyui/models" }}{{ .Source }}{{ end }}{{ end }}' "$1" 2>/dev/null || true)"
   if [ -n "$m" ]; then
@@ -142,8 +138,8 @@ resolve_comfy_paths() {   # $1=conteneur
   fi
 }
 
-# Partie de la vérification d'environnement commune aux deux distros (docker, plugin
-# compose, runtime nvidia). L'appelant fait le reste (paquets système de sa distro).
+# The part of the environment check shared by both distros (docker, compose plugin, nvidia
+# runtime). The caller handles the rest (its own distro's system packages).
 check_docker_common() {
   if ! command -v docker >/dev/null 2>&1; then
     echo "ERROR: 'docker' not found in PATH. Install Docker before running this script again." >&2
@@ -171,9 +167,9 @@ build_comfy_image() {
 
 create_comfy_stack() {
   echo "Creating the ComfyUI stack in $COMFY_DIR."
-  # Dossiers créés AVANT le conteneur : un bind-mount dont la source n'existe pas encore
-  # est créé par dockerd en root:root — dossier cadenassé côté utilisateur, et tous les
-  # téléchargements de modèles échouent ensuite en « permission denied ».
+  # Folders are created BEFORE the container: a bind-mount whose source does not exist yet
+  # is created by dockerd as root:root — the folder is then locked for the user, and every
+  # model download afterwards fails with "permission denied".
   mkdir -p "$COMFY_DIR/models" "$COMFY_DIR/user" "$COMFY_DIR/output" "$COMFY_DIR/input"
   [ -f "$COMFY_DIR/compose.yaml" ] || cp "$REPO_ROOT/docker/stacks/comfyui.yml" "$COMFY_DIR/compose.yaml"
   build_comfy_image || warn "ComfyUI image build failed — 'docker compose up' will fail if no local image exists."
@@ -191,8 +187,8 @@ create_ollama_stack() {
   OLLAMA_CONTAINER="$(find_container_by_port 11434 || echo "ollama-api")"
 }
 
-# Détection + (re)création idempotente des services, téléchargement des modèles, pull du
-# modèle Ollama, récapitulatif final.
+# Idempotent detection + (re)creation of the services, model downloads, Ollama model pull,
+# final summary.
 run_install() {
   # -------------------------------------------------------------------------
   section "2/5 Detecting services by actual role (HTTP health), not by name"
@@ -217,8 +213,8 @@ run_install() {
       CONFIGFILE="$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project.config_files" }}' "$COMFY_CONTAINER" 2>/dev/null || true)"
 
       if [ "$CONFIGFILE" = "$REPO_ROOT/docker-compose.yml" ]; then
-        # Conteneur créé par l'ANCIENNE mise en page (services comfyui/ollama dans le
-        # compose de l'app, volumes sous $REPO_ROOT/comfyui). On le remplace par la stack.
+        # Container created by the OLD layout (comfyui/ollama services inside the app's
+        # compose file, volumes under $REPO_ROOT/comfyui). Replace it with the stack.
         warn "ComfyUI inherited from the old layout — migrating to $COMFY_DIR."
         docker rm -f "$COMFY_CONTAINER" >/dev/null 2>&1 || true
         if [ -d "$REPO_ROOT/comfyui/models" ]; then
@@ -239,8 +235,8 @@ run_install() {
         echo "  No automatic update: we never touch a container we do not own."
       fi
 
-      # Chemin réel d'après le bind-mount effectif du conteneur (utile même si le
-      # conteneur appartient à un autre projet compose).
+      # Actual path from the container's effective bind-mount (useful even when the
+      # container belongs to another compose project).
       resolve_comfy_paths "$COMFY_CONTAINER"
     fi
   else
@@ -270,9 +266,9 @@ run_install() {
   if curl -sf http://localhost:11434/api/version >/dev/null 2>&1; then
     OLLAMA_CONTAINER="$(find_container_by_port 11434 || true)"
     if [ -z "$OLLAMA_CONTAINER" ]; then
-      # Cas courant sur Ubuntu/Omarchy : Ollama installé par le script officiel, servi
-      # par systemd. Ce n'est pas un conteneur — on le réutilise tel quel, et le modèle
-      # se tire par l'API HTTP (étape 4/5), pas par 'docker exec'.
+      # Common case on Ubuntu/Omarchy: Ollama installed by the official script and served
+      # by systemd. Not a container — we reuse it as is, and the model is pulled through
+      # the HTTP API (step 4/5), not with 'docker exec'.
       OLLAMA_CONTAINER="native or unidentified service"
       echo "Ollama already running outside Docker (native/systemd service) — reusing it."
       OLLAMA_STATUS="reused (native service)"
@@ -282,7 +278,7 @@ run_install() {
         warn "Ollama inherited from the old layout — migrating to $OLLAMA_DIR."
         mkdir -p "$OLLAMA_DIR/data"
         docker rm -f "$OLLAMA_CONTAINER" >/dev/null 2>&1 || true
-        # Reprise des poids du volume nommé hérité : évite de retélécharger le modèle.
+        # Recover the weights from the inherited named volume: avoids re-downloading the model.
         if docker volume inspect ollama-data >/dev/null 2>&1; then
           echo "Copying weights from the 'ollama-data' volume into $OLLAMA_DIR/data…"
           docker run --rm -v ollama-data:/from -v "$OLLAMA_DIR/data":/to alpine sh -c 'cp -a /from/. /to/' \
@@ -381,9 +377,9 @@ run_install() {
 
       mkdir -p "$target_dir"
       echo "Downloading: $fichier -> $target_path"
-      # Certains dépôts Hugging Face (ex. Lightricks/LTX-2.5) sont « gated » : un
-      # téléchargement anonyme échoue en 401 tant que les conditions n'ont pas été
-      # acceptées et qu'aucun jeton n'est fourni. HF_TOKEN est utilisé s'il existe.
+      # Some Hugging Face repositories (e.g. Lightricks/LTX-2.5) are "gated": an anonymous
+      # download fails with 401 until the terms have been accepted and a token is provided.
+      # HF_TOKEN is used when set.
       HF_AUTH_ARGS=()
       if [ -n "${HF_TOKEN:-}" ] && [[ "$url" == *"huggingface.co"* ]]; then
         HF_AUTH_ARGS=(-H "Authorization: Bearer ${HF_TOKEN}")
@@ -412,11 +408,11 @@ run_install() {
     GEMMA_STATUS="present"
   else
     echo "$OLLAMA_MODEL missing — pulling through the Ollama HTTP API (may take several minutes)..."
-    # Par l'API et non 'docker exec' : identique que Ollama tourne dans notre conteneur,
-    # dans celui d'un autre projet, ou nativement (systemd) — ce dernier cas laissait le
-    # modèle absent sans que le script s'en aperçoive.
+    # Through the API rather than 'docker exec': same behaviour whether Ollama runs in our
+    # container, in another project's, or natively (systemd) — that last case used to leave
+    # the model missing without the script noticing.
     curl -s -X POST http://localhost:11434/api/pull -d "{\"model\":\"$OLLAMA_MODEL\"}" -o /dev/null
-    # /api/pull répond 200 même quand le tirage échoue en cours de flux : on revérifie.
+    # /api/pull answers 200 even when the pull fails mid-stream: check the result again.
     if curl -sf http://localhost:11434/api/tags 2>/dev/null | grep -q "\"$OLLAMA_MODEL\""; then
       GEMMA_STATUS="downloaded"
     else
@@ -425,8 +421,8 @@ run_install() {
     fi
   fi
 
-  # ComfyUI vient d'être créé : son premier démarrage n'est pas instantané. Sans cette
-  # attente le script se terminerait « OK » alors que l'app ne peut encore rien générer.
+  # ComfyUI has just been created: its first start is not instant. Without this wait the
+  # script would finish with "OK" while the app cannot generate anything yet.
   if [ "$COMFY_CREATED" -eq 1 ]; then
     echo
     echo "Waiting for ComfyUI on :8188 (first start)…"
@@ -450,8 +446,8 @@ run_install() {
   echo "  - Web     : ${WEB_STATUS:-unknown}"
   echo "  - Updater : ${UPDATER_STATUS:-unknown}"
   echo
-  # Emplacement réel du stockage Ollama : le montage du conteneur quand il y en a un,
-  # sinon rien à afficher — un service natif range ses poids où il veut (~/.ollama).
+  # Actual Ollama storage location: the container's mount when there is one, otherwise
+  # nothing useful to print — a native service keeps its weights wherever it likes (~/.ollama).
   OLLAMA_DATA="$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/root/.ollama" }}{{ .Source }}{{ end }}{{ end }}' "$OLLAMA_CONTAINER" 2>/dev/null || true)"
   if [ -z "$OLLAMA_DATA" ]; then
     case "$OLLAMA_STATUS" in
